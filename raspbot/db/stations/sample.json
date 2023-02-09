@@ -1,0 +1,145 @@
+{
+    "countries":
+     [
+       {
+         "regions":
+         [
+           {
+             "settlements":
+             [
+               {
+                 "title": "",
+                 "codes": {},
+                 "stations":
+                 [
+                   {
+                     "direction": "",
+                     "codes":
+                     {
+                       "yandex_code": "s9628674"
+                     },
+                     "station_type": "аэропорт",
+                     "title": "Бермуды",
+                     "longitude": -64.678703,
+                     "transport_type": "Самолёт",
+                     "latitude": 32.364041
+                   }
+                 ]
+              }
+             ],
+             "codes": {},
+             "title": ""
+           }
+         ],
+         "codes":
+         {
+           "yandex_code": "l21546"
+         },
+         "title": "Бермудские острова"
+       },
+       { 
+         "regions":
+         [
+           {
+             "settlements":
+             [
+               {
+                 "title": "Банжул",
+                 "codes":
+                 {
+                   "yandex_code": "c21012"
+                 },
+                 "stations":
+                 [
+                   {
+                     "direction": "",
+                     "codes":
+                     {
+                       "yandex_code": "s9628059"
+                     },
+                     "station_type": "аэропорт",
+                     "title": "Юндум",
+                     "longitude": -16.652222,
+                     "transport_type": "Самолёт",
+                     "latitude": 13.338056
+                   }
+                 ]
+              }
+             ],
+             "codes": {},
+             "title": ""
+           }
+         ],
+         "codes":
+         {
+           "yandex_code": "l21010"
+         },
+         "title": "Гамбия"
+       },
+       {
+         "regions":
+         [
+           {
+             "settlements":
+             [
+               {
+                 "title": "Новая Уситва",
+                 "codes":
+                 {
+                   "yandex_code": "c54722"
+                 },
+                 "stations":
+                 [
+                   {
+                     "direction": "",
+                     "codes":
+                     {
+                       "yandex_code": "s9855938"
+                     },
+                     "station_type": "автобусная остановка",
+                     "title": "Новая Уситва",
+                     "longitude": 28.1280804651562,
+                     "transport_type": "Автобус",
+                     "latitude": 57.4583284320784
+                   }
+                 ]
+               },
+               {
+                 "title": "Касторное",
+                 "codes":
+                 {
+                   "yandex_code": "c22754"
+                 },
+                 "stations":
+                 [
+                   {
+                     "direction": "Елецкое",
+                     "codes":
+                     {
+                       "esr_code": "595401",
+                       "yandex_code": "s9605487"
+                     },
+                     "station_type": "станция",
+                     "title": "Касторная-Новая",
+                     "longitude": 38.123675,
+                     "transport_type": "Поезд",
+                     "latitude": 51.780828
+                   }
+                 ]
+              }
+             ],
+             "codes":
+             {
+               "yandex_code": "r10705"
+             },
+             "title": "Курская область"
+           }
+         ],
+         "codes":
+         {
+           "yandex_code": "l225"
+         },
+         "title": "Россия"
+       }
+     ]
+   }
