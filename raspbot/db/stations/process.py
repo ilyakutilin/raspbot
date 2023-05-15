@@ -48,38 +48,6 @@ def _log_object_creation(obj: object) -> None:
             f"SUCCESS: object of class {obj.__class__.__name__} "
             f"of module {obj.__module__} has been created."
         )
-        # if obj.__class__ in (
-        #     sql.Station,
-        #     sql.Settlement,
-        #     sql.Region,
-        #     sql.Country,
-        # ):
-        #     logger.debug(
-        #         f"Object: class {obj.__class__.__name__} "
-        #         f"title {obj.title} has been created."
-        #     )
-        # elif obj.__class__ == RegionsByCountry:
-        #     logger.debug(
-        #         f"Object: class {obj.__class__.__name__} created."
-        #         f"Country {obj.country.title}. Regions in country: "
-        #         f"{len(obj.regions)}"
-        #     )
-        # elif obj.__class__ == SettlementsByRegion:
-        #     logger.debug(
-        #         f"Object: class {obj.__class__.__name__} created."
-        #         f"Country {obj.region.title}. Regions in country: "
-        #         f"{len(obj.settlements)}"
-        #     )
-        # elif obj.__class__ == StationsBySettlement:
-        #     logger.debug(
-        #         f"Object: class {obj.__class__.__name__} created."
-        #         f"Country {obj.settlement.title}. Regions in country: "
-        #         f"{len(obj.stations)}"
-        #     )
-        # else:
-        #     logger.debug(
-        #         f"Object: class {obj.__class__.__name__} has been created."
-        #     )
     else:
         raise exc.SQLObjectError(
             f"FAILURE: object of class {obj.__class__.__name__} "
@@ -103,6 +71,7 @@ def _get_regions(world: pd.World) -> list[RegionsByCountry]:
         )
         _log_object_creation(regions)
         regions_by_country.append(regions)
+    session.commit()
     return regions_by_country
 
 
@@ -126,6 +95,7 @@ def _get_settlements(
             )
             _log_object_creation(settlements)
             settlements_by_region.append(settlements)
+    session.commit()
     return settlements_by_region
 
 
@@ -140,6 +110,7 @@ def _get_stations(
                 title=settlement.title,
                 yandex_code=settlement.codes.yandex_code,
                 region=item.region,
+                country=item.region.country,
             )
             _log_object_creation(sql_obj)
             session.add(sql_obj)
@@ -149,6 +120,7 @@ def _get_stations(
             )
             _log_object_creation(stations)
             stations_by_settlement.append(stations)
+    session.commit()
     return stations_by_settlement
 
 
@@ -172,9 +144,12 @@ def _add_stations_to_db(
                 if isinstance(station.longitude, float)
                 else None,
                 settlement=item.settlement,
+                region=item.settlement.region,
+                country=item.settlement.country,
             )
             _log_object_creation(sql_obj)
             session.add(sql_obj)
+    session.commit()
 
 
 def populate_db(initial_data: Mapping | Path) -> None:
@@ -209,7 +184,6 @@ def populate_db(initial_data: Mapping | Path) -> None:
         logger.exception(f"Adding stations to DB failed: {e}", exc_info=True)
     else:
         logger.debug("Stations added to DB.")
-    session.commit()
     logger.debug("DB is now populated.")
 
 

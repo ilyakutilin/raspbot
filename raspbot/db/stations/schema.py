@@ -29,6 +29,10 @@ class Station(Base):
     yandex_code = Column(String(100), nullable=False, default="")
     settlement_id = Column(Integer, ForeignKey("settlements.id"))
     settlement = relationship("Settlement", back_populates="stations")
+    region_id = Column(Integer, ForeignKey("regions.id"))
+    region = relationship("Region", back_populates="stations")
+    country_id = Column(Integer, ForeignKey("countries.id"))
+    country = relationship("Country", back_populates="stations")
 
 
 class Settlement(Base):
@@ -38,6 +42,8 @@ class Settlement(Base):
     yandex_code = Column(String(100), nullable=True, default=None)
     region_id = Column(Integer, ForeignKey("regions.id"))
     region = relationship("Region", back_populates="settlements")
+    country_id = Column(Integer, ForeignKey("countries.id"))
+    country = relationship("Country", back_populates="settlements")
     stations = relationship("Station", back_populates="settlement")
 
 
@@ -49,6 +55,7 @@ class Region(Base):
     country_id = Column(Integer, ForeignKey("countries.id"))
     country = relationship("Country", back_populates="regions")
     settlements = relationship("Settlement", back_populates="region")
+    stations = relationship("Station", back_populates="region")
 
 
 class Country(Base):
@@ -57,6 +64,8 @@ class Country(Base):
     title = Column(String(100), nullable=False, default="")
     yandex_code = Column(String(100), nullable=True, default=None)
     regions = relationship("Region", back_populates="country")
+    settlements = relationship("Settlement", back_populates="country")
+    stations = relationship("Station", back_populates="country")
 
 
 def create_db_schema():
