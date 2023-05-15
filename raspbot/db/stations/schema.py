@@ -1,71 +1,84 @@
 from typing import cast
 
-from sqlalchemy import Column
 from sqlalchemy import Float as Float_org
 from sqlalchemy import ForeignKey, Integer, String, create_engine
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.sql.type_api import TypeEngine
 
 from raspbot.config import exceptions as exc
 
-Base = declarative_base()
+
+# declarative base class
+class Base(DeclarativeBase):
+    pass
+
+
 # sqlalchemy.Float is treated as decimal.Decimal, not float.
 # So this is a workaround to stop mypy from complaining.
 # https://github.com/dropbox/sqlalchemy-stubs/issues/178
 Float = cast(type[TypeEngine[float]], Float_org)
-engine = create_engine("sqlite:///stations.db")
+engine = create_engine("sqlite:///stations.db", echo=True)
 
 
 class Station(Base):
     __tablename__ = "stations"
-    id = Column(Integer, primary_key=True)
-    title = Column(String(100), nullable=False, default="")
-    station_type = Column(String(100), nullable=False, default="")
-    transport_type = Column(String(100), nullable=False, default="")
-    latitude = Column(Float, nullable=True, default=None)
-    longitude = Column(Float, nullable=True, default=None)
-    yandex_code = Column(String(100), nullable=False, default="")
-    settlement_id = Column(Integer, ForeignKey("settlements.id"))
-    settlement = relationship("Settlement", back_populates="stations")
-    region_id = Column(Integer, ForeignKey("regions.id"))
-    region = relationship("Region", back_populates="stations")
-    country_id = Column(Integer, ForeignKey("countries.id"))
-    country = relationship("Country", back_populates="stations")
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str] = mapped_column(String(100), default="")
+    station_type: Mapped[str] = mapped_column(String(100), default="")
+    transport_type: Mapped[str] = mapped_column(String(100), default="")
+    latitude: Mapped[Float | None] = mapped_column(Float, default=None)
+    longitude: Mapped[Float | None] = mapped_column(Float, default=None)
+    yandex_code: Mapped[str] = mapped_column(String(100), default="")
+    settlement_id: Mapped[int] = mapped_column(Integer, ForeignKey("settlements.id"))
+    settlement: Mapped["Settlement"] = relationship(
+        "Settlement", back_populates="stations"
+    )
+    region_id: Mapped[int] = mapped_column(ForeignKey("regions.id"))
+    region: Mapped["Region"] = relationship("Region", back_populates="stations")
+    country_id: Mapped[int] = mapped_column(ForeignKey("countries.id"))
+    country: Mapped["Country"] = relationship("Country", back_populates="stations")
 
 
 class Settlement(Base):
     __tablename__ = "settlements"
-    id = Column(Integer, primary_key=True)
-    title = Column(String(100), nullable=False, default="")
-    yandex_code = Column(String(100), nullable=True, default=None)
-    region_id = Column(Integer, ForeignKey("regions.id"))
-    region = relationship("Region", back_populates="settlements")
-    country_id = Column(Integer, ForeignKey("countries.id"))
-    country = relationship("Country", back_populates="settlements")
-    stations = relationship("Station", back_populates="settlement")
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str] = mapped_column(String(100), default="")
+    yandex_code: Mapped[str | None] = mapped_column(String(100), default=None)
+    region_id: Mapped[int] = mapped_column(ForeignKey("regions.id"))
+    region: Mapped["Region"] = relationship("Region", back_populates="settlements")
+    country_id: Mapped[int] = mapped_column(ForeignKey("countries.id"))
+    country: Mapped["Country"] = relationship("Country", back_populates="settlements")
+    stations: Mapped[list["Station"]] = relationship(
+        "Station", back_populates="settlement"
+    )
 
 
 class Region(Base):
     __tablename__ = "regions"
-    id = Column(Integer, primary_key=True)
-    title = Column(String(100), nullable=False, default="")
-    yandex_code = Column(String(100), nullable=True, default=None)
-    country_id = Column(Integer, ForeignKey("countries.id"))
-    country = relationship("Country", back_populates="regions")
-    settlements = relationship("Settlement", back_populates="region")
-    stations = relationship("Station", back_populates="region")
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str] = mapped_column(String(100), default="")
+    yandex_code: Mapped[str | None] = mapped_column(String(100), default=None)
+    country_id: Mapped[int] = mapped_column(ForeignKey("countries.id"))
+    country: Mapped["Country"] = relationship("Country", back_populates="regions")
+    settlements: Mapped[list["Settlement"]] = relationship(
+        "Settlement", back_populates="region"
+    )
+    stations: Mapped[list["Station"]] = relationship("Station", back_populates="region")
 
 
 class Country(Base):
     __tablename__ = "countries"
-    id = Column(Integer, primary_key=True)
-    title = Column(String(100), nullable=False, default="")
-    yandex_code = Column(String(100), nullable=True, default=None)
-    regions = relationship("Region", back_populates="country")
-    settlements = relationship("Settlement", back_populates="country")
-    stations = relationship("Station", back_populates="country")
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str] = mapped_column(String(100), default="")
+    yandex_code: Mapped[str | None] = mapped_column(String(100), default=None)
+    regions: Mapped[list["Region"]] = relationship("Region", back_populates="country")
+    settlements: Mapped[list["Settlement"]] = relationship(
+        "Settlement", back_populates="country"
+    )
+    stations: Mapped[list["Station"]] = relationship(
+        "Station", back_populates="country"
+    )
 
 
 def create_db_schema():
