@@ -13,8 +13,8 @@ from typing import Iterable, Mapping, NamedTuple
 from sqlalchemy.orm import Session
 
 from raspbot.config import exceptions as exc
-from raspbot.config.constants import BASE_DIR
 from raspbot.config.logging import configure_logging
+from raspbot.config.settings import BASE_DIR
 
 from . import getdata as pd
 from . import schema as sql
@@ -156,9 +156,7 @@ def populate_db(initial_data: Mapping | Path) -> None:
     try:
         world = pd.structure_initial_data(initial_data)
     except exc.DataStructureError as e:
-        logger.exception(
-            f"Initial data structuring failed: {e}", exc_info=True
-        )
+        logger.exception(f"Initial data structuring failed: {e}", exc_info=True)
         return
     else:
         if world is None:
@@ -168,9 +166,7 @@ def populate_db(initial_data: Mapping | Path) -> None:
     try:
         sql.create_db_schema()
     except exc.SQLError as e:
-        logger.exception(
-            f"Creating Initial data DB schema failed: {e}", exc_info=True
-        )
+        logger.exception(f"Creating Initial data DB schema failed: {e}", exc_info=True)
         return
     else:
         logger.debug("DB Schema created.")

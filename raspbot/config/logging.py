@@ -1,7 +1,7 @@
 import logging
 from logging.handlers import RotatingFileHandler
 
-from .constants import DT_FORMAT, LOG_FORMAT, LOGS_DIR
+from .settings import DT_FORMAT, LOG_FORMAT, LOGS_DIR
 
 
 def configure_logging(name: str) -> logging.Logger:
@@ -12,9 +12,7 @@ def configure_logging(name: str) -> logging.Logger:
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)
     formatter = logging.Formatter(fmt=LOG_FORMAT, datefmt=DT_FORMAT)
-    rotating_handler = RotatingFileHandler(
-        log_file, maxBytes=10**6, backupCount=5
-    )
+    rotating_handler = RotatingFileHandler(log_file, maxBytes=10**6, backupCount=5)
     rotating_handler.setFormatter(formatter)
     rotating_handler.setLevel(logging.INFO)
     logger.addHandler(rotating_handler)

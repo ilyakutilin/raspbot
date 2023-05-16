@@ -7,8 +7,8 @@ from dotenv import load_dotenv
 from pydantic import BaseModel, ValidationError
 
 from raspbot.config import exceptions as exc
-from raspbot.config.constants import FILES_DIR, HEADERS, STATIONS_LIST_ENDPOINT
 from raspbot.config.logging import configure_logging
+from raspbot.config.settings import FILES_DIR, HEADERS, STATIONS_LIST_ENDPOINT
 from raspbot.config.utils import get_response
 
 load_dotenv()

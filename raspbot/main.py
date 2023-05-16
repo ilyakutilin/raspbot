@@ -1,4 +1,4 @@
-from raspbot.config.constants import BASE_DIR, FILES_DIR
+from raspbot.config.settings import BASE_DIR, FILES_DIR
 from raspbot.db.stations.process import populate_db
 
 INITIAL_DATA = FILES_DIR / "stations.json"
