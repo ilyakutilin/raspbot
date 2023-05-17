@@ -11,6 +11,8 @@ python-telegram-bot = "^20.3"
 python-dotenv = "^1.0.0"
 SQLAlchemy = "^2.0.13"
 pydantic = "^1.10.7"
+aiohttp = "^3.8.4"
+aiodns = "^3.0.0"
 
 [tool.poetry.group.dev.dependencies]
 flake8 = "^6.0.0"
