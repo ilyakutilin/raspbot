@@ -1,8 +1,8 @@
 from telegram.ext import AIORateLimiter, Application, CommandHandler
 
 from raspbot.bot.handlers import start_command
-from raspbot.config import settings
 from raspbot.config.logging import configure_logging
+from raspbot.config.settings import settings
 
 logger = configure_logging(name=__name__)
 

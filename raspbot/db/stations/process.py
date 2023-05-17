@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from raspbot.config import exceptions as exc
 from raspbot.config.logging import configure_logging
-from raspbot.config.settings import BASE_DIR
+from raspbot.config.settings import settings
 
 from . import getdata as pd
 from . import schema as sql
@@ -23,7 +23,7 @@ session = Session(bind=sql.engine)
 
 logger = configure_logging(__name__)
 
-INITIAL_DATA = BASE_DIR / "sample.json"
+INITIAL_DATA = settings.BASE_DIR / "sample.json"
 
 
 class RegionsByCountry(NamedTuple):

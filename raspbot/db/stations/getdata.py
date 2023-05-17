@@ -8,12 +8,12 @@ from pydantic import BaseModel, ValidationError
 
 from raspbot.config import exceptions as exc
 from raspbot.config.logging import configure_logging
-from raspbot.config.settings import FILES_DIR, HEADERS, STATIONS_LIST_ENDPOINT
+from raspbot.config.settings import settings
 from raspbot.config.utils import get_response
 
 load_dotenv()
 
-initial_data_file = FILES_DIR / "stations.json"
+initial_data_file = settings.FILES_DIR / "stations.json"
 
 logger = configure_logging(__name__)
 
@@ -64,7 +64,7 @@ def get_initial_data() -> Mapping:
     Sample of the JSON is this module's directory.
     """
     response: requests.Response = get_response(
-        endpoint=STATIONS_LIST_ENDPOINT, headers=HEADERS
+        endpoint=settings.STATIONS_LIST_ENDPOINT, headers=settings.headers
     )
     return response.json()
 
