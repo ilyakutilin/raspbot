@@ -8,8 +8,8 @@ from pydantic import BaseModel, ValidationError
 
 from raspbot.config import exceptions as exc
 from raspbot.config.logging import configure_logging
-from raspbot.config.settings import settings
 from raspbot.config.utils import get_response
+from raspbot.settings import settings
 
 load_dotenv()
 

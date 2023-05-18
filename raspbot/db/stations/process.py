@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from raspbot.config import exceptions as exc
 from raspbot.config.logging import configure_logging
-from raspbot.config.settings import settings
+from raspbot.settings import settings
 
 from . import getdata as pd
 from . import schema as sql

@@ -3,7 +3,7 @@ from pathlib import Path
 from pydantic import BaseSettings
 from pydantic.tools import lru_cache
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent
 ENV_FILE = None
 if Path.exists(BASE_DIR / ".env"):
     ENV_FILE = BASE_DIR / ".env"

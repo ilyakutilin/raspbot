@@ -1,7 +1,7 @@
 import logging
 from logging.handlers import RotatingFileHandler
 
-from raspbot.config.settings import settings
+from raspbot.settings import settings
 
 
 def configure_logging(name: str) -> logging.Logger:
