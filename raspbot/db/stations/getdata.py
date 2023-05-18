@@ -6,9 +6,9 @@ import requests
 from dotenv import load_dotenv
 from pydantic import BaseModel, ValidationError
 
+from raspbot.apicalls.base import get_response
 from raspbot.config import exceptions as exc
 from raspbot.config.logging import configure_logging
-from raspbot.config.utils import get_response
 from raspbot.settings import settings
 
 load_dotenv()
