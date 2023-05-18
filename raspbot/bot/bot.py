@@ -1,6 +1,6 @@
-from telegram.ext import AIORateLimiter, Application, CommandHandler
+from telegram.ext import AIORateLimiter, Application
 
-from raspbot.bot.handlers import start_command
+from raspbot.bot.handlers import conv_handler
 from raspbot.config.logging import configure_logging
 from raspbot.settings import settings
 
@@ -14,7 +14,7 @@ def create_bot() -> Application:
         .rate_limiter(AIORateLimiter())
         .build()
     )
-    bot.add_handler(CommandHandler("start", start_command))
+    bot.add_handler(conv_handler)
     return bot
 
 
