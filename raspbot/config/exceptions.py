@@ -41,3 +41,10 @@ class SQLObjectError(SQLError):
 
 class CreateSchemaError(SQLError):
     """Raised if there is an SQLAlchemy error."""
+
+
+# Values
+
+
+class InvalidValueError(Exception):
+    """Raised if the value provided to a function is not valid"""
