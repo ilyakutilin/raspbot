@@ -2,16 +2,13 @@ import json
 from pathlib import Path
 from typing import Mapping
 
-import requests
-from dotenv import load_dotenv
+import aiohttp
 from pydantic import BaseModel, ValidationError
 
 from raspbot.apicalls.base import get_response
 from raspbot.config import exceptions as exc
 from raspbot.config.logging import configure_logging
 from raspbot.settings import settings
-
-load_dotenv()
 
 initial_data_file = settings.FILES_DIR / "stations.json"
 
@@ -55,7 +52,7 @@ class World(BaseModel):
     countries: list[Country]
 
 
-def get_initial_data() -> Mapping:
+async def get_initial_data() -> Mapping:
     """
     Processes a JSON response with the initial data from API.
 
@@ -63,10 +60,10 @@ def get_initial_data() -> Mapping:
     JSON being received is about 40 MB in size with deep nesting.
     Sample of the JSON is this module's directory.
     """
-    response: requests.Response = get_response(
+    response: aiohttp.ClientResponse = await get_response(
         endpoint=settings.STATIONS_LIST_ENDPOINT, headers=settings.headers
     )
-    return response.json()
+    return await response.json()
 
 
 def _save_initial_data_to_file(json_response: dict) -> Path:
