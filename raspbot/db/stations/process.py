@@ -15,8 +15,8 @@ from typing import Any, Iterable, Mapping, NamedTuple
 from raspbot.config import exceptions as exc
 from raspbot.config.logging import configure_logging
 from raspbot.db.base import AsyncSessionLocal
-from raspbot.db.stations import getdata as pd
-from raspbot.db.stations import models
+from raspbot.db.stations import models, schema
+from raspbot.db.stations.getdata import structure_initial_data
 from raspbot.settings import BASE_DIR
 
 logger = configure_logging(__name__)
@@ -26,7 +26,7 @@ INITIAL_DATA = BASE_DIR / "sample.json"
 
 class RegionsByCountry(NamedTuple):
     country: models.Country
-    regions: list[pd.Region]
+    regions: list[schema.Region]
 
     def __repr__(self) -> str:
         return self.country.title
@@ -34,7 +34,7 @@ class RegionsByCountry(NamedTuple):
 
 class SettlementsByRegion(NamedTuple):
     region: models.Region
-    settlements: list[pd.Settlement]
+    settlements: list[schema.Settlement]
 
     def __repr__(self) -> str:
         return self.region.title
@@ -42,7 +42,7 @@ class SettlementsByRegion(NamedTuple):
 
 class StationsBySettlement(NamedTuple):
     settlement: models.Settlement
-    stations: list[pd.Station]
+    stations: list[schema.Station]
 
     def __repr__(self) -> str:
         return self.settlement.title
@@ -58,7 +58,7 @@ def _log_object_creation(obj: Any) -> None:
         )
 
 
-async def _get_regions(world: pd.World) -> list[RegionsByCountry]:
+async def _get_regions(world: schema.World) -> list[RegionsByCountry]:
     """Receives the list of countries and returns the regions by countries."""
     regions_by_country = []
     async with AsyncSessionLocal() as session:
@@ -161,7 +161,7 @@ async def _add_stations_to_db(
 
 async def populate_db(initial_data: Mapping | Path) -> None:
     try:
-        world = pd.structure_initial_data(initial_data)
+        world = structure_initial_data(initial_data)
     except exc.DataStructureError as e:
         logger.exception(f"Initial data structuring failed: {e}", exc_info=True)
         return
