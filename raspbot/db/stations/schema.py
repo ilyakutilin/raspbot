@@ -39,6 +39,9 @@ class Station(Base):
     country_id: Mapped[int] = mapped_column(ForeignKey("countries.id"))
     country: Mapped["Country"] = relationship("Country", back_populates="stations")
 
+    def __repr__(self):
+        return self.title
+
 
 class Settlement(Base):
     __tablename__ = "settlements"
@@ -53,6 +56,9 @@ class Settlement(Base):
         "Station", back_populates="settlement"
     )
 
+    def __repr__(self):
+        return self.title
+
 
 class Region(Base):
     __tablename__ = "regions"
@@ -65,6 +71,9 @@ class Region(Base):
         "Settlement", back_populates="region"
     )
     stations: Mapped[list["Station"]] = relationship("Station", back_populates="region")
+
+    def __repr__(self):
+        return self.title
 
 
 class Country(Base):
@@ -80,6 +89,8 @@ class Country(Base):
         "Station", back_populates="country"
     )
 
+    def __repr__(self):
+        return self.title
 
 def create_db_schema():
     try:

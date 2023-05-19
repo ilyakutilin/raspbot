@@ -30,28 +30,33 @@ class RegionsByCountry(NamedTuple):
     country: sql.Country
     regions: list[pd.Region]
 
+    def __repr__(self) -> str:
+        return self.country.title
+
 
 class SettlementsByRegion(NamedTuple):
     region: sql.Region
     settlements: list[pd.Settlement]
+
+    def __repr__(self) -> str:
+        return self.region.title
 
 
 class StationsBySettlement(NamedTuple):
     settlement: sql.Settlement
     stations: list[pd.Station]
 
+    def __repr__(self) -> str:
+        return self.settlement.title
 
-def _log_object_creation(obj: object) -> None:
+
+def _log_object_creation(obj: Any) -> None:
     """Logs object creation and raises exceptions."""
     if obj:
-        logger.debug(
-            f"SUCCESS: object of class {obj.__class__.__name__} "
-            f"of module {obj.__module__} has been created."
-        )
+        logger.debug(f"SUCCESS: {obj.__class__.__name__} {obj} has been created.")
     else:
         raise exc.SQLObjectError(
-            f"FAILURE: object of class {obj.__class__.__name__} "
-            f"of module {obj.__module__} has NOT been created."
+            f"FAILURE: object {obj.__class__.__name__} {obj} has NOT been created."
         )
 
 
