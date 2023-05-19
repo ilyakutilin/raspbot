@@ -16,7 +16,7 @@ from raspbot.config import exceptions as exc
 from raspbot.config.logging import configure_logging
 from raspbot.db.base import AsyncSessionLocal
 from raspbot.db.stations import getdata as pd
-from raspbot.db.stations import schema as sql
+from raspbot.db.stations import models
 from raspbot.settings import BASE_DIR
 
 logger = configure_logging(__name__)
@@ -25,7 +25,7 @@ INITIAL_DATA = BASE_DIR / "sample.json"
 
 
 class RegionsByCountry(NamedTuple):
-    country: sql.Country
+    country: models.Country
     regions: list[pd.Region]
 
     def __repr__(self) -> str:
@@ -33,7 +33,7 @@ class RegionsByCountry(NamedTuple):
 
 
 class SettlementsByRegion(NamedTuple):
-    region: sql.Region
+    region: models.Region
     settlements: list[pd.Settlement]
 
     def __repr__(self) -> str:
@@ -41,7 +41,7 @@ class SettlementsByRegion(NamedTuple):
 
 
 class StationsBySettlement(NamedTuple):
-    settlement: sql.Settlement
+    settlement: models.Settlement
     stations: list[pd.Station]
 
     def __repr__(self) -> str:
@@ -63,7 +63,7 @@ async def _get_regions(world: pd.World) -> list[RegionsByCountry]:
     regions_by_country = []
     async with AsyncSessionLocal() as session:
         for country in world.countries:
-            sql_obj = sql.Country(
+            sql_obj = models.Country(
                 title=country.title,
                 yandex_code=country.codes.yandex_code,
             )
@@ -87,7 +87,7 @@ async def _get_settlements(
     async with AsyncSessionLocal() as session:
         for item in regions_by_country:
             for region in item.regions:
-                sql_obj = sql.Region(
+                sql_obj = models.Region(
                     title=region.title,
                     yandex_code=region.codes.yandex_code,
                     country=item.country,
@@ -112,7 +112,7 @@ async def _get_stations(
     async with AsyncSessionLocal() as session:
         for item in settlements_by_region:
             for settlement in item.settlements:
-                sql_obj = sql.Settlement(
+                sql_obj = models.Settlement(
                     title=settlement.title,
                     yandex_code=settlement.codes.yandex_code,
                     region=item.region,
@@ -137,7 +137,7 @@ async def _add_stations_to_db(
     async with AsyncSessionLocal() as session:
         for item in stations_by_settlement:
             for station in item.stations:
-                sql_obj = sql.Station(
+                sql_obj = models.Station(
                     title=station.title,
                     yandex_code=station.codes.yandex_code
                     if station.codes.yandex_code is not None
@@ -171,7 +171,7 @@ async def populate_db(initial_data: Mapping | Path) -> None:
         logger.debug("Initial data structured.")
 
     try:
-        await sql.create_db_schema()
+        await models.create_db_schema()
     except exc.SQLError as e:
         logger.exception(f"Creating Initial data DB schema failed: {e}", exc_info=True)
         return
