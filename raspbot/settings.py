@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     LOG_STREAM_LEVEL: str = "INFO"
     LOG_FILE_LEVEL: str = "INFO"
     LOG_DIR: str | Path = BASE_DIR / "logs"
-    LOG_FILE: str = "raspbot.log"
+    LOG_FILE: str | Path = LOG_DIR / "raspbot.log"
     LOG_FILE_SIZE: int = 10 * 2**20
     LOG_FILES_TO_KEEP: int = 5
 

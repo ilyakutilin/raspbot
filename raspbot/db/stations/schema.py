@@ -1,24 +1,19 @@
+import asyncio
 from typing import cast
 
 from sqlalchemy import Float as Float_org
-from sqlalchemy import ForeignKey, Integer, String, create_engine
+from sqlalchemy import ForeignKey, Integer, String
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql.type_api import TypeEngine
 
 from raspbot.config import exceptions as exc
-
-
-# declarative base class
-class Base(DeclarativeBase):
-    pass
-
+from raspbot.db.base import Base, engine
 
 # sqlalchemy.Float is treated as decimal.Decimal, not float.
 # So this is a workaround to stop mypy from complaining.
 # https://github.com/dropbox/sqlalchemy-stubs/issues/178
 Float = cast(type[TypeEngine[float]], Float_org)
-engine = create_engine("sqlite:///stations.db", echo=True)
 
 
 class Station(Base):
@@ -39,6 +34,9 @@ class Station(Base):
     country_id: Mapped[int] = mapped_column(ForeignKey("countries.id"))
     country: Mapped["Country"] = relationship("Country", back_populates="stations")
 
+    def __repr__(self):
+        return self.title
+
 
 class Settlement(Base):
     __tablename__ = "settlements"
@@ -53,6 +51,9 @@ class Settlement(Base):
         "Station", back_populates="settlement"
     )
 
+    def __repr__(self):
+        return self.title
+
 
 class Region(Base):
     __tablename__ = "regions"
@@ -65,6 +66,9 @@ class Region(Base):
         "Settlement", back_populates="region"
     )
     stations: Mapped[list["Station"]] = relationship("Station", back_populates="region")
+
+    def __repr__(self):
+        return self.title
 
 
 class Country(Base):
@@ -80,13 +84,17 @@ class Country(Base):
         "Station", back_populates="country"
     )
 
+    def __repr__(self):
+        return self.title
 
-def create_db_schema():
+
+async def create_db_schema():
     try:
-        Base.metadata.create_all(engine)
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
     except SQLAlchemyError as e:
         raise exc.CreateSchemaError(f"{type(e).__name__}: {e}")
 
 
-if __name__ == "main":
-    create_db_schema()
+if __name__ == "__main__":
+    asyncio.run(create_db_schema)
