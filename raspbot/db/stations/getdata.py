@@ -1,3 +1,4 @@
+import asyncio
 import json
 from pathlib import Path
 from typing import Mapping
@@ -93,3 +94,8 @@ def structure_initial_data(initial_data: Mapping | Path) -> World | None:
         else:
             return structured_data
     return None
+
+
+if __name__ == "__main__":
+    initial_data = asyncio.run(get_initial_data())
+    _save_initial_data_to_file(initial_data)
