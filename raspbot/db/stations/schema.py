@@ -1,5 +1,7 @@
 from pydantic import BaseModel
 
+from raspbot.db.stations import models
+
 
 class Code(BaseModel):
     yandex_code: str | None = None
@@ -36,3 +38,32 @@ class Country(Entity):
 
 class World(BaseModel):
     countries: list[Country]
+
+
+class EntitiesByEntity(BaseModel):
+    class Config:
+        arbitrary_types_allowed = True
+
+
+class RegionsByCountry(EntitiesByEntity):
+    country: models.Country
+    regions: list[Region]
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__} {self.country.title}"
+
+
+class SettlementsByRegion(EntitiesByEntity):
+    region: models.Region
+    settlements: list[Settlement]
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__} {self.region.title}"
+
+
+class StationsBySettlement(EntitiesByEntity):
+    settlement: models.Settlement
+    stations: list[Station]
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__} {self.settlement.title}"

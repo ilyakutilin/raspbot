@@ -10,7 +10,7 @@ a unit of the Yandex station data structure.
 import asyncio
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Iterable, Mapping, NamedTuple
+from typing import Iterable, Mapping
 
 from raspbot.config import exceptions as exc
 from raspbot.config.logging import configure_logging
@@ -24,41 +24,15 @@ logger = configure_logging(__name__)
 INITIAL_DATA = BASE_DIR / "sample.json"
 
 
-class RegionsByCountry(NamedTuple):
-    country: models.Country
-    regions: list[schema.Region]
-
-    def __repr__(self) -> str:
-        return self.country.title
-
-
-class SettlementsByRegion(NamedTuple):
-    region: models.Region
-    settlements: list[schema.Settlement]
-
-    def __repr__(self) -> str:
-        return self.region.title
-
-
-class StationsBySettlement(NamedTuple):
-    settlement: models.Settlement
-    stations: list[schema.Station]
-
-    def __repr__(self) -> str:
-        return self.settlement.title
-
-
-def _log_object_creation(obj: Any) -> None:
+def _log_object_creation(obj: object) -> None:
     """Logs object creation and raises exceptions."""
     if obj:
-        logger.debug(f"SUCCESS: {obj.__class__.__name__} {obj} has been created.")
+        logger.debug(f"SUCCESS: {obj} has been created.")
     else:
-        raise exc.SQLObjectError(
-            f"FAILURE: object {obj.__class__.__name__} {obj} has NOT been created."
-        )
+        raise exc.SQLObjectError(f"FAILURE: object {obj} has NOT been created.")
 
 
-async def _get_regions(world: schema.World) -> list[RegionsByCountry]:
+async def _get_regions(world: schema.World) -> list[schema.RegionsByCountry]:
     """Receives the list of countries and returns the regions by countries."""
     regions_by_country = []
     async with AsyncSessionLocal() as session:
@@ -69,7 +43,7 @@ async def _get_regions(world: schema.World) -> list[RegionsByCountry]:
             )
             _log_object_creation(sql_obj)
             session.add(sql_obj)
-            regions = RegionsByCountry(
+            regions = schema.RegionsByCountry(
                 country=sql_obj,
                 regions=country.regions,
             )
@@ -80,8 +54,8 @@ async def _get_regions(world: schema.World) -> list[RegionsByCountry]:
 
 
 async def _get_settlements(
-    regions_by_country: Iterable[RegionsByCountry],
-) -> list[SettlementsByRegion]:
+    regions_by_country: Iterable[schema.RegionsByCountry],
+) -> list[schema.SettlementsByRegion]:
     """Receives the list of regions and returns the settlements by regions."""
     settlements_by_region = []
     async with AsyncSessionLocal() as session:
@@ -94,7 +68,7 @@ async def _get_settlements(
                 )
                 _log_object_creation(sql_obj)
                 session.add(sql_obj)
-                settlements = SettlementsByRegion(
+                settlements = schema.SettlementsByRegion(
                     region=sql_obj,
                     settlements=region.settlements,
                 )
@@ -105,8 +79,8 @@ async def _get_settlements(
 
 
 async def _get_stations(
-    settlements_by_region: Iterable[SettlementsByRegion],
-) -> list[StationsBySettlement]:
+    settlements_by_region: Iterable[schema.SettlementsByRegion],
+) -> list[schema.StationsBySettlement]:
     """Receives the settlements and returns the stations by settlements."""
     stations_by_settlement = []
     async with AsyncSessionLocal() as session:
@@ -120,7 +94,7 @@ async def _get_stations(
                 )
                 _log_object_creation(sql_obj)
                 session.add(sql_obj)
-                stations = StationsBySettlement(
+                stations = schema.StationsBySettlement(
                     settlement=sql_obj,
                     stations=settlement.stations,
                 )
@@ -131,7 +105,7 @@ async def _get_stations(
 
 
 async def _add_stations_to_db(
-    stations_by_settlement: Iterable[StationsBySettlement],
+    stations_by_settlement: Iterable[schema.StationsBySettlement],
 ) -> None:
     """Receives the list of stations and adds them to the database."""
     async with AsyncSessionLocal() as session:
