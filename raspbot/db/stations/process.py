@@ -16,7 +16,7 @@ from raspbot.config import exceptions as exc
 from raspbot.config.logging import configure_logging
 from raspbot.db.base import AsyncSessionLocal
 from raspbot.db.stations import models, schema
-from raspbot.db.stations.getdata import structure_initial_data
+from raspbot.db.stations.parse import structure_initial_data
 from raspbot.settings import BASE_DIR
 
 logger = configure_logging(__name__)
