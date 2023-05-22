@@ -12,8 +12,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Iterable, Mapping
 
-from raspbot.config import exceptions as exc
-from raspbot.config.logging import configure_logging
+from raspbot.core import exceptions as exc
+from raspbot.core.logging import configure_logging
 from raspbot.db.base import AsyncSessionLocal
 from raspbot.db.stations import models, schema
 from raspbot.db.stations.parse import structure_initial_data

@@ -3,8 +3,8 @@ import datetime
 from typing import Mapping
 
 from raspbot.apicalls.base import get_response
-from raspbot.config.exceptions import InvalidValueError
-from raspbot.config.logging import configure_logging
+from raspbot.core.exceptions import InvalidValueError
+from raspbot.core.logging import configure_logging
 from raspbot.settings import settings as s
 
 logger = configure_logging(name=__name__)

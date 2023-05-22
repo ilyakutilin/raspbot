@@ -7,8 +7,8 @@ import aiohttp
 from pydantic import ValidationError
 
 from raspbot.apicalls.base import get_response
-from raspbot.config import exceptions as exc
-from raspbot.config.logging import configure_logging
+from raspbot.core import exceptions as exc
+from raspbot.core.logging import configure_logging
 from raspbot.db.stations.schema import World
 from raspbot.settings import settings
 

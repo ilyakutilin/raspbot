@@ -7,7 +7,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql.type_api import TypeEngine
 
-from raspbot.config import exceptions as exc
+from raspbot.core import exceptions as exc
 from raspbot.db.base import Base, engine
 
 # sqlalchemy.Float is treated as decimal.Decimal, not float.

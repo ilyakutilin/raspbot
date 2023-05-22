@@ -3,8 +3,8 @@ from http import HTTPStatus
 import aiohttp
 from dotenv import load_dotenv
 
-from raspbot.config import exceptions as exc
-from raspbot.config.logging import configure_logging
+from raspbot.core import exceptions as exc
+from raspbot.core.logging import configure_logging
 
 load_dotenv()
 
