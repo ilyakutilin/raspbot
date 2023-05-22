@@ -1,8 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column
 
-# Imports of models for Alembic
-from raspbot.db.stations.models import Country, Region, Settlement, Station  # noqa
 from raspbot.settings import settings
 
 
