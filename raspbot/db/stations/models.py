@@ -16,42 +16,42 @@ from raspbot.db.base import Base, engine
 Float = cast(type[TypeEngine[float]], Float_org)
 
 
-class Entity(Base):
+class StationCommonMixin(object):
     title: Mapped[str] = mapped_column(String(100), default="")
     yandex_code: Mapped[str | None] = mapped_column(String(100), default=None)
 
     def __repr__(self):
-        return self.title
+        return f"{self.__class__.__name__} {self.title}"
 
 
-class Station(Entity):
+class Station(Base, StationCommonMixin):
     station_type: Mapped[str] = mapped_column(String(100), default="")
     transport_type: Mapped[str] = mapped_column(String(100), default="")
     latitude: Mapped[Float | None] = mapped_column(Float, default=None)
     longitude: Mapped[Float | None] = mapped_column(Float, default=None)
     yandex_code: Mapped[str] = mapped_column(String(100), default="")
-    settlement_id: Mapped[int] = mapped_column(Integer, ForeignKey("settlements.id"))
+    settlement_id: Mapped[int] = mapped_column(Integer, ForeignKey("settlement.id"))
     settlement: Mapped["Settlement"] = relationship(
         "Settlement", back_populates="stations"
     )
-    region_id: Mapped[int] = mapped_column(ForeignKey("regions.id"))
+    region_id: Mapped[int] = mapped_column(ForeignKey("region.id"))
     region: Mapped["Region"] = relationship("Region", back_populates="stations")
-    country_id: Mapped[int] = mapped_column(ForeignKey("countries.id"))
+    country_id: Mapped[int] = mapped_column(ForeignKey("country.id"))
     country: Mapped["Country"] = relationship("Country", back_populates="stations")
 
 
-class Settlement(Entity):
-    region_id: Mapped[int] = mapped_column(ForeignKey("regions.id"))
+class Settlement(Base, StationCommonMixin):
+    region_id: Mapped[int] = mapped_column(ForeignKey("region.id"))
     region: Mapped["Region"] = relationship("Region", back_populates="settlements")
-    country_id: Mapped[int] = mapped_column(ForeignKey("countries.id"))
+    country_id: Mapped[int] = mapped_column(ForeignKey("country.id"))
     country: Mapped["Country"] = relationship("Country", back_populates="settlements")
     stations: Mapped[list["Station"]] = relationship(
         "Station", back_populates="settlement"
     )
 
 
-class Region(Entity):
-    country_id: Mapped[int] = mapped_column(ForeignKey("countries.id"))
+class Region(Base, StationCommonMixin):
+    country_id: Mapped[int] = mapped_column(ForeignKey("country.id"))
     country: Mapped["Country"] = relationship("Country", back_populates="regions")
     settlements: Mapped[list["Settlement"]] = relationship(
         "Settlement", back_populates="region"
@@ -59,7 +59,7 @@ class Region(Entity):
     stations: Mapped[list["Station"]] = relationship("Station", back_populates="region")
 
 
-class Country(Entity):
+class Country(Base, StationCommonMixin):
     regions: Mapped[list["Region"]] = relationship("Region", back_populates="country")
     settlements: Mapped[list["Settlement"]] = relationship(
         "Settlement", back_populates="country"

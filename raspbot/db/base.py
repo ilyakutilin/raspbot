@@ -7,7 +7,7 @@ from raspbot.settings import settings
 class PreBase:
     @declared_attr
     def __tablename__(cls):
-        return f"{cls.__name__.lower()}s"
+        return cls.__name__.lower()
 
     id: Mapped[int] = mapped_column(primary_key=True)
 
