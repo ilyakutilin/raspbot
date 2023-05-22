@@ -16,10 +16,15 @@ from raspbot.db.base import Base, engine
 Float = cast(type[TypeEngine[float]], Float_org)
 
 
-class Station(Base):
-    __tablename__ = "stations"
-    id: Mapped[int] = mapped_column(primary_key=True)
+class Entity(Base):
     title: Mapped[str] = mapped_column(String(100), default="")
+    yandex_code: Mapped[str | None] = mapped_column(String(100), default=None)
+
+    def __repr__(self):
+        return self.title
+
+
+class Station(Entity):
     station_type: Mapped[str] = mapped_column(String(100), default="")
     transport_type: Mapped[str] = mapped_column(String(100), default="")
     latitude: Mapped[Float | None] = mapped_column(Float, default=None)
@@ -34,15 +39,8 @@ class Station(Base):
     country_id: Mapped[int] = mapped_column(ForeignKey("countries.id"))
     country: Mapped["Country"] = relationship("Country", back_populates="stations")
 
-    def __repr__(self):
-        return self.title
 
-
-class Settlement(Base):
-    __tablename__ = "settlements"
-    id: Mapped[int] = mapped_column(primary_key=True)
-    title: Mapped[str] = mapped_column(String(100), default="")
-    yandex_code: Mapped[str | None] = mapped_column(String(100), default=None)
+class Settlement(Entity):
     region_id: Mapped[int] = mapped_column(ForeignKey("regions.id"))
     region: Mapped["Region"] = relationship("Region", back_populates="settlements")
     country_id: Mapped[int] = mapped_column(ForeignKey("countries.id"))
@@ -51,15 +49,8 @@ class Settlement(Base):
         "Station", back_populates="settlement"
     )
 
-    def __repr__(self):
-        return self.title
 
-
-class Region(Base):
-    __tablename__ = "regions"
-    id: Mapped[int] = mapped_column(primary_key=True)
-    title: Mapped[str] = mapped_column(String(100), default="")
-    yandex_code: Mapped[str | None] = mapped_column(String(100), default=None)
+class Region(Entity):
     country_id: Mapped[int] = mapped_column(ForeignKey("countries.id"))
     country: Mapped["Country"] = relationship("Country", back_populates="regions")
     settlements: Mapped[list["Settlement"]] = relationship(
@@ -67,15 +58,8 @@ class Region(Base):
     )
     stations: Mapped[list["Station"]] = relationship("Station", back_populates="region")
 
-    def __repr__(self):
-        return self.title
 
-
-class Country(Base):
-    __tablename__ = "countries"
-    id: Mapped[int] = mapped_column(primary_key=True)
-    title: Mapped[str] = mapped_column(String(100), default="")
-    yandex_code: Mapped[str | None] = mapped_column(String(100), default=None)
+class Country(Entity):
     regions: Mapped[list["Region"]] = relationship("Region", back_populates="country")
     settlements: Mapped[list["Settlement"]] = relationship(
         "Settlement", back_populates="country"
@@ -83,9 +67,6 @@ class Country(Base):
     stations: Mapped[list["Station"]] = relationship(
         "Station", back_populates="country"
     )
-
-    def __repr__(self):
-        return self.title
 
 
 async def create_db_schema():

@@ -1,10 +1,18 @@
 from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, create_async_engine
-from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column
 
 from raspbot.settings import settings
 
 
-class Base(AsyncAttrs, DeclarativeBase):
+class PreBase:
+    @declared_attr
+    def __tablename__(cls):
+        return f"{cls.__name__.lower()}s"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+
+
+class Base(AsyncAttrs, DeclarativeBase, PreBase):
     pass
 
 
