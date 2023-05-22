@@ -4,53 +4,17 @@ from pathlib import Path
 from typing import Mapping
 
 import aiohttp
-from pydantic import BaseModel, ValidationError
+from pydantic import ValidationError
 
 from raspbot.apicalls.base import get_response
 from raspbot.config import exceptions as exc
 from raspbot.config.logging import configure_logging
+from raspbot.db.stations.schema import World
 from raspbot.settings import settings
 
 initial_data_file = settings.FILES_DIR / "stations.json"
 
 logger = configure_logging(__name__)
-
-
-class Code(BaseModel):
-    yandex_code: str | None = None
-    esr_code: str | None = None
-
-
-class Station(BaseModel):
-    direction: str
-    codes: Code
-    station_type: str
-    title: str
-    longitude: float | str
-    transport_type: str
-    latitude: float | str
-
-
-class Settlement(BaseModel):
-    title: str
-    codes: Code
-    stations: list[Station]
-
-
-class Region(BaseModel):
-    settlements: list[Settlement]
-    codes: Code
-    title: str
-
-
-class Country(BaseModel):
-    regions: list[Region]
-    codes: Code
-    title: str
-
-
-class World(BaseModel):
-    countries: list[Country]
 
 
 async def get_initial_data() -> Mapping:

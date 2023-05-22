@@ -10,13 +10,13 @@ a unit of the Yandex station data structure.
 import asyncio
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Iterable, Mapping, NamedTuple
+from typing import Iterable, Mapping
 
 from raspbot.config import exceptions as exc
 from raspbot.config.logging import configure_logging
 from raspbot.db.base import AsyncSessionLocal
-from raspbot.db.stations import getdata as pd
-from raspbot.db.stations import schema as sql
+from raspbot.db.stations import models, schema
+from raspbot.db.stations.parse import structure_initial_data
 from raspbot.settings import BASE_DIR
 
 logger = configure_logging(__name__)
@@ -24,52 +24,26 @@ logger = configure_logging(__name__)
 INITIAL_DATA = BASE_DIR / "sample.json"
 
 
-class RegionsByCountry(NamedTuple):
-    country: sql.Country
-    regions: list[pd.Region]
-
-    def __repr__(self) -> str:
-        return self.country.title
-
-
-class SettlementsByRegion(NamedTuple):
-    region: sql.Region
-    settlements: list[pd.Settlement]
-
-    def __repr__(self) -> str:
-        return self.region.title
-
-
-class StationsBySettlement(NamedTuple):
-    settlement: sql.Settlement
-    stations: list[pd.Station]
-
-    def __repr__(self) -> str:
-        return self.settlement.title
-
-
-def _log_object_creation(obj: Any) -> None:
+def _log_object_creation(obj: object) -> None:
     """Logs object creation and raises exceptions."""
     if obj:
-        logger.debug(f"SUCCESS: {obj.__class__.__name__} {obj} has been created.")
+        logger.debug(f"SUCCESS: {obj} has been created.")
     else:
-        raise exc.SQLObjectError(
-            f"FAILURE: object {obj.__class__.__name__} {obj} has NOT been created."
-        )
+        raise exc.SQLObjectError(f"FAILURE: object {obj} has NOT been created.")
 
 
-async def _get_regions(world: pd.World) -> list[RegionsByCountry]:
+async def _get_regions(world: schema.World) -> list[schema.RegionsByCountry]:
     """Receives the list of countries and returns the regions by countries."""
     regions_by_country = []
     async with AsyncSessionLocal() as session:
         for country in world.countries:
-            sql_obj = sql.Country(
+            sql_obj = models.Country(
                 title=country.title,
                 yandex_code=country.codes.yandex_code,
             )
             _log_object_creation(sql_obj)
             session.add(sql_obj)
-            regions = RegionsByCountry(
+            regions = schema.RegionsByCountry(
                 country=sql_obj,
                 regions=country.regions,
             )
@@ -80,21 +54,21 @@ async def _get_regions(world: pd.World) -> list[RegionsByCountry]:
 
 
 async def _get_settlements(
-    regions_by_country: Iterable[RegionsByCountry],
-) -> list[SettlementsByRegion]:
+    regions_by_country: Iterable[schema.RegionsByCountry],
+) -> list[schema.SettlementsByRegion]:
     """Receives the list of regions and returns the settlements by regions."""
     settlements_by_region = []
     async with AsyncSessionLocal() as session:
         for item in regions_by_country:
             for region in item.regions:
-                sql_obj = sql.Region(
+                sql_obj = models.Region(
                     title=region.title,
                     yandex_code=region.codes.yandex_code,
                     country=item.country,
                 )
                 _log_object_creation(sql_obj)
                 session.add(sql_obj)
-                settlements = SettlementsByRegion(
+                settlements = schema.SettlementsByRegion(
                     region=sql_obj,
                     settlements=region.settlements,
                 )
@@ -105,14 +79,14 @@ async def _get_settlements(
 
 
 async def _get_stations(
-    settlements_by_region: Iterable[SettlementsByRegion],
-) -> list[StationsBySettlement]:
+    settlements_by_region: Iterable[schema.SettlementsByRegion],
+) -> list[schema.StationsBySettlement]:
     """Receives the settlements and returns the stations by settlements."""
     stations_by_settlement = []
     async with AsyncSessionLocal() as session:
         for item in settlements_by_region:
             for settlement in item.settlements:
-                sql_obj = sql.Settlement(
+                sql_obj = models.Settlement(
                     title=settlement.title,
                     yandex_code=settlement.codes.yandex_code,
                     region=item.region,
@@ -120,7 +94,7 @@ async def _get_stations(
                 )
                 _log_object_creation(sql_obj)
                 session.add(sql_obj)
-                stations = StationsBySettlement(
+                stations = schema.StationsBySettlement(
                     settlement=sql_obj,
                     stations=settlement.stations,
                 )
@@ -131,13 +105,13 @@ async def _get_stations(
 
 
 async def _add_stations_to_db(
-    stations_by_settlement: Iterable[StationsBySettlement],
+    stations_by_settlement: Iterable[schema.StationsBySettlement],
 ) -> None:
     """Receives the list of stations and adds them to the database."""
     async with AsyncSessionLocal() as session:
         for item in stations_by_settlement:
             for station in item.stations:
-                sql_obj = sql.Station(
+                sql_obj = models.Station(
                     title=station.title,
                     yandex_code=station.codes.yandex_code
                     if station.codes.yandex_code is not None
@@ -161,7 +135,7 @@ async def _add_stations_to_db(
 
 async def populate_db(initial_data: Mapping | Path) -> None:
     try:
-        world = pd.structure_initial_data(initial_data)
+        world = structure_initial_data(initial_data)
     except exc.DataStructureError as e:
         logger.exception(f"Initial data structuring failed: {e}", exc_info=True)
         return
@@ -171,7 +145,7 @@ async def populate_db(initial_data: Mapping | Path) -> None:
         logger.debug("Initial data structured.")
 
     try:
-        await sql.create_db_schema()
+        await models.create_db_schema()
     except exc.SQLError as e:
         logger.exception(f"Creating Initial data DB schema failed: {e}", exc_info=True)
         return
