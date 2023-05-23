@@ -1,13 +1,9 @@
-from raspbot.db.stations.fill_db import populate_db
-from raspbot.settings import settings
+from raspbot.bot.bot import create_bot
+from raspbot.core.logging import configure_logging
 
-INITIAL_DATA = settings.FILES_DIR / "stations.json"
-INITIAL_DATA_SAMPLE = settings.BASE_DIR / "config" / "sample.json"
-
-
-def main():
-    """Start."""
-    populate_db(INITIAL_DATA)
+logger = configure_logging(name=__name__)
 
 
-main()
+if __name__ == "__main__":
+    create_bot().run_polling()
+    logger.info("Bot started.")
