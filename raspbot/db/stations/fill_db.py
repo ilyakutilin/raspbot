@@ -133,6 +133,14 @@ async def _add_stations_to_db(
         await session.commit()
 
 
+async def _add_updated_date() -> None:
+    """Adds the date and time when the stations DB was last updated."""
+    async with AsyncSessionLocal() as session:
+        sql_obj = models.UpdateDate()
+        session.add(sql_obj)
+    await session.commit()
+
+
 async def populate_db(initial_data: Mapping | Path) -> None:
     try:
         world = structure_initial_data(initial_data)
@@ -162,6 +170,11 @@ async def populate_db(initial_data: Mapping | Path) -> None:
     else:
         logger.debug("Stations added to DB.")
     logger.debug("DB is now populated.")
+
+    try:
+        await _add_updated_date()
+    except exc.SQLError as e:
+        logger.exception(f"Adding the updated date to DB failed: {e}", exc_info=True)
 
 
 if __name__ == "__main__":

@@ -1,10 +1,13 @@
 import asyncio
+from datetime import datetime
 from typing import cast
 
+from sqlalchemy import DateTime
 from sqlalchemy import Float as Float_org
 from sqlalchemy import ForeignKey, Integer, String
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.sql import func
 from sqlalchemy.sql.type_api import TypeEngine
 
 from raspbot.core import exceptions as exc
@@ -66,6 +69,12 @@ class Country(Base, StationCommonMixin):
     )
     stations: Mapped[list["Station"]] = relationship(
         "Station", back_populates="country"
+    )
+
+
+class UpdateDate(Base):
+    updated: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
     )
 
 
