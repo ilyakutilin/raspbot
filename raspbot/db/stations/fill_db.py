@@ -10,18 +10,17 @@ a unit of the Yandex station data structure.
 import asyncio
 from datetime import datetime
 from pathlib import Path
-from typing import Iterable, Mapping
+from typing import Iterable
 
+from raspbot.apicalls.base import get_response
 from raspbot.core import exceptions as exc
 from raspbot.core.logging import configure_logging
 from raspbot.db.base import AsyncSessionLocal
 from raspbot.db.stations import models, schema
 from raspbot.db.stations.parse import structure_initial_data
-from raspbot.settings import BASE_DIR
+from raspbot.settings import settings
 
 logger = configure_logging(__name__)
-
-INITIAL_DATA = BASE_DIR / "sample.json"
 
 
 def _log_object_creation(obj: object) -> None:
@@ -138,10 +137,10 @@ async def _add_updated_date() -> None:
     async with AsyncSessionLocal() as session:
         sql_obj = models.UpdateDate()
         session.add(sql_obj)
-    await session.commit()
+        await session.commit()
 
 
-async def populate_db(initial_data: Mapping | Path) -> None:
+async def populate_db(initial_data: dict | Path) -> None:
     try:
         world = structure_initial_data(initial_data)
     except exc.DataStructureError as e:
@@ -150,15 +149,7 @@ async def populate_db(initial_data: Mapping | Path) -> None:
     else:
         if world is None:
             return
-        logger.debug("Initial data structured.")
-
-    try:
-        await models.create_db_schema()
-    except exc.SQLError as e:
-        logger.exception(f"Creating Initial data DB schema failed: {e}", exc_info=True)
-        return
-    else:
-        logger.debug("DB Schema created.")
+        logger.debug("Ready for the DB population.")
 
     try:
         regions = await _get_regions(world)
@@ -177,8 +168,19 @@ async def populate_db(initial_data: Mapping | Path) -> None:
         logger.exception(f"Adding the updated date to DB failed: {e}", exc_info=True)
 
 
+async def main() -> None:
+    initial_data: dict = await get_response(
+        endpoint=settings.STATIONS_LIST_ENDPOINT, headers=settings.headers
+    )
+    logger.debug("Starting to populate the Stations DB.")
+    await populate_db(initial_data)
+
+
 if __name__ == "__main__":
     start_time = datetime.now()
-    asyncio.run(populate_db(INITIAL_DATA))
+    asyncio.run(main())
     finish_time = datetime.now()
-    logger.info(f"It took {(finish_time - start_time).total_seconds()} seconds.")
+    logger.info(
+        f"It took {(finish_time - start_time).total_seconds()} seconds "
+        "to fill the Stations DB with the data from Yandex."
+    )
