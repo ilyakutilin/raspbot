@@ -16,6 +16,46 @@ files = [
 pycares = ">=4.0.0"
 
 [[package]]
+name = "aiofiles"
+version = "23.1.0"
+description = "File support for asyncio."
+category = "main"
+optional = false
+python-versions = ">=3.7,<4.0"
+files = [
+    {file = "aiofiles-23.1.0-py3-none-any.whl", hash = "sha256:9312414ae06472eb6f1d163f555e466a23aed1c8f60c30cccf7121dba2e53eb2"},
+    {file = "aiofiles-23.1.0.tar.gz", hash = "sha256:edd247df9a19e0db16534d4baaf536d6609a43e1de5401d7a4c1c148753a1635"},
+]
+
+[[package]]
+name = "aiogram"
+version = "3.0.0b7"
+description = "Modern and fully asynchronous framework for Telegram Bot API"
+category = "main"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "aiogram-3.0.0b7-py3-none-any.whl", hash = "sha256:9c2256bfd0a3f06dfee9cd077ac510eb967da62a529fbfb443c680539cdd1870"},
+    {file = "aiogram-3.0.0b7.tar.gz", hash = "sha256:683c9aafa477e42f54df427089db3d18e4db15a2520abb9da5c4305a02e7fd82"},
+]
+
+[package.dependencies]
+aiofiles = ">=23.1.0,<23.2.0"
+aiohttp = ">=3.8.4,<3.9.0"
+certifi = ">=2022.9.24"
+magic-filter = ">=1.0.9,<1.1.0"
+pydantic = ">=1.10.4,<1.11.0"
+
+[package.extras]
+dev = ["black (>=23.1,<24.0)", "isort (>=5.11,<6.0)", "mypy (>=1.0.0,<1.1.0)", "packaging (>=23.0,<24.0)", "pre-commit (>=3.0.4,<3.1.0)", "ruff (>=0.0.246,<0.1.0)", "toml (>=0.10.2,<0.11.0)", "towncrier (>=22.12.0,<22.13.0)", "typing-extensions (>=4.4.0,<4.5.0)"]
+docs = ["furo (>=2022.9.29,<2022.10.0)", "markdown-include (>=0.7.0,<0.8.0)", "pygments (>=2.13.0,<2.14.0)", "pygments (>=2.4,<3.0)", "pymdown-extensions (>=9.6,<10.0)", "sphinx (>=5.2.3,<5.3.0)", "sphinx-autobuild (>=2021.3.14,<2021.4.0)", "sphinx-copybutton (>=0.5.0,<0.6.0)", "sphinx-intl (>=2.0.1,<2.1.0)", "sphinx-prompt (>=1.5.0,<1.6.0)", "sphinx-substitution-extensions (>=2022.2.16,<2022.3.0)", "sphinxcontrib-towncrier (>=0.3.1a3,<0.4.0)", "towncrier (>=22.8.0,<22.9.0)"]
+fast = ["uvloop (>=0.17.0)"]
+i18n = ["babel (>=2.11.0,<2.12.0)"]
+proxy = ["aiohttp-socks (>=0.7.1,<0.8.0)"]
+redis = ["redis (>=4.5.1,<4.6.0)"]
+test = ["aresponses (>=2.1.6,<2.2.0)", "pytest (>=7.2.1,<7.3.0)", "pytest-aiohttp (>=1.0.4,<1.1.0)", "pytest-asyncio (>=0.20.3,<0.21.0)", "pytest-cov (>=4.0.0,<4.1.0)", "pytest-html (>=3.2.0,<3.3.0)", "pytest-lazy-fixture (>=0.6.3,<0.7.0)", "pytest-mock (>=3.10.0,<3.11.0)", "pytest-mypy (>=0.10.0,<0.11.0)"]
+
+[[package]]
 name = "aiohttp"
 version = "3.8.4"
 description = "Async http client/server framework (asyncio)"
@@ -170,27 +210,6 @@ typing-extensions = ">=4"
 
 [package.extras]
 tz = ["python-dateutil"]
-
-[[package]]
-name = "anyio"
-version = "3.6.2"
-description = "High level compatibility layer for multiple asynchronous event loop implementations"
-category = "main"
-optional = false
-python-versions = ">=3.6.2"
-files = [
-    {file = "anyio-3.6.2-py3-none-any.whl", hash = "sha256:fbbe32bd270d2a2ef3ed1c5d45041250284e31fc0a4df4a5a6071842051a51e3"},
-    {file = "anyio-3.6.2.tar.gz", hash = "sha256:25ea0d673ae30af41a0c442f81cf3b38c7e79fdc7b60335a4c14e05eb0947421"},
-]
-
-[package.dependencies]
-idna = ">=2.8"
-sniffio = ">=1.1"
-
-[package.extras]
-doc = ["packaging", "sphinx-autodoc-typehints (>=1.2.0)", "sphinx-rtd-theme"]
-test = ["contextlib2", "coverage[toml] (>=4.5)", "hypothesis (>=4.0)", "mock (>=4)", "pytest (>=7.0)", "pytest-mock (>=3.6.1)", "trustme", "uvloop (<0.15)", "uvloop (>=0.15)"]
-trio = ["trio (>=0.16,<0.22)"]
 
 [[package]]
 name = "async-timeout"
@@ -670,64 +689,6 @@ docs = ["Sphinx", "docutils (<0.18)"]
 test = ["objgraph", "psutil"]
 
 [[package]]
-name = "h11"
-version = "0.14.0"
-description = "A pure-Python, bring-your-own-I/O implementation of HTTP/1.1"
-category = "main"
-optional = false
-python-versions = ">=3.7"
-files = [
-    {file = "h11-0.14.0-py3-none-any.whl", hash = "sha256:e3fe4ac4b851c468cc8363d500db52c2ead036020723024a109d37346efaa761"},
-    {file = "h11-0.14.0.tar.gz", hash = "sha256:8f19fbbe99e72420ff35c00b27a34cb9937e902a8b810e2c88300c6f0a3b699d"},
-]
-
-[[package]]
-name = "httpcore"
-version = "0.17.0"
-description = "A minimal low-level HTTP client."
-category = "main"
-optional = false
-python-versions = ">=3.7"
-files = [
-    {file = "httpcore-0.17.0-py3-none-any.whl", hash = "sha256:0fdfea45e94f0c9fd96eab9286077f9ff788dd186635ae61b312693e4d943599"},
-    {file = "httpcore-0.17.0.tar.gz", hash = "sha256:cc045a3241afbf60ce056202301b4d8b6af08845e3294055eb26b09913ef903c"},
-]
-
-[package.dependencies]
-anyio = ">=3.0,<5.0"
-certifi = "*"
-h11 = ">=0.13,<0.15"
-sniffio = ">=1.0.0,<2.0.0"
-
-[package.extras]
-http2 = ["h2 (>=3,<5)"]
-socks = ["socksio (>=1.0.0,<2.0.0)"]
-
-[[package]]
-name = "httpx"
-version = "0.24.0"
-description = "The next generation HTTP client."
-category = "main"
-optional = false
-python-versions = ">=3.7"
-files = [
-    {file = "httpx-0.24.0-py3-none-any.whl", hash = "sha256:447556b50c1921c351ea54b4fe79d91b724ed2b027462ab9a329465d147d5a4e"},
-    {file = "httpx-0.24.0.tar.gz", hash = "sha256:507d676fc3e26110d41df7d35ebd8b3b8585052450f4097401c9be59d928c63e"},
-]
-
-[package.dependencies]
-certifi = "*"
-httpcore = ">=0.15.0,<0.18.0"
-idna = "*"
-sniffio = "*"
-
-[package.extras]
-brotli = ["brotli", "brotlicffi"]
-cli = ["click (>=8.0.0,<9.0.0)", "pygments (>=2.0.0,<3.0.0)", "rich (>=10,<14)"]
-http2 = ["h2 (>=3,<5)"]
-socks = ["socksio (>=1.0.0,<2.0.0)"]
-
-[[package]]
 name = "idna"
 version = "3.4"
 description = "Internationalized Domain Names in Applications (IDNA)"
@@ -756,6 +717,18 @@ colors = ["colorama (>=0.4.3)"]
 pipfile-deprecated-finder = ["pip-shims (>=0.5.2)", "pipreqs", "requirementslib"]
 plugins = ["setuptools"]
 requirements-deprecated-finder = ["pip-api", "pipreqs"]
+
+[[package]]
+name = "magic-filter"
+version = "1.0.9"
+description = "This package provides magic filter based on dynamic attribute getter"
+category = "main"
+optional = false
+python-versions = ">=3.7,<4.0"
+files = [
+    {file = "magic-filter-1.0.9.tar.gz", hash = "sha256:d0f1ffa5ff1fbe5105fd5f293c79b5d3795f336ea0f6129c636959a687bf422a"},
+    {file = "magic_filter-1.0.9-py3-none-any.whl", hash = "sha256:51002312a8972fa514b998b7ff89340c98be3fc499967c1f5f2af98d13baf8d5"},
+]
 
 [[package]]
 name = "mako"
@@ -1179,44 +1152,6 @@ files = [
 cli = ["click (>=5.0)"]
 
 [[package]]
-name = "python-telegram-bot"
-version = "20.3"
-description = "We have made you a wrapper you can't refuse"
-category = "main"
-optional = false
-python-versions = ">=3.7"
-files = [
-    {file = "python-telegram-bot-20.3.tar.gz", hash = "sha256:73e46a534be9d1c790ce8b494765cca18a5c2f3f5b4932d83bcb06bb0051eb4a"},
-    {file = "python_telegram_bot-20.3-py3-none-any.whl", hash = "sha256:1185edee387db7b08027e87b67fa9a3cc3263ae5ab5bb55513acd1bca5c3cf4b"},
-]
-
-[package.dependencies]
-httpx = ">=0.24.0,<0.25.0"
-
-[package.extras]
-all = ["APScheduler (>=3.10.1,<3.11.0)", "aiolimiter (>=1.0.0,<1.1.0)", "cachetools (>=5.3.0,<5.4.0)", "cryptography (>=39.0.1)", "httpx[http2]", "httpx[socks]", "pytz (>=2018.6)", "tornado (>=6.2,<7.0)"]
-callback-data = ["cachetools (>=5.3.0,<5.4.0)"]
-ext = ["APScheduler (>=3.10.1,<3.11.0)", "aiolimiter (>=1.0.0,<1.1.0)", "cachetools (>=5.3.0,<5.4.0)", "pytz (>=2018.6)", "tornado (>=6.2,<7.0)"]
-http2 = ["httpx[http2]"]
-job-queue = ["APScheduler (>=3.10.1,<3.11.0)", "pytz (>=2018.6)"]
-passport = ["cryptography (>=39.0.1)"]
-rate-limiter = ["aiolimiter (>=1.0.0,<1.1.0)"]
-socks = ["httpx[socks]"]
-webhooks = ["tornado (>=6.2,<7.0)"]
-
-[[package]]
-name = "sniffio"
-version = "1.3.0"
-description = "Sniff out which async library your code is running under"
-category = "main"
-optional = false
-python-versions = ">=3.7"
-files = [
-    {file = "sniffio-1.3.0-py3-none-any.whl", hash = "sha256:eecefdce1e5bbfb7ad2eeaabf7c1eeb404d7757c379bd1f7e5cce9d8bf425384"},
-    {file = "sniffio-1.3.0.tar.gz", hash = "sha256:e60305c5e5d314f5389259b7f22aaa33d8f7dee49763119234af3755c55b9101"},
-]
-
-[[package]]
 name = "sqlalchemy"
 version = "2.0.13"
 description = "Database Abstraction Library"
@@ -1397,4 +1332,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "39583233cda4b733116a1bb88b9216b87e9207b14298c978620401b45f8d7ec2"
+content-hash = "1abc57b0d1a7b3690293e30ed69fecb440e3013d28469632de61444859fd102b"
