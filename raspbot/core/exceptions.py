@@ -48,3 +48,18 @@ class CreateSchemaError(SQLError):
 
 class InvalidValueError(Exception):
     """Raised if the value provided to a function is not valid"""
+
+
+# DB
+
+
+class DBError(Exception):
+    """Base class for DB related exceptions."""
+
+
+class NotFoundError(DBError):
+    """Raised if the object is not found."""
+
+
+class AlreadyExistsError(DBError):
+    """Raised if the object already exists."""

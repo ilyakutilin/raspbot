@@ -1,4 +1,11 @@
-from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, create_async_engine
+from typing import Generator
+
+from sqlalchemy.ext.asyncio import (
+    AsyncAttrs,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column
 
 from raspbot.settings import settings
@@ -19,3 +26,9 @@ class Base(AsyncAttrs, DeclarativeBase, PreBase):
 engine = create_async_engine(settings.database_url)
 
 AsyncSessionLocal = async_sessionmaker(engine, expire_on_commit=False)
+
+
+async def get_session() -> Generator[AsyncSession, None, None]:
+    async_session = async_sessionmaker(engine, expire_on_commit=False)
+    async with async_session() as session:
+        yield session
