@@ -37,4 +37,4 @@ async def get_response(
                 f"Request to API endpoint {endpoint} has been successfully "
                 "completed and the response received."
             )
-            return await response.json(content_type="text/html")
+            return await response.json(content_type=None)

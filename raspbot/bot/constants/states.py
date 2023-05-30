@@ -1,2 +1,5 @@
 DEPARTURE_STATION = "departure_station"
 DESTINATION_STATION = "destination_station"
+CHOOSE_STATION_FROM_MULTIPLE = "choose_station_from_multiple"
+CHOOSE_DESTINATION_STATION_FROM_MULTIPLE = "choose_destination_station_from_multiple"
+GET_TIMETABLE_BETWEEN_STATIONS = "get_timetable_between_stations"

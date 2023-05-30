@@ -44,7 +44,7 @@ async def search_between_stations(from_: str, to: str, **kwargs) -> Mapping:
     url = "".join([str(item) for item in url_components])
     logger.info(f"Search between stations URL is {url}")
     response = await get_response(endpoint=url, headers=s.headers)
-    return await response.json()
+    return response
 
 
 if __name__ == "__main__":

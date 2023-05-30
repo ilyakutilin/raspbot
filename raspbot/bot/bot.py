@@ -1,6 +1,6 @@
-from telegram.ext import AIORateLimiter, Application
+from telegram.ext import AIORateLimiter, Application, CallbackQueryHandler
 
-from raspbot.bot.handlers import conv_handler
+from raspbot.bot.handlers import choose_station_from_multiple, conv_handler
 from raspbot.core.logging import configure_logging
 from raspbot.settings import settings
 
@@ -15,6 +15,9 @@ def create_bot() -> Application:
         .build()
     )
     bot.add_handler(conv_handler)
+    bot.add_handler(
+        CallbackQueryHandler(choose_station_from_multiple, pattern=r".+_station_\d+")
+    )
     return bot
 
 
