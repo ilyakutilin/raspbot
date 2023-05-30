@@ -2,11 +2,9 @@ import asyncio
 
 from aiogram import Bot, Dispatcher
 
+from raspbot.bot.handlers import router
 from raspbot.core.logging import configure_logging
 from raspbot.settings import settings
-
-# from handlers import different_types, questions
-
 
 logger = configure_logging(name=__name__)
 
@@ -14,6 +12,8 @@ logger = configure_logging(name=__name__)
 async def start_bot():
     bot = Bot(token=settings.TELEGRAM_TOKEN)
     dp = Dispatcher()
+
+    dp.include_routers(router)
 
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
