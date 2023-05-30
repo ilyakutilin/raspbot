@@ -1,9 +1,6 @@
-from raspbot.bot.bot import create_bot
-from raspbot.core.logging import configure_logging
+import asyncio
 
-logger = configure_logging(name=__name__)
-
+from raspbot.bot.bot import start_bot
 
 if __name__ == "__main__":
-    create_bot().run_polling()
-    logger.info("Bot started.")
+    asyncio.run(start_bot())
