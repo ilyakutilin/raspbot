@@ -1,5 +1,8 @@
-DEPARTURE_STATION = "departure_station"
-DESTINATION_STATION = "destination_station"
-CHOOSE_STATION_FROM_MULTIPLE = "choose_station_from_multiple"
-CHOOSE_DESTINATION_STATION_FROM_MULTIPLE = "choose_destination_station_from_multiple"
-GET_TIMETABLE_BETWEEN_STATIONS = "get_timetable_between_stations"
+from aiogram.fsm.state import State, StatesGroup
+
+
+class Route(StatesGroup):
+    choosing_departure_point = State()
+    choosing_destination_point = State()
+    choosing_point_from_multiple = State()
+    getting_timetable_between_points = State()
