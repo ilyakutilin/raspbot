@@ -8,6 +8,7 @@ from raspbot.bot.constants.text import msg, wrd
 from raspbot.bot.keyboards import get_point_choice_keyboard, get_start_keyboard
 from raspbot.db.stations.schema import PointResponse
 from raspbot.services.routes import select_points
+from raspbot.services.shortener import get_short_region_title
 
 router = Router()
 
@@ -23,7 +24,7 @@ async def start_command(message: types.Message):
 
 @router.callback_query(Text(callback.SELECT_DEPARTURE))
 async def select_departure_callback(callback: types.CallbackQuery, state: FSMContext):
-    """User: issues /start command. Bot: please select the departure point."""
+    """User: issues /start command. Bot: please input the departure point."""
     await callback.message.answer(msg.INPUT_DEPARTURE_POINT)
     await callback.answer()
     await state.set_state(Route.choosing_departure_point)
@@ -31,6 +32,7 @@ async def select_departure_callback(callback: types.CallbackQuery, state: FSMCon
 
 @router.message(Route.choosing_departure_point)
 async def departure_selected(message: types.Message, state: FSMContext):
+    """User: inputs the desired departure point. Bot: here's what I have in the DB."""
     departure_points: list[PointResponse] = await select_points(
         raw_user_input=message.text
     )
@@ -45,13 +47,17 @@ async def departure_selected(message: types.Message, state: FSMContext):
         )
         await state.set_state(Route.choosing_point_from_multiple)
     else:
-        departure_point = departure_points[0]
+        departure_point: str = departure_points[0]
         departure_point_type = wrd.STATION if departure_point.is_station else wrd.CITY
+        short_region_title: str = get_short_region_title(
+            region_title=departure_point.region_title
+        )
         await message.answer(
             msg.SINGLE_POINT_FOUND.format(
                 departure_point_type=departure_point_type,
                 departure_point_name=departure_point.title,
-                departure_point_region=departure_point.region_title,
+                departure_point_region=short_region_title,
             )
         )
+        await state.update_data(selected_departure_point=departure_point)
         await state.set_state(Route.choosing_destination_point)
