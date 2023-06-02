@@ -71,6 +71,7 @@ class StationsBySettlement(EntitiesByEntity):
 
 class PointResponse(BaseModel):
     is_station: bool
+    id: int
     title: str
     yandex_code: str
     region_title: str

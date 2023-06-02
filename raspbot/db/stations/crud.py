@@ -2,11 +2,11 @@ from typing import Generator
 
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload, selectinload
+from sqlalchemy.orm import selectinload
 
 from raspbot.db.base import get_session
 from raspbot.db.crud import CRUDBase
-from raspbot.db.stations.models import Country, Region, Settlement, Station
+from raspbot.db.stations.models import Country, Settlement, Station
 
 
 class CRUDStations(CRUDBase):
@@ -27,6 +27,15 @@ class CRUDStations(CRUDBase):
             )
             return stations.scalars().unique().all()
 
+    async def get_station_by_id(self, id: int) -> Station:
+        async with self._sessionmaker() as session:
+            station = await session.execute(
+                select(Station)
+                .options(selectinload(Station.region))
+                .where(Station.id == id)
+            )
+            return station.scalars().first()
+
 
 class CRUDSettlements(CRUDBase):
     def __init__(self, sessionmaker: Generator[AsyncSession, None, None] = get_session):
@@ -44,3 +53,12 @@ class CRUDSettlements(CRUDBase):
                 )
             )
             return settlements.scalars().unique().all()
+
+    async def get_settlement_by_id(self, id: int) -> Station:
+        async with self._sessionmaker() as session:
+            settlement = await session.execute(
+                select(Settlement)
+                .options(selectinload(Settlement.region))
+                .where(Settlement.id == id)
+            )
+            return settlement.scalars().first()
