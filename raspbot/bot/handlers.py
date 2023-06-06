@@ -1,32 +1,28 @@
-from aiogram import Router, types
+from datetime import datetime
+
+from aiogram import F, Router, types
 from aiogram.filters import Command, Text
 from aiogram.fsm.context import FSMContext
 
-from raspbot.bot.constants import callback
+from raspbot.apicalls.search import search_between_stations
+from raspbot.bot.constants import callback as clb
 from raspbot.bot.constants.states import Route
 from raspbot.bot.constants.text import SinglePointFound, msg
-from raspbot.bot.keyboards import get_point_choice_keyboard, get_start_keyboard
+from raspbot.bot.keyboards import get_point_choice_keyboard
+from raspbot.core.logging import configure_logging
 from raspbot.db.stations.schema import PointResponse
 from raspbot.services.routes import point_retriever, point_selector
+
+logger = configure_logging(name=__name__)
 
 router = Router()
 
 
 @router.message(Command("start"))
-async def start_command(message: types.Message):
-    """Start command."""
-    await message.answer(
-        text=msg.GREETING.format(name=message.from_user.first_name),
-        reply_markup=get_start_keyboard(),
-    )
-
-
-@router.callback_query(Text(callback.SELECT_DEPARTURE))
-async def select_departure_callback(callback: types.CallbackQuery, state: FSMContext):
+async def start_command(message: types.Message, state: FSMContext):
     """User: issues /start command. Bot: please input the departure point."""
-    await callback.message.answer(msg.INPUT_DEPARTURE_POINT)
-    await callback.answer()
-    await state.set_state(Route.choosing_departure_point)
+    await message.answer(msg.INPUT_DEPARTURE_POINT)
+    await state.set_state(Route.selecting_departure_point)
 
 
 def _single_point_found_message_text(
@@ -42,57 +38,53 @@ def _single_point_found_message_text(
     return str(single_point_found)
 
 
-@router.message(Route.choosing_departure_point)
-async def departure_selected(message: types.Message, state: FSMContext):
+async def select_point(is_departure: bool, message: types.Message, state: FSMContext):
+    """Base function for the departure / destination point selection."""
+    points: list[PointResponse] = await point_selector.select_points(
+        raw_user_input=message.text
+    )
+    if not points:
+        await message.answer(text=msg.POINT_NOT_FOUND)
+    elif len(points) > 1:
+        await message.answer(
+            msg.MULTIPLE_POINTS_FOUND,
+            reply_markup=get_point_choice_keyboard(
+                points=points, is_departure=is_departure
+            ),
+        )
+        await state.set_state(
+            Route.choosing_departure_from_multiple
+            if is_departure
+            else Route.choosing_destination_from_multiple
+        )
+    else:
+        msg_text: str = _single_point_found_message_text(
+            point=points[0], is_departure=is_departure
+        )
+        if is_departure:
+            await message.answer(text=f"{msg_text}\n\n{msg.INPUT_DESTINATION_POINT}")
+            await state.update_data(departure_point=points[0])
+            await state.set_state(Route.selecting_destination_point)
+        else:
+            await state.update_data(destination_point=points[0])
+            timetable: list[str] = await search_timetable(state=state)
+            await message.answer(text=f"{msg_text}\n\n{', '.join(timetable)}")
+            await state.clear()
+
+
+@router.message(Route.selecting_departure_point)
+async def select_departure(message: types.Message, state: FSMContext):
     """User: inputs the desired departure point. Bot: here's what I have in the DB."""
-    departure_points: list[PointResponse] = await point_selector.select_points(
-        raw_user_input=message.text
-    )
-    if not departure_points:
-        await message.answer(text=msg.POINT_NOT_FOUND)
-    elif len(departure_points) > 1:
-        await message.answer(
-            msg.MULTIPLE_POINTS_FOUND,
-            reply_markup=get_point_choice_keyboard(
-                points=departure_points, is_departure=True
-            ),
-        )
-        await state.set_state(Route.choosing_point_from_multiple)
-    else:
-        msg_text: str = _single_point_found_message_text(
-            point=departure_points[0], is_departure=True
-        )
-        await message.answer(text=f"{msg_text}\n{msg.INPUT_DESTINATION_POINT}")
-        await state.update_data(departure_point=departure_points[0])
-        await state.set_state(Route.choosing_destination_point)
+    await select_point(is_departure=True, message=message, state=state)
 
 
-@router.message(Route.choosing_destination_point)
-async def destination_selected(message: types.Message, state: FSMContext):
+@router.message(Route.selecting_destination_point)
+async def select_destination(message: types.Message, state: FSMContext):
     """User: inputs the destination point. Bot: here's what I have in the DB."""
-    destination_points: list[PointResponse] = await point_selector.select_points(
-        raw_user_input=message.text
-    )
-    if not destination_points:
-        await message.answer(text=msg.POINT_NOT_FOUND)
-    elif len(destination_points) > 1:
-        await message.answer(
-            msg.MULTIPLE_POINTS_FOUND,
-            reply_markup=get_point_choice_keyboard(
-                points=destination_points, is_departure=False
-            ),
-        )
-        await state.set_state(Route.choosing_point_from_multiple)
-    else:
-        msg_text: str = _single_point_found_message_text(
-            point=destination_points[0], is_departure=False
-        )
-        await message.answer(text=msg_text)
-        await state.update_data(destination_point=destination_points[0])
-        await state.set_state(Route.getting_timetable_between_points)
+    await select_point(is_departure=False, message=message, state=state)
 
 
-@router.callback_query(Text(startswith=callback.MISSING_POINT[:-1]))
+@router.callback_query(Text(startswith=clb.MISSING_POINT[:-1]))
 async def missing_point_callback(callback: types.CallbackQuery, state: FSMContext):
     """User: clicks the 'missing' button. Bot: please start again."""
     is_departure = bool(int(callback.data[-1]))
@@ -101,29 +93,94 @@ async def missing_point_callback(callback: types.CallbackQuery, state: FSMContex
     )
     await callback.answer()
     await state.set_state(
-        Route.choosing_departure_point
+        Route.selecting_departure_point
         if is_departure
-        else Route.choosing_destination_point
+        else Route.selecting_destination_point
     )
 
 
-@router.callback_query(callback.PointsCallbackFactory.filter())
-async def choose_point_from_multiple_callback(
+@router.callback_query(clb.PointsCallbackFactory.filter(F.is_departure == True))  # noqa
+async def choose_departure_from_multiple_callback(
     callback: types.CallbackQuery,
-    callback_data: callback.PointsCallbackFactory,
+    callback_data: clb.PointsCallbackFactory,
     state: FSMContext,
 ):
-    """User: selects the point from the list. Bot: input the destination point."""
+    """User: selects the departure from the list. Bot: input the destination point."""
+    selected_departure: PointResponse = await point_retriever.get_point(
+        point_id=callback_data.point_id, is_station=callback_data.is_station
+    )
+    msg_text: str = _single_point_found_message_text(
+        point=selected_departure, is_departure=callback_data.is_departure
+    )
+    await callback.message.answer(text=f"{msg_text}\n{msg.INPUT_DESTINATION_POINT}")
+    await callback.answer()
+    await state.update_data(departure_point=selected_departure)
+    await state.set_state(Route.selecting_destination_point)
+
+
+@router.callback_query(
+    clb.PointsCallbackFactory.filter(F.is_departure == False)  # noqa
+)
+async def choose_destination_from_multiple_callback(
+    callback: types.CallbackQuery,
+    callback_data: clb.PointsCallbackFactory,
+    state: FSMContext,
+):
+    """User: selects the destination from the list. Bot: here's the timetable."""
     selected_point: PointResponse = await point_retriever.get_point(
         point_id=callback_data.point_id, is_station=callback_data.is_station
     )
-    if callback_data.is_departure:
-        msg_text: str = _single_point_found_message_text(
-            point=selected_point, is_departure=callback_data.is_departure
-        )
-        await callback.message.answer(text=f"{msg_text}\n{msg.INPUT_DESTINATION_POINT}")
-        await callback.answer()
-        await state.update_data(departure_point=selected_point)
-        await state.set_state(Route.choosing_destination_point)
-    else:
-        await state.set_state(Route.getting_timetable_between_points)
+    msg_text: str = _single_point_found_message_text(
+        point=selected_point, is_departure=callback_data.is_departure
+    )
+    await state.update_data(destination_point=selected_point)
+    timetable: list[str] = await search_timetable(state=state)
+    await callback.message.answer(text=f"{msg_text}\n{', '.join(timetable)}")
+    await callback.answer()
+    await state.clear()
+
+
+async def search_timetable(state: FSMContext):
+    user_data: dict = await state.get_data()
+    logger.info(f"User data: {user_data}")
+    departure_point: PointResponse | None = user_data.get("departure_point")
+    destination_point: PointResponse | None = user_data.get("destination_point")
+    timetable_dict: dict = await search_between_stations(
+        from_=departure_point.yandex_code,
+        to=destination_point.yandex_code,
+        date=str(datetime.today()).split()[0],
+    )
+    logger.info(f"Кол-во рейсов от Яндекса: {len(timetable_dict['segments'])}")
+    closest_departures: list[datetime] = []
+    for segment in timetable_dict["segments"]:
+        departure: str = segment["departure"]
+        try:
+            departure_time: datetime = datetime.fromisoformat(departure)
+        except ValueError as e:
+            logger.error(e)
+            try:
+                departure_time: datetime = datetime.strptime(departure, "%H:%M:%S")
+            except ValueError as e:
+                logger.error(e)
+                print(
+                    "Время пришло от Яндекса в некорректном формате. Поддерживаются "
+                    f"2023-05-29T12:48:00.000000 или 12:48:00, а пришло {departure}."
+                )
+        if (
+            departure_time < datetime.now(tz=departure_time.tzinfo)
+            or len(closest_departures) > 10
+        ):
+            logger.info(
+                "Отбраковка: Текущее время: "
+                f"{datetime.now(tz=departure_time.tzinfo)},"
+                f"Кол-во рейсов в списке: {len(closest_departures)},"
+                "Время отправления от Яндекса: "
+                f"{departure_time.strftime('%H:%M')}"
+            )
+            continue
+        closest_departures.append(departure_time)
+    logger.info(f"Финальное кол-во рейсов в списке: {len(closest_departures)}")
+    timetable: list[str] = []
+    for dep in closest_departures:
+        timetable.append(dep.strftime("%H:%M"))
+    return timetable

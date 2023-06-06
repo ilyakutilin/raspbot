@@ -7,18 +7,6 @@ from raspbot.db.stations.schema import PointResponse
 from raspbot.services.shortener import get_short_region_title
 
 
-def get_start_keyboard():
-    buttons = [
-        [
-            types.InlineKeyboardButton(
-                text=btn.NEW_SEARCH, callback_data=callback.SELECT_DEPARTURE
-            )
-        ]
-    ]
-    keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
-    return keyboard
-
-
 def get_point_choice_keyboard(
     points: list[PointResponse], is_departure: bool
 ) -> types.InlineKeyboardMarkup:

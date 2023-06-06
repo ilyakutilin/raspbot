@@ -1,6 +1,5 @@
 from aiogram.filters.callback_data import CallbackData
 
-SELECT_DEPARTURE = "select_departure"
 MISSING_POINT = "missing_point_{dep_or_dest}"
 
 
