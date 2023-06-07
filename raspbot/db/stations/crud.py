@@ -24,6 +24,7 @@ class CRUDStations(CRUDBase):
                     (Station.transport_type == "train"),
                     Country.title == "Россия",
                 )
+                .order_by(Station.title)
             )
             return stations.scalars().unique().all()
 
@@ -51,6 +52,7 @@ class CRUDSettlements(CRUDBase):
                     and_(func.unaccent(Settlement.title).ilike(f"%{title}%")),
                     Country.title == "Россия",
                 )
+                .order_by(Settlement.title)
             )
             return settlements.scalars().unique().all()
 
