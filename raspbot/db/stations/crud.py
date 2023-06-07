@@ -20,10 +20,11 @@ class CRUDStations(CRUDBase):
                 .options(selectinload(Station.region))
                 .join(Country)
                 .where(
-                    and_(func.unaccent(Station.title).ilike(f"{title}%")),
+                    and_(func.unaccent(Station.title).ilike(f"%{title}%")),
                     (Station.transport_type == "train"),
                     Country.title == "Россия",
                 )
+                .order_by(Station.title)
             )
             return stations.scalars().unique().all()
 
@@ -48,9 +49,10 @@ class CRUDSettlements(CRUDBase):
                 .options(selectinload(Settlement.region))
                 .join(Country)
                 .where(
-                    and_(func.unaccent(Settlement.title).ilike(f"{title}%")),
+                    and_(func.unaccent(Settlement.title).ilike(f"%{title}%")),
                     Country.title == "Россия",
                 )
+                .order_by(Settlement.title)
             )
             return settlements.scalars().unique().all()
 

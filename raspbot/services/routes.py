@@ -11,10 +11,13 @@ crud_settlements = CRUDSettlements()
 
 class PointSelector:
     def _prettify(self, raw_user_input: str) -> str:
-        return " ".join(raw_user_input.split())
+        return " ".join(raw_user_input.split()).lower()
 
     def _add_point_to_choices(
-        self, choices: list[PointResponse], points_from_db: list[Station | Settlement]
+        self,
+        choices: list[PointResponse],
+        points_from_db: list[Station | Settlement],
+        pretty_user_input: str,
     ) -> None:
         for point_from_db in points_from_db:
             point = PointResponse(
@@ -23,6 +26,7 @@ class PointSelector:
                 title=point_from_db.title,
                 yandex_code=point_from_db.yandex_code,
                 region_title=point_from_db.region.title,
+                exact=(point_from_db.title.lower() == pretty_user_input),
             )
             choices.append(point)
 
@@ -48,10 +52,16 @@ class PointSelector:
         choices: list[PointResponse] = []
         if settlements_from_db:
             self._add_point_to_choices(
-                choices=choices, points_from_db=settlements_from_db
+                choices=choices,
+                points_from_db=settlements_from_db,
+                pretty_user_input=pretty_user_input,
             )
         if stations_from_db:
-            self._add_point_to_choices(choices=choices, points_from_db=stations_from_db)
+            self._add_point_to_choices(
+                choices=choices,
+                points_from_db=stations_from_db,
+                pretty_user_input=pretty_user_input,
+            )
         return choices
 
 
