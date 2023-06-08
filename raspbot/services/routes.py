@@ -17,11 +17,14 @@ class PointSelector:
     def _prettify(self, raw_user_input: str) -> str:
         return " ".join(raw_user_input.split()).lower()
 
-    def validate_user_input(self, pretty_user_input: str):
+    def _validate_user_input(self, pretty_user_input: str) -> bool:
         if len(pretty_user_input) < 2:
             raise UserInputTooShortError(
                 f"User input {pretty_user_input} is too short."
             )
+        if len(pretty_user_input) == 2:
+            return True
+        return False
 
     def _sort_choices(self, pretty_user_input: str) -> list[PointResponse]:
         exact = []
@@ -67,18 +70,23 @@ class PointSelector:
         self,
         pretty_user_input: str,
     ) -> tuple[list[Settlement], list[Station]]:
+        strict_search: bool = self._validate_user_input(
+            pretty_user_input=pretty_user_input
+        )
         settlements_from_db: list[
             Settlement
-        ] = await crud_settlements.get_settlements_by_title(title=pretty_user_input)
+        ] = await crud_settlements.get_settlements_by_title(
+            title=pretty_user_input, strict_search=strict_search
+        )
         stations_from_db: list[Station] = await crud_stations.get_stations_by_title(
-            title=pretty_user_input
+            title=pretty_user_input, strict_search=strict_search
         )
         return settlements_from_db, stations_from_db
 
     async def select_points(self, raw_user_input: str) -> list[PointResponse] | None:
         pretty_user_input: str = self._prettify(raw_user_input=raw_user_input)
         settlements_from_db, stations_from_db = await self._get_points_from_db(
-            pretty_user_input=pretty_user_input
+            pretty_user_input=pretty_user_input,
         )
         if not settlements_from_db and not stations_from_db:
             return None

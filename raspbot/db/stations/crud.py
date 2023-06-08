@@ -13,14 +13,21 @@ class CRUDStations(CRUDBase):
     def __init__(self, sessionmaker: Generator[AsyncSession, None, None] = get_session):
         super().__init__(Station, sessionmaker)
 
-    async def get_stations_by_title(self, title: str) -> list[Station]:
+    async def get_stations_by_title(
+        self, title: str, strict_search: bool = False
+    ) -> list[Station]:
+        search_template = "{title}" if strict_search else "%{title}%"
         async with self._sessionmaker() as session:
             stations = await session.execute(
                 select(Station)
                 .options(selectinload(Station.region))
                 .join(Country)
                 .where(
-                    and_(func.unaccent(Station.title).ilike(f"%{title}%")),
+                    and_(
+                        func.unaccent(Station.title).ilike(
+                            search_template.format(title=title)
+                        )
+                    ),
                     (Station.transport_type == "train"),
                     Country.title == "Россия",
                 )
@@ -42,14 +49,21 @@ class CRUDSettlements(CRUDBase):
     def __init__(self, sessionmaker: Generator[AsyncSession, None, None] = get_session):
         super().__init__(Settlement, sessionmaker)
 
-    async def get_settlements_by_title(self, title: str) -> list[Station]:
+    async def get_settlements_by_title(
+        self, title: str, strict_search: bool
+    ) -> list[Station]:
+        search_template = "{title}" if strict_search else "%{title}%"
         async with self._sessionmaker() as session:
             settlements = await session.execute(
                 select(Settlement)
                 .options(selectinload(Settlement.region))
                 .join(Country)
                 .where(
-                    and_(func.unaccent(Settlement.title).ilike(f"%{title}%")),
+                    and_(
+                        func.unaccent(Settlement.title).ilike(
+                            search_template.format(title=title)
+                        )
+                    ),
                     Country.title == "Россия",
                 )
                 .order_by(Settlement.title)
