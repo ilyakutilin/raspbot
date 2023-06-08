@@ -4,7 +4,7 @@ from logging.handlers import RotatingFileHandler
 from raspbot.settings import settings
 
 
-def configure_logging(name: str) -> logging.Logger:
+def configure_logging(name: str, level: int = logging.DEBUG) -> logging.Logger:
     """Logging configuration."""
     settings.LOG_DIR.mkdir(exist_ok=True)
 

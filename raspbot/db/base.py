@@ -1,3 +1,4 @@
+import logging
 from typing import Generator
 
 from sqlalchemy.ext.asyncio import (
@@ -8,7 +9,10 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column
 
+from raspbot.core.logging import configure_logging
 from raspbot.settings import settings
+
+logger = configure_logging(name="sqlalchemy.engine", level=logging.INFO)
 
 
 class PreBase:
