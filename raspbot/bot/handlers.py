@@ -28,19 +28,6 @@ async def start_command(message: types.Message, state: FSMContext):
     await state.set_state(Route.selecting_departure_point)
 
 
-def _single_point_found_message_text(
-    point: PointResponse,
-    is_departure: bool,
-) -> str:
-    single_point_found = SinglePointFound(
-        is_departure=is_departure,
-        is_station=point.is_station,
-        title=point.title,
-        region_title=point.region_title,
-    )
-    return str(single_point_found)
-
-
 async def select_point(is_departure: bool, message: types.Message, state: FSMContext):
     """Base function for the departure / destination point selection."""
     point_selector = PointSelector()
@@ -61,9 +48,7 @@ async def select_point(is_departure: bool, message: types.Message, state: FSMCon
             ),
         )
     else:
-        msg_text: str = _single_point_found_message_text(
-            point=points[0], is_departure=is_departure
-        )
+        msg_text: str = SinglePointFound(point=points[0], is_departure=is_departure)
         if is_departure:
             await message.answer(text=f"{msg_text}\n\n{msg.INPUT_DESTINATION_POINT}")
             await state.update_data(departure_point=points[0])
@@ -114,7 +99,7 @@ async def choose_departure_from_multiple_callback(
     selected_departure: PointResponse = await point_retriever.get_point(
         point_id=callback_data.point_id, is_station=callback_data.is_station
     )
-    msg_text: str = _single_point_found_message_text(
+    msg_text: str = SinglePointFound(
         point=selected_departure, is_departure=callback_data.is_departure
     )
     await callback.message.answer(text=f"{msg_text}\n{msg.INPUT_DESTINATION_POINT}")
@@ -135,7 +120,7 @@ async def choose_destination_from_multiple_callback(
     selected_point: PointResponse = await point_retriever.get_point(
         point_id=callback_data.point_id, is_station=callback_data.is_station
     )
-    msg_text: str = _single_point_found_message_text(
+    msg_text: str = SinglePointFound(
         point=selected_point, is_departure=callback_data.is_departure
     )
     await state.update_data(destination_point=selected_point)

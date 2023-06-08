@@ -3,17 +3,22 @@ from typing import NamedTuple
 from raspbot.db.stations.schema import PointResponse
 
 
-class SinglePointFound(PointResponse):
-    is_departure: bool
-    id: int | None = None
-    yandex_code: str | None = None
+class SinglePointFound:
+    def __init__(self, point: PointResponse, is_departure: bool):
+        self.is_departure: bool = is_departure
+        self.is_station: bool = point.is_station
+        self.title: str = point.title
+        self.region_title: str = point.region_title
 
     def __str__(self):
         dep_or_dest = "отправления" if self.is_departure else "назначения"
         type_ = "ст." if self.is_station else "г."
         title = self.title
         region = self.region_title
-        return f"Пункт {dep_or_dest} - {type_} {title}, {region}"
+        return (
+            f"Пункт {dep_or_dest} - {type_} {title}, {region}. "
+            "Это то, что вы искали?"
+        )
 
 
 class Message(NamedTuple):
