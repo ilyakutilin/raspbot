@@ -75,4 +75,3 @@ class PointResponse(BaseModel):
     title: str
     yandex_code: str
     region_title: str
-    exact: bool = True

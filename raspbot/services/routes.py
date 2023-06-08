@@ -1,4 +1,3 @@
-from raspbot.core.exceptions import InvalidChoiceError
 from raspbot.core.logging import configure_logging
 from raspbot.db.stations.crud import CRUDSettlements, CRUDStations
 from raspbot.db.stations.models import Settlement, Station
@@ -22,23 +21,30 @@ class PointSelector:
         startwith = []
         contain = []
         for choice in self.choices:
+            logger.info(f"Choice title: {choice.title}.")
             if choice.title.lower() == pretty_user_input:
                 exact.append(choice)
+                logger.info(f"Choice {choice.title} appended to exact.")
             elif choice.title.lower().startswith(pretty_user_input):
                 startwith.append(choice)
+                logger.info(f"Choice {choice.title} appended to startwith.")
             elif pretty_user_input in choice.title.lower():
                 contain.append(choice)
+                logger.info(f"Choice {choice.title} appended to contain.")
             else:
-                raise InvalidChoiceError(
+                logger.error(
                     f"Choice {choice.title} does not fall into any of the predefined "
                     "categories. Something needs to be done about that."
                 )
-            return exact + startwith + contain
+            logger.info(
+                f"Exact: {len(exact)}, startwith: {len(startwith)}, "
+                f"contain: {len(contain)}, total: {len(exact + startwith + contain)}"
+            )
+        return exact + startwith + contain
 
     def _add_point_to_choices(
         self,
         points_from_db: list[Station | Settlement],
-        pretty_user_input: str,
     ) -> None:
         for point_from_db in points_from_db:
             point = PointResponse(
@@ -47,7 +53,6 @@ class PointSelector:
                 title=point_from_db.title,
                 yandex_code=point_from_db.yandex_code,
                 region_title=point_from_db.region.title,
-                exact=(point_from_db.title.lower() == pretty_user_input),
             )
             self.choices.append(point)
 
@@ -71,20 +76,11 @@ class PointSelector:
         if not settlements_from_db and not stations_from_db:
             return None
         if settlements_from_db:
-            self._add_point_to_choices(
-                points_from_db=settlements_from_db,
-                pretty_user_input=pretty_user_input,
-            )
+            self._add_point_to_choices(points_from_db=settlements_from_db)
         if stations_from_db:
-            self._add_point_to_choices(
-                points_from_db=stations_from_db,
-                pretty_user_input=pretty_user_input,
-            )
-        try:
-            sorted_choices = self._sort_choices(pretty_user_input=pretty_user_input)
-        except InvalidChoiceError as e:
-            logger.error(e, exc_info=True)
-        return sorted_choices
+            self._add_point_to_choices(points_from_db=stations_from_db)
+        logger.info(f"Кол-во пунктов: {len(self.choices)}")
+        return self._sort_choices(pretty_user_input=pretty_user_input)
 
 
 class PointRetriever:

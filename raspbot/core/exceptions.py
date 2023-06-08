@@ -50,10 +50,6 @@ class InvalidValueError(Exception):
     """Raised if the value provided to a function is not valid."""
 
 
-class InvalidChoiceError(Exception):
-    """Raised if the choice does not fall into any of the predefined categories."""
-
-
 # DB
 
 
