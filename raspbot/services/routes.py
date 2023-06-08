@@ -85,7 +85,3 @@ class PointRetriever:
             region_title=point_from_db.region.title,
         )
         return point
-
-
-point_selector = PointSelector()
-point_retriever = PointRetriever()

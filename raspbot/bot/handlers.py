@@ -11,11 +11,13 @@ from raspbot.bot.constants.text import SinglePointFound, msg
 from raspbot.bot.keyboards import PointChoiceKeyboard
 from raspbot.core.logging import configure_logging
 from raspbot.db.stations.schema import PointResponse
-from raspbot.services.routes import point_retriever, point_selector
+from raspbot.services.routes import PointRetriever, PointSelector
 
 logger = configure_logging(name=__name__)
 
 router = Router()
+
+point_retriever = PointRetriever()
 
 
 @router.message(Command("start"))
@@ -40,6 +42,7 @@ def _single_point_found_message_text(
 
 async def select_point(is_departure: bool, message: types.Message, state: FSMContext):
     """Base function for the departure / destination point selection."""
+    point_selector = PointSelector()
     points: list[PointResponse] = await point_selector.select_points(
         raw_user_input=message.text
     )
