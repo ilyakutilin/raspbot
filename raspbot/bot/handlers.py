@@ -9,6 +9,7 @@ from raspbot.bot.constants import callback as clb
 from raspbot.bot.constants.states import Route
 from raspbot.bot.constants.text import SinglePointFound, msg
 from raspbot.bot.keyboards import get_point_choice_keyboard
+from raspbot.core import exceptions as exc
 from raspbot.core.logging import configure_logging
 from raspbot.db.stations.schema import PointResponse
 from raspbot.services.routes import PointRetriever, PointSelector
@@ -43,9 +44,13 @@ def _single_point_found_message_text(
 async def select_point(is_departure: bool, message: types.Message, state: FSMContext):
     """Base function for the departure / destination point selection."""
     point_selector = PointSelector()
-    points: list[PointResponse] = await point_selector.select_points(
-        raw_user_input=message.text
-    )
+    try:
+        points: list[PointResponse] = await point_selector.select_points(
+            raw_user_input=message.text
+        )
+    except exc.UserInputTooShortError as e:
+        logger.error(e, exc_info=True)
+        await message.answer(text=msg.INPUT_TOO_SHORT)
     if not points:
         await message.answer(text=msg.POINT_NOT_FOUND)
     elif len(points) > 1:

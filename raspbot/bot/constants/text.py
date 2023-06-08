@@ -18,6 +18,7 @@ class SinglePointFound(PointResponse):
 
 class Message(NamedTuple):
     INPUT_DEPARTURE_POINT: str = "Введите пункт отправления (город или станцию):"
+    INPUT_TOO_SHORT: str = "Для поиска необходимо ввести как минимум два смивола."
     POINT_NOT_FOUND: str = (
         "Не найдено такой станции или города. Попробуйте ввести по-другому."
     )

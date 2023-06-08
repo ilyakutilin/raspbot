@@ -46,8 +46,12 @@ class CreateSchemaError(SQLError):
 # Values
 
 
-class InvalidValueError(Exception):
+class InvalidValueError(ValueError):
     """Raised if the value provided to a function is not valid."""
+
+
+class UserInputTooShortError(ValueError):
+    """Raised if the user input is too short."""
 
 
 # DB

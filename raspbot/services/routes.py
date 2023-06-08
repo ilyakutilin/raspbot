@@ -1,3 +1,4 @@
+from raspbot.core.exceptions import UserInputTooShortError
 from raspbot.core.logging import configure_logging
 from raspbot.db.stations.crud import CRUDSettlements, CRUDStations
 from raspbot.db.stations.models import Settlement, Station
@@ -15,6 +16,12 @@ class PointSelector:
 
     def _prettify(self, raw_user_input: str) -> str:
         return " ".join(raw_user_input.split()).lower()
+
+    def validate_user_input(self, pretty_user_input: str):
+        if len(pretty_user_input) < 2:
+            raise UserInputTooShortError(
+                f"User input {pretty_user_input} is too short."
+            )
 
     def _sort_choices(self, pretty_user_input: str) -> list[PointResponse]:
         exact = []
