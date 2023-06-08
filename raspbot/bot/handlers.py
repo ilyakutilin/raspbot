@@ -8,7 +8,10 @@ from raspbot.apicalls.search import search_between_stations
 from raspbot.bot.constants import callback as clb
 from raspbot.bot.constants.states import Route
 from raspbot.bot.constants.text import SinglePointFound, msg
-from raspbot.bot.keyboards import get_point_choice_keyboard
+from raspbot.bot.keyboards import (
+    get_point_choice_keyboard,
+    get_single_point_confirmation_keyboard,
+)
 from raspbot.core import exceptions as exc
 from raspbot.core.logging import configure_logging
 from raspbot.db.stations.schema import PointResponse
@@ -26,19 +29,6 @@ async def start_command(message: types.Message, state: FSMContext):
     """User: issues /start command. Bot: please input the departure point."""
     await message.answer(msg.INPUT_DEPARTURE_POINT)
     await state.set_state(Route.selecting_departure_point)
-
-
-def _single_point_found_message_text(
-    point: PointResponse,
-    is_departure: bool,
-) -> str:
-    single_point_found = SinglePointFound(
-        is_departure=is_departure,
-        is_station=point.is_station,
-        title=point.title,
-        region_title=point.region_title,
-    )
-    return str(single_point_found)
 
 
 async def select_point(is_departure: bool, message: types.Message, state: FSMContext):
@@ -61,18 +51,13 @@ async def select_point(is_departure: bool, message: types.Message, state: FSMCon
             ),
         )
     else:
-        msg_text: str = _single_point_found_message_text(
-            point=points[0], is_departure=is_departure
+        msg_text: str = SinglePointFound(point=points[0], is_departure=is_departure)
+        await message.answer(
+            text=f"{msg_text} {msg.WHAT_YOU_WERE_LOOKING_FOR}",
+            reply_markup=get_single_point_confirmation_keyboard(
+                point=points[0], is_departure=is_departure
+            ),
         )
-        if is_departure:
-            await message.answer(text=f"{msg_text}\n\n{msg.INPUT_DESTINATION_POINT}")
-            await state.update_data(departure_point=points[0])
-            await state.set_state(Route.selecting_destination_point)
-        else:
-            await state.update_data(destination_point=points[0])
-            timetable: list[str] = await search_timetable(state=state)
-            await message.answer(text=f"{msg_text}\n\n{', '.join(timetable)}")
-            await state.clear()
 
 
 @router.message(Route.selecting_departure_point)
@@ -114,7 +99,7 @@ async def choose_departure_from_multiple_callback(
     selected_departure: PointResponse = await point_retriever.get_point(
         point_id=callback_data.point_id, is_station=callback_data.is_station
     )
-    msg_text: str = _single_point_found_message_text(
+    msg_text: str = SinglePointFound(
         point=selected_departure, is_departure=callback_data.is_departure
     )
     await callback.message.answer(text=f"{msg_text}\n{msg.INPUT_DESTINATION_POINT}")
@@ -135,7 +120,7 @@ async def choose_destination_from_multiple_callback(
     selected_point: PointResponse = await point_retriever.get_point(
         point_id=callback_data.point_id, is_station=callback_data.is_station
     )
-    msg_text: str = _single_point_found_message_text(
+    msg_text: str = SinglePointFound(
         point=selected_point, is_departure=callback_data.is_departure
     )
     await state.update_data(destination_point=selected_point)

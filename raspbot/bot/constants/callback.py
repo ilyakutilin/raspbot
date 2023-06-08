@@ -1,6 +1,9 @@
 from aiogram.filters.callback_data import CallbackData
 
-MISSING_POINT = "missing_point_{dep_or_dest}"
+
+class MyPointCallbackFactory(CallbackData, prefix="mypoint"):
+    confirm: bool
+    is_departure: bool
 
 
 class MissingPointCallbackFactory(CallbackData, prefix="missing_point"):
