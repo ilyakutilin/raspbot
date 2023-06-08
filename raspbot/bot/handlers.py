@@ -8,7 +8,10 @@ from raspbot.apicalls.search import search_between_stations
 from raspbot.bot.constants import callback as clb
 from raspbot.bot.constants.states import Route
 from raspbot.bot.constants.text import SinglePointFound, msg
-from raspbot.bot.keyboards import get_point_choice_keyboard
+from raspbot.bot.keyboards import (
+    get_point_choice_keyboard,
+    get_single_point_confirmation_keyboard,
+)
 from raspbot.core import exceptions as exc
 from raspbot.core.logging import configure_logging
 from raspbot.db.stations.schema import PointResponse
@@ -49,15 +52,12 @@ async def select_point(is_departure: bool, message: types.Message, state: FSMCon
         )
     else:
         msg_text: str = SinglePointFound(point=points[0], is_departure=is_departure)
-        if is_departure:
-            await message.answer(text=f"{msg_text}\n\n{msg.INPUT_DESTINATION_POINT}")
-            await state.update_data(departure_point=points[0])
-            await state.set_state(Route.selecting_destination_point)
-        else:
-            await state.update_data(destination_point=points[0])
-            timetable: list[str] = await search_timetable(state=state)
-            await message.answer(text=f"{msg_text}\n\n{', '.join(timetable)}")
-            await state.clear()
+        await message.answer(
+            text=f"{msg_text} {msg.WHAT_YOU_WERE_LOOKING_FOR}",
+            reply_markup=get_single_point_confirmation_keyboard(
+                point=points[0], is_departure=is_departure
+            ),
+        )
 
 
 @router.message(Route.selecting_departure_point)

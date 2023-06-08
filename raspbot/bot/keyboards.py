@@ -28,3 +28,21 @@ def get_point_choice_keyboard(
     )
     builder.adjust(1)
     return builder.as_markup()
+
+
+def get_single_point_confirmation_keyboard(point: PointResponse, is_departure: bool):
+    builder = InlineKeyboardBuilder()
+    builder.button(
+        text=btn.CONFIRM_SINGE_POINT,
+        callback_data=clb.PointsCallbackFactory(
+            is_departure=is_departure,
+            is_station=point.is_station,
+            point_id=point.id,
+        ),
+    )
+    builder.button(
+        text=btn.DECLINE_SINGLE_POINT,
+        callback_data=clb.MissingPointCallbackFactory(is_departure=is_departure),
+    )
+    builder.adjust(1)
+    return builder.as_markup()

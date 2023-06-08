@@ -15,10 +15,7 @@ class SinglePointFound:
         type_ = "ст." if self.is_station else "г."
         title = self.title
         region = self.region_title
-        return (
-            f"Пункт {dep_or_dest} - {type_} {title}, {region}. "
-            "Это то, что вы искали?"
-        )
+        return f"Пункт {dep_or_dest} - {type_} {title}, {region}."
 
 
 class Message(NamedTuple):
@@ -31,6 +28,7 @@ class Message(NamedTuple):
         "Жаль, что ничего не нашлось. "
         "Попробуйте ввести название города или станции по-другому."
     )
+    WHAT_YOU_WERE_LOOKING_FOR: str = "Это то, что вы искали?"
     MULTIPLE_POINTS_FOUND: str = (
         "Было найдено несколько пунктов, удовлетворяющих вашему запросу.\n"
         "Выберите нужный пункт (город или станцию) из списка ниже, если он есть. "
@@ -44,6 +42,8 @@ class Message(NamedTuple):
 
 class Button(NamedTuple):
     NEW_SEARCH: str = "Новый поиск"
+    CONFIRM_SINGE_POINT: str = "Да, это то, что я искал 👍"
+    DECLINE_SINGLE_POINT: str = "Нет, это не то, что мне нужно 🙁"
     MY_POINT_IS_NOT_HERE: str = "Нет моего пункта 😕"
 
 
