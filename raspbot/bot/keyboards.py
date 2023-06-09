@@ -8,7 +8,7 @@ from raspbot.services.shortener import get_short_region_title
 
 
 def get_point_choice_keyboard(
-    points: list[PointResponse], is_departure: bool
+    points: list[PointResponse], is_departure: bool, last_chunk: bool = True
 ) -> types.InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     for point in points:
@@ -22,10 +22,16 @@ def get_point_choice_keyboard(
                 point_id=point.id,
             ),
         )
-    builder.button(
-        text=btn.MY_POINT_IS_NOT_HERE,
-        callback_data=clb.MissingPointCallbackFactory(is_departure=is_departure),
-    )
+    if not last_chunk:
+        builder.button(
+            text=btn.MORE_POINT_CHOICES,
+            callback_data=clb.MorePointCunksCallbackFactory(is_departure=is_departure),
+        )
+    else:
+        builder.button(
+            text=btn.MY_POINT_IS_NOT_HERE,
+            callback_data=clb.MissingPointCallbackFactory(is_departure=is_departure),
+        )
     builder.adjust(1)
     return builder.as_markup()
 

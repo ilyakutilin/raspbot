@@ -50,7 +50,15 @@ class PointSelector:
                 f"Exact: {len(exact)}, startwith: {len(startwith)}, "
                 f"contain: {len(contain)}, total: {len(exact + startwith + contain)}"
             )
-        return exact + startwith + contain
+        return (exact + startwith + contain)[:50]
+
+    def _split_choice_list(
+        self, choice_list: list[PointResponse], chunk_size: int = 10
+    ) -> list[list[PointResponse]]:
+        return list(
+            choice_list[i : i + chunk_size]  # noqa
+            for i in range(0, len(choice_list), chunk_size)
+        )
 
     def _add_point_to_choices(
         self,
@@ -69,33 +77,38 @@ class PointSelector:
     async def _get_points_from_db(
         self,
         pretty_user_input: str,
-    ) -> tuple[list[Settlement], list[Station]]:
+    ) -> tuple[list[Station], list[Settlement]]:
         strict_search: bool = self._validate_user_input(
             pretty_user_input=pretty_user_input
+        )
+        stations_from_db: list[Station] = await crud_stations.get_stations_by_title(
+            title=pretty_user_input, strict_search=strict_search
         )
         settlements_from_db: list[
             Settlement
         ] = await crud_settlements.get_settlements_by_title(
             title=pretty_user_input, strict_search=strict_search
         )
-        stations_from_db: list[Station] = await crud_stations.get_stations_by_title(
-            title=pretty_user_input, strict_search=strict_search
-        )
-        return settlements_from_db, stations_from_db
+        return stations_from_db, settlements_from_db
 
-    async def select_points(self, raw_user_input: str) -> list[PointResponse] | None:
+    async def select_points(
+        self, raw_user_input: str
+    ) -> list[list[PointResponse]] | None:
         pretty_user_input: str = self._prettify(raw_user_input=raw_user_input)
-        settlements_from_db, stations_from_db = await self._get_points_from_db(
+        stations_from_db, settlements_from_db = await self._get_points_from_db(
             pretty_user_input=pretty_user_input,
         )
-        if not settlements_from_db and not stations_from_db:
+        if not stations_from_db and not settlements_from_db:
             return None
-        if settlements_from_db:
-            self._add_point_to_choices(points_from_db=settlements_from_db)
         if stations_from_db:
             self._add_point_to_choices(points_from_db=stations_from_db)
+        if settlements_from_db:
+            self._add_point_to_choices(points_from_db=settlements_from_db)
         logger.info(f"Кол-во пунктов: {len(self.choices)}")
-        return self._sort_choices(pretty_user_input=pretty_user_input)
+        sorted_choices: list[PointResponse] = self._sort_choices(
+            pretty_user_input=pretty_user_input
+        )
+        return self._split_choice_list(choice_list=sorted_choices)
 
 
 class PointRetriever:

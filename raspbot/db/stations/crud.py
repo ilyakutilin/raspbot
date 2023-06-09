@@ -32,6 +32,7 @@ class CRUDStations(CRUDBase):
                     Country.title == "Россия",
                 )
                 .order_by(Station.title)
+                .limit(30)
             )
             return stations.scalars().unique().all()
 
@@ -67,6 +68,7 @@ class CRUDSettlements(CRUDBase):
                     Country.title == "Россия",
                 )
                 .order_by(Settlement.title)
+                .limit(30)
             )
             return settlements.scalars().unique().all()
 
