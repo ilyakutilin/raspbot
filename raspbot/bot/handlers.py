@@ -35,20 +35,33 @@ async def select_point(is_departure: bool, message: types.Message, state: FSMCon
     """Base function for the departure / destination point selection."""
     point_selector = PointSelector()
     try:
-        points: list[PointResponse] = await point_selector.select_points(
+        point_chunks: list[list[PointResponse]] = await point_selector.select_points(
             raw_user_input=message.text
         )
     except exc.UserInputTooShortError as e:
         logger.error(e, exc_info=True)
         await message.answer(text=msg.INPUT_TOO_SHORT)
-    if not points:
+    if not point_chunks:
         await message.answer(text=msg.POINT_NOT_FOUND)
-    elif len(points) > 1:
+    elif len(point_chunks) > 1 or len(point_chunks[0]) > 1:
+        logger.debug(f"Number of point chunks before pop: {len(point_chunks)}.")
+        points: list = point_chunks.pop(0)
+        logger.debug(f"First point chunk popped, its length is {len(points)} elements.")
+        logger.debug(f"Number of point chunks after pop is {len(point_chunks)} chunks.")
+        logger.debug(
+            f"Bool value of last chunk given to keyboard is {not point_chunks}."
+        )
         await message.answer(
             msg.MULTIPLE_POINTS_FOUND,
             reply_markup=get_point_choice_keyboard(
-                points=points, is_departure=is_departure
+                points=points, is_departure=is_departure, last_chunk=not point_chunks
             ),
+        )
+        await state.update_data(remaining_point_chunks=point_chunks)
+        user_data: dict = await state.get_data()
+        logger.debug(
+            "Amount of remaining chunks in the state user data is "
+            f"{len(user_data['remaining_point_chunks'])} chunks."
         )
     else:
         msg_text: str = SinglePointFound(point=points[0], is_departure=is_departure)
@@ -70,6 +83,28 @@ async def select_departure(message: types.Message, state: FSMContext):
 async def select_destination(message: types.Message, state: FSMContext):
     """User: inputs the destination point. Bot: here's what I have in the DB."""
     await select_point(is_departure=False, message=message, state=state)
+
+
+@router.callback_query(clb.MorePointCunksCallbackFactory.filter())
+async def more_buttons_handler(
+    callback: types.CallbackQuery,
+    callback_data: clb.MorePointCunksCallbackFactory,
+    state: FSMContext,
+):
+    user_data: dict = await state.get_data()
+
+    point_chunks: list[list[PointResponse]] = user_data["remaining_point_chunks"]
+    points: list = point_chunks.pop(0)
+    await callback.message.answer(
+        msg.MORE_POINT_CHOICES,
+        reply_markup=get_point_choice_keyboard(
+            points=points,
+            is_departure=callback_data.is_departure,
+            last_chunk=not point_chunks,
+        ),
+    )
+    await state.update_data(remaining_point_chunks=point_chunks)
+    await callback.answer()
 
 
 @router.callback_query(clb.MissingPointCallbackFactory.filter())

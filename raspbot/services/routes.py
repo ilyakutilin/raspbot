@@ -52,6 +52,14 @@ class PointSelector:
             )
         return exact + startwith + contain
 
+    def _split_choice_list(
+        self, choice_list: list[PointResponse], chunk_size: int = 10
+    ) -> list[list[PointResponse]]:
+        return list(
+            choice_list[i : i + chunk_size]  # noqa
+            for i in range(0, len(choice_list), chunk_size)
+        )
+
     def _add_point_to_choices(
         self,
         points_from_db: list[Station | Settlement],
@@ -83,7 +91,9 @@ class PointSelector:
         )
         return settlements_from_db, stations_from_db
 
-    async def select_points(self, raw_user_input: str) -> list[PointResponse] | None:
+    async def select_points(
+        self, raw_user_input: str
+    ) -> list[list[PointResponse]] | None:
         pretty_user_input: str = self._prettify(raw_user_input=raw_user_input)
         settlements_from_db, stations_from_db = await self._get_points_from_db(
             pretty_user_input=pretty_user_input,
@@ -95,7 +105,10 @@ class PointSelector:
         if stations_from_db:
             self._add_point_to_choices(points_from_db=stations_from_db)
         logger.info(f"Кол-во пунктов: {len(self.choices)}")
-        return self._sort_choices(pretty_user_input=pretty_user_input)
+        sorted_choices: list[PointResponse] = self._sort_choices(
+            pretty_user_input=pretty_user_input
+        )
+        return self._split_choice_list(choice_list=sorted_choices)
 
 
 class PointRetriever:
