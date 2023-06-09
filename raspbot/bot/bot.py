@@ -2,7 +2,7 @@ import asyncio
 
 from aiogram import Bot, Dispatcher
 
-from raspbot.bot.handlers import router
+from raspbot.bot.routes.handlers import router
 from raspbot.core.logging import configure_logging
 from raspbot.settings import settings
 
