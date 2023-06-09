@@ -64,11 +64,12 @@ async def select_point(is_departure: bool, message: types.Message, state: FSMCon
             f"{len(user_data['remaining_point_chunks'])} chunks."
         )
     else:
-        msg_text: str = SinglePointFound(point=points[0], is_departure=is_departure)
+        point = point_chunks[0][0]
+        msg_text: str = SinglePointFound(point=point, is_departure=is_departure)
         await message.answer(
             text=f"{msg_text} {msg.WHAT_YOU_WERE_LOOKING_FOR}",
             reply_markup=get_single_point_confirmation_keyboard(
-                point=points[0], is_departure=is_departure
+                point=point, is_departure=is_departure
             ),
         )
 
