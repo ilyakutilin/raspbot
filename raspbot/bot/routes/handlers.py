@@ -167,6 +167,11 @@ async def choose_destination_from_multiple_callback(
     timetable: list[str] = await search_timetable(
         departure_code=departure_code, destination_code=destination_code
     )
-    await callback.message.answer(text=f"{msg_text}\n{', '.join(timetable)}")
+    await callback.message.answer(
+        text=(
+            f"{msg_text}\n\n{msg.CLOSEST_DEPARTURES}\n{', '.join(timetable)}\n\n"
+            f"{msg.PRESS_DEPARTURE_BUTTON}"
+        )
+    )
     await callback.answer()
     await state.clear()
