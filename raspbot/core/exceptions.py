@@ -54,6 +54,10 @@ class UserInputTooShortError(ValueError):
     """Raised if the user input is too short."""
 
 
+class InvalidTimeFormatError(ValueError):
+    """Raised if the time format received from Yandex cannot be processed."""
+
+
 # DB
 
 

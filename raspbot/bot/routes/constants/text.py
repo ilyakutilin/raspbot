@@ -38,7 +38,13 @@ class Message(NamedTuple):
     INPUT_DESTINATION_POINT: str = (
         "Теперь введите пункт назначения (город или станцию):"
     )
-    SEARCHING_FOR_TIMETABLE: str = "Ищем раписание..."
+    CLOSEST_DEPARTURES: str = "Ближайшие отправления:"
+    PRESS_DEPARTURE_BUTTON: str = (
+        "Нажмите на кнопку со временем отправления под этим сообщением, "
+        "чтобы посмотреть подробную информацию о рейсе, "
+        "или выберите другую дату."
+    )
+    ERROR: str = "Произошла внутренняя ошибка приложения, приносим свои извинения."
 
 
 class Button(NamedTuple):

@@ -1,8 +1,8 @@
 from aiogram import types
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from raspbot.bot.constants import callback as clb
-from raspbot.bot.constants.text import btn
+from raspbot.bot.routes.constants import callback as clb
+from raspbot.bot.routes.constants.text import btn
 from raspbot.db.stations.schema import PointResponse
 from raspbot.services.shortener import get_short_region_title
 

@@ -1,14 +1,11 @@
-from datetime import datetime
-
 from aiogram import F, Router, types
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 
-from raspbot.apicalls.search import search_between_stations
-from raspbot.bot.constants import callback as clb
-from raspbot.bot.constants.states import Route
-from raspbot.bot.constants.text import SinglePointFound, msg
-from raspbot.bot.keyboards import (
+from raspbot.bot.routes.constants import callback as clb
+from raspbot.bot.routes.constants.states import Route
+from raspbot.bot.routes.constants.text import SinglePointFound, msg
+from raspbot.bot.routes.keyboards import (
     get_point_choice_keyboard,
     get_single_point_confirmation_keyboard,
 )
@@ -16,6 +13,7 @@ from raspbot.core import exceptions as exc
 from raspbot.core.logging import configure_logging
 from raspbot.db.stations.schema import PointResponse
 from raspbot.services.routes import PointRetriever, PointSelector
+from raspbot.services.timetable import search_timetable
 
 logger = configure_logging(name=__name__)
 
@@ -64,11 +62,12 @@ async def select_point(is_departure: bool, message: types.Message, state: FSMCon
             f"{len(user_data['remaining_point_chunks'])} chunks."
         )
     else:
-        msg_text: str = SinglePointFound(point=points[0], is_departure=is_departure)
+        point = point_chunks[0][0]
+        msg_text: str = SinglePointFound(point=point, is_departure=is_departure)
         await message.answer(
             text=f"{msg_text} {msg.WHAT_YOU_WERE_LOOKING_FOR}",
             reply_markup=get_single_point_confirmation_keyboard(
-                point=points[0], is_departure=is_departure
+                point=point, is_departure=is_departure
             ),
         )
 
@@ -158,54 +157,21 @@ async def choose_destination_from_multiple_callback(
     msg_text: str = SinglePointFound(
         point=selected_point, is_departure=callback_data.is_departure
     )
-    await state.update_data(destination_point=selected_point)
-    timetable: list[str] = await search_timetable(state=state)
-    await callback.message.answer(text=f"{msg_text}\n{', '.join(timetable)}")
+    user_data: dict = await state.get_data()
+    try:
+        departure_code: str = user_data["departure_point"].yandex_code
+    except ValueError as e:
+        logger.error(f"Departure code is not found in the destination founction: {e}")
+        callback.message.answer(text=msg.ERROR)
+    destination_code: str = selected_point.yandex_code
+    timetable: list[str] = await search_timetable(
+        departure_code=departure_code, destination_code=destination_code
+    )
+    await callback.message.answer(
+        text=(
+            f"{msg_text}\n\n{msg.CLOSEST_DEPARTURES}\n{', '.join(timetable)}\n\n"
+            f"{msg.PRESS_DEPARTURE_BUTTON}"
+        )
+    )
     await callback.answer()
     await state.clear()
-
-
-async def search_timetable(state: FSMContext):
-    user_data: dict = await state.get_data()
-    logger.info(f"User data: {user_data}")
-    departure_point: PointResponse | None = user_data.get("departure_point")
-    destination_point: PointResponse | None = user_data.get("destination_point")
-    timetable_dict: dict = await search_between_stations(
-        from_=departure_point.yandex_code,
-        to=destination_point.yandex_code,
-        date=str(datetime.today()).split()[0],
-    )
-    logger.info(f"Кол-во рейсов от Яндекса: {len(timetable_dict['segments'])}")
-    closest_departures: list[datetime] = []
-    for segment in timetable_dict["segments"]:
-        departure: str = segment["departure"]
-        try:
-            departure_time: datetime = datetime.fromisoformat(departure)
-        except ValueError as e:
-            logger.error(e)
-            try:
-                departure_time: datetime = datetime.strptime(departure, "%H:%M:%S")
-            except ValueError as e:
-                logger.error(e)
-                print(
-                    "Время пришло от Яндекса в некорректном формате. Поддерживаются "
-                    f"2023-05-29T12:48:00.000000 или 12:48:00, а пришло {departure}."
-                )
-        if (
-            departure_time < datetime.now(tz=departure_time.tzinfo)
-            or len(closest_departures) > 10
-        ):
-            logger.info(
-                "Отбраковка: Текущее время: "
-                f"{datetime.now(tz=departure_time.tzinfo)},"
-                f"Кол-во рейсов в списке: {len(closest_departures)},"
-                "Время отправления от Яндекса: "
-                f"{departure_time.strftime('%H:%M')}"
-            )
-            continue
-        closest_departures.append(departure_time)
-    logger.info(f"Финальное кол-во рейсов в списке: {len(closest_departures)}")
-    timetable: list[str] = []
-    for dep in closest_departures:
-        timetable.append(dep.strftime("%H:%M"))
-    return timetable

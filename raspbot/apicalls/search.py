@@ -50,6 +50,6 @@ async def search_between_stations(from_: str, to: str, **kwargs) -> Mapping:
 if __name__ == "__main__":
     asyncio.run(
         search_between_stations(
-            from_="s9600692", to="s9601805", date=datetime.date(2023, 5, 18)
+            from_="s9600692", to="s9601805", date=datetime.date.today()
         )
     )
