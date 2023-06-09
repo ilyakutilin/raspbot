@@ -39,6 +39,7 @@ class Message(NamedTuple):
         "Теперь введите пункт назначения (город или станцию):"
     )
     SEARCHING_FOR_TIMETABLE: str = "Ищем раписание..."
+    ERROR: str = "Произошла внутренняя ошибка приложения, приносим свои извинения."
 
 
 class Button(NamedTuple):

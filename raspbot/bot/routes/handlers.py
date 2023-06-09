@@ -157,8 +157,16 @@ async def choose_destination_from_multiple_callback(
     msg_text: str = SinglePointFound(
         point=selected_point, is_departure=callback_data.is_departure
     )
-    await state.update_data(destination_point=selected_point)
-    timetable: list[str] = await search_timetable(state=state)
+    user_data: dict = await state.get_data()
+    try:
+        departure_code: str = user_data["departure_point"].yandex_code
+    except ValueError as e:
+        logger.error(f"Departure code is not found in the destination founction: {e}")
+        callback.message.answer(text=msg.ERROR)
+    destination_code: str = selected_point.yandex_code
+    timetable: list[str] = await search_timetable(
+        departure_code=departure_code, destination_code=destination_code
+    )
     await callback.message.answer(text=f"{msg_text}\n{', '.join(timetable)}")
     await callback.answer()
     await state.clear()

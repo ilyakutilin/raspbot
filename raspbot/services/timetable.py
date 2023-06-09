@@ -1,23 +1,16 @@
-from datetime import datetime
-
-from aiogram.fsm.context import FSMContext
+from datetime import date, datetime
 
 from raspbot.apicalls.search import search_between_stations
 from raspbot.core.logging import configure_logging
-from raspbot.db.stations.schema import PointResponse
 
 logger = configure_logging(name=__name__)
 
 
-async def search_timetable(state: FSMContext):
-    user_data: dict = await state.get_data()
-    logger.info(f"User data: {user_data}")
-    departure_point: PointResponse | None = user_data.get("departure_point")
-    destination_point: PointResponse | None = user_data.get("destination_point")
+async def search_timetable(departure_code: str, destination_code: str):
     timetable_dict: dict = await search_between_stations(
-        from_=departure_point.yandex_code,
-        to=destination_point.yandex_code,
-        date=str(datetime.today()).split()[0],
+        from_=departure_code,
+        to=destination_code,
+        date=str(date.today()),
     )
     logger.info(f"Кол-во рейсов от Яндекса: {len(timetable_dict['segments'])}")
     closest_departures: list[datetime] = []
