@@ -50,7 +50,7 @@ class PointSelector:
                 f"Exact: {len(exact)}, startwith: {len(startwith)}, "
                 f"contain: {len(contain)}, total: {len(exact + startwith + contain)}"
             )
-        return exact + startwith + contain
+        return (exact + startwith + contain)[:50]
 
     def _split_choice_list(
         self, choice_list: list[PointResponse], chunk_size: int = 10
