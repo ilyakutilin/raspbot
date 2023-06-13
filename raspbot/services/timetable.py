@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from raspbot.apicalls.search import search_between_stations
+from raspbot.apicalls.search import TransportTypes, search_between_stations
 from raspbot.core.exceptions import InvalidTimeFormatError
 from raspbot.core.logging import configure_logging
 
@@ -33,8 +33,8 @@ async def _get_timetable_dict(departure_code: str, destination_code: str) -> dic
     kwargs_dict = {
         "from_": departure_code,
         "to": destination_code,
-        "date": str(date.today()),
-        "transport_types": "suburban",
+        "date": date.today(),
+        "transport_types": TransportTypes.SUBURBAN,
         "offset": 0,
     }
     timetable_dict: dict = await search_between_stations(**kwargs_dict)

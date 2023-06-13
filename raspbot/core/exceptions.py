@@ -46,15 +46,23 @@ class CreateSchemaError(SQLError):
 # Values
 
 
-class InvalidValueError(ValueError):
+class InvalidDataError(ValueError):
+    """Base class for all value-related exceptions."""
+
+
+class InvalidValueError(InvalidDataError):
     """Raised if the value provided to a function is not valid."""
 
 
-class UserInputTooShortError(ValueError):
+class UserInputTooShortError(InvalidDataError):
     """Raised if the user input is too short."""
 
 
-class InvalidTimeFormatError(ValueError):
+class InvalidDateError(InvalidDataError):
+    """Raised if the search date is set in the past."""
+
+
+class InvalidTimeFormatError(InvalidDataError):
     """Raised if the time format received from Yandex cannot be processed."""
 
 
