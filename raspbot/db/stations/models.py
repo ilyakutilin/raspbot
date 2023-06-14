@@ -1,23 +1,28 @@
 import asyncio
 from datetime import datetime
+from enum import Enum
 from typing import cast
 
-from sqlalchemy import Boolean, CheckConstraint, DateTime
+from sqlalchemy import DateTime
 from sqlalchemy import Float as Float_org
-from sqlalchemy import ForeignKey, Integer, String, case
+from sqlalchemy import ForeignKey, String
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import Mapped, column_property, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 from sqlalchemy.sql.type_api import TypeEngine
 
 from raspbot.core import exceptions as exc
 from raspbot.db.base import Base, engine
-from raspbot.db.users.models import Route
 
 # sqlalchemy.Float is treated as decimal.Decimal, not float.
 # So this is a workaround to stop mypy from complaining.
 # https://github.com/dropbox/sqlalchemy-stubs/issues/178
 Float = cast(type[TypeEngine[float]], Float_org)
+
+
+class PointTypeEnum(Enum):
+    station = "station"
+    settlement = "settlement"
 
 
 class StationCommonMixin(object):
@@ -28,81 +33,27 @@ class StationCommonMixin(object):
         return f"{self.__class__.__name__} {self.title}"
 
 
-class Station(Base, StationCommonMixin):
-    station_type: Mapped[str] = mapped_column(String(100), default="")
-    transport_type: Mapped[str] = mapped_column(String(100), default="")
+class Point(Base, StationCommonMixin):
+    point_type: Mapped[PointTypeEnum]
+    station_type: Mapped[str | None] = mapped_column(String(100), default=None)
+    transport_type: Mapped[str | None] = mapped_column(String(100), default=None)
     latitude: Mapped[Float | None] = mapped_column(Float, default=None)
     longitude: Mapped[Float | None] = mapped_column(Float, default=None)
-    yandex_code: Mapped[str] = mapped_column(String(100), default="")
-    point_id: Mapped[int] = mapped_column(ForeignKey("point.id"))
-    point: Mapped["Point"] = relationship("Point", back_populates="station")
-    settlement_id: Mapped[int] = mapped_column(Integer, ForeignKey("settlement.id"))
-    settlement: Mapped["Settlement"] = relationship(
-        "Settlement", back_populates="stations"
-    )
     region_id: Mapped[int] = mapped_column(ForeignKey("region.id"))
-    region: Mapped["Region"] = relationship("Region", back_populates="stations")
+    region: Mapped["Region"] = relationship("Region", back_populates="points")
     country_id: Mapped[int] = mapped_column(ForeignKey("country.id"))
-    country: Mapped["Country"] = relationship("Country", back_populates="stations")
-
-
-class Settlement(Base, StationCommonMixin):
-    point_id: Mapped[int] = mapped_column(ForeignKey("point.id"))
-    point: Mapped["Point"] = relationship("Point", back_populates="settlement")
-    region_id: Mapped[int] = mapped_column(ForeignKey("region.id"))
-    region: Mapped["Region"] = relationship("Region", back_populates="settlements")
-    country_id: Mapped[int] = mapped_column(ForeignKey("country.id"))
-    country: Mapped["Country"] = relationship("Country", back_populates="settlements")
-    stations: Mapped[list["Station"]] = relationship(
-        "Station", back_populates="settlement"
-    )
-
-
-class Point(Base):
-    station_id: Mapped[int] = mapped_column(ForeignKey("station.id"))
-    station: Mapped["Station"] = relationship("Station", back_populates="point")
-    settlement_id: Mapped[int] = mapped_column(ForeignKey("settlement.id"))
-    station: Mapped["Settlement"] = relationship("Settlement", back_populates="point")
-    is_station: Mapped[bool] = mapped_column(Boolean, default=True)
-    is_station = column_property(
-        case([(station_id.isnot(None) & settlement_id.is_(None), True)], else_=False)
-    )
-    routes: Mapped[list["Route"]] = relationship("Route", back_populates="point")
-    __table_args__ = (
-        CheckConstraint(
-            case(
-                [
-                    (station_id.isnot(None), settlement_id.is_(None)),
-                    (station_id.is_(None), settlement_id.isnot(None)),
-                ],
-                else_=False,
-            ),
-            name="point_constraint",
-        ),
-        CheckConstraint(
-            station_id.isnot(None) | settlement_id.isnot(None),
-            name="at_least_one_field_required",
-        ),
-    )
+    country: Mapped["Country"] = relationship("Country", back_populates="points")
 
 
 class Region(Base, StationCommonMixin):
     country_id: Mapped[int] = mapped_column(ForeignKey("country.id"))
     country: Mapped["Country"] = relationship("Country", back_populates="regions")
-    settlements: Mapped[list["Settlement"]] = relationship(
-        "Settlement", back_populates="region"
-    )
-    stations: Mapped[list["Station"]] = relationship("Station", back_populates="region")
+    points: Mapped[list["Point"]] = relationship("Point", back_populates="region")
 
 
 class Country(Base, StationCommonMixin):
     regions: Mapped[list["Region"]] = relationship("Region", back_populates="country")
-    settlements: Mapped[list["Settlement"]] = relationship(
-        "Settlement", back_populates="country"
-    )
-    stations: Mapped[list["Station"]] = relationship(
-        "Station", back_populates="country"
-    )
+    points: Mapped[list["Point"]] = relationship("Point", back_populates="country")
 
 
 class UpdateDate(Base):
