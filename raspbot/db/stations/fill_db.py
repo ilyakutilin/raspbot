@@ -9,6 +9,7 @@ a unit of the Yandex station data structure.
 
 import asyncio
 from datetime import datetime
+from itertools import chain
 from pathlib import Path
 from typing import Iterable
 
@@ -52,11 +53,11 @@ async def _get_regions(world: schema.World) -> list[schema.RegionsByCountry]:
     return regions_by_country
 
 
-async def _get_settlements(
+async def _get_points(
     regions_by_country: Iterable[schema.RegionsByCountry],
-) -> list[schema.SettlementsByRegion]:
+) -> list[schema.PointsByRegion]:
     """Receives the list of regions and returns the settlements by regions."""
-    settlements_by_region = []
+    points_by_region = []
     async with AsyncSessionLocal() as session:
         for item in regions_by_country:
             for region in item.regions:
@@ -67,25 +68,35 @@ async def _get_settlements(
                 )
                 _log_object_creation(sql_obj)
                 session.add(sql_obj)
-                settlements = schema.SettlementsByRegion(
-                    region=sql_obj,
-                    settlements=region.settlements,
+                stations = list(
+                    chain.from_iterable(
+                        [settlement.stations for settlement in region.settlements]
+                    )
                 )
-                _log_object_creation(settlements)
-                settlements_by_region.append(settlements)
+                points = schema.PointsByRegion(
+                    region=sql_obj, settlements=region.settlements, stations=stations
+                )
+                _log_object_creation(points)
+                points_by_region.append(points)
         await session.commit()
-    return settlements_by_region
+    return points_by_region
 
 
-async def _get_stations(
-    settlements_by_region: Iterable[schema.SettlementsByRegion],
-) -> list[schema.StationsBySettlement]:
-    """Receives the settlements and returns the stations by settlements."""
-    stations_by_settlement = []
+async def _add_points_to_db(
+    points_by_region: Iterable[schema.PointsByRegion],
+) -> None:
+    """Receives the list of stations and adds them to the database."""
     async with AsyncSessionLocal() as session:
-        for item in settlements_by_region:
+        for item in points_by_region:
             for settlement in item.settlements:
-                sql_obj = models.Settlement(
+                if not settlement.codes.yandex_code:
+                    logger.warning(
+                        f"FAILURE: settlement {settlement.title} has NOT been created: "
+                        "no yandex_code"
+                    )
+                    continue
+                sql_obj = models.Point(
+                    point_type=models.PointTypeEnum.settlement,
                     title=settlement.title,
                     yandex_code=settlement.codes.yandex_code,
                     region=item.region,
@@ -93,42 +104,34 @@ async def _get_stations(
                 )
                 _log_object_creation(sql_obj)
                 session.add(sql_obj)
-                stations = schema.StationsBySettlement(
-                    settlement=sql_obj,
-                    stations=settlement.stations,
-                )
-                _log_object_creation(stations)
-                stations_by_settlement.append(stations)
-        await session.commit()
-    return stations_by_settlement
 
-
-async def _add_stations_to_db(
-    stations_by_settlement: Iterable[schema.StationsBySettlement],
-) -> None:
-    """Receives the list of stations and adds them to the database."""
-    async with AsyncSessionLocal() as session:
-        for item in stations_by_settlement:
             for station in item.stations:
-                sql_obj = models.Station(
+                if not station.codes.yandex_code:
+                    logger.warning(
+                        f"FAILURE: station {station.title} has NOT been created: "
+                        "no yandex_code"
+                    )
+                    continue
+                latitude = (
+                    station.latitude if isinstance(station.latitude, float) else None
+                )
+                longitude = (
+                    station.longitude if isinstance(station.longitude, float) else None
+                )
+                sql_obj = models.Point(
+                    point_type=models.PointTypeEnum.station,
                     title=station.title,
-                    yandex_code=station.codes.yandex_code
-                    if station.codes.yandex_code is not None
-                    else "",
+                    yandex_code=station.codes.yandex_code,
                     station_type=station.station_type,
                     transport_type=station.transport_type,
-                    latitude=station.latitude
-                    if isinstance(station.latitude, float)
-                    else None,
-                    longitude=station.longitude
-                    if isinstance(station.longitude, float)
-                    else None,
-                    settlement=item.settlement,
-                    region=item.settlement.region,
-                    country=item.settlement.country,
+                    latitude=latitude,
+                    longitude=longitude,
+                    region=item.region,
+                    country=item.region.country,
                 )
                 _log_object_creation(sql_obj)
                 session.add(sql_obj)
+
         await session.commit()
 
 
@@ -153,9 +156,8 @@ async def populate_db(initial_data: dict | Path) -> None:
 
     try:
         regions = await _get_regions(world)
-        settlements = await _get_settlements(regions)
-        stations = await _get_stations(settlements)
-        await _add_stations_to_db(stations)
+        points = await _get_points(regions)
+        await _add_points_to_db(points)
     except exc.SQLError as e:
         logger.exception(f"Adding stations to DB failed: {e}", exc_info=True)
     else:

@@ -53,25 +53,10 @@ class RegionsByCountry(EntitiesByEntity):
         return f"{self.__class__.__name__} {self.country.title}"
 
 
-class SettlementsByRegion(EntitiesByEntity):
+class PointsByRegion(EntitiesByEntity):
     region: models.Region
     settlements: list[Settlement]
-
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__} {self.region.title}"
-
-
-class StationsBySettlement(EntitiesByEntity):
-    settlement: models.Settlement
     stations: list[Station]
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__} {self.settlement.title}"
-
-
-class PointResponse(BaseModel):
-    is_station: bool
-    id: int
-    title: str
-    yandex_code: str
-    region_title: str
+        return f"{self.__class__.__name__} {self.region.title}"

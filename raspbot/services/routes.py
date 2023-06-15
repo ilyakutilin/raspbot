@@ -1,13 +1,12 @@
 from raspbot.core.exceptions import UserInputTooShortError
 from raspbot.core.logging import configure_logging
-from raspbot.db.stations.crud import CRUDSettlements, CRUDStations
-from raspbot.db.stations.models import Settlement, Station
-from raspbot.db.stations.schema import PointResponse
+from raspbot.db.routes.crud import CRUDPoints
+from raspbot.db.routes.schema import PointResponse
+from raspbot.db.stations.models import Point, PointTypeEnum
 
 logger = configure_logging(name=__name__)
 
-crud_stations = CRUDStations()
-crud_settlements = CRUDSettlements()
+crud_points = CRUDPoints()
 
 
 class PointSelector:
@@ -26,30 +25,42 @@ class PointSelector:
             return True
         return False
 
+    def _normalize_choice_title(self, choice_title: str) -> str:
+        return choice_title.replace("Ё", "Е").replace("ё", "е").lower()
+
     def _sort_choices(self, pretty_user_input: str) -> list[PointResponse]:
         exact = []
         startwith = []
         contain = []
         for choice in self.choices:
-            logger.info(f"Choice title: {choice.title}.")
-            if choice.title.lower() == pretty_user_input:
+            choice_title = self._normalize_choice_title(choice.title)
+            logger.debug(f"Choice title: {choice.title}.")
+            if choice_title == pretty_user_input:
                 exact.append(choice)
-                logger.info(f"Choice {choice.title} appended to exact.")
-            elif choice.title.lower().startswith(pretty_user_input):
+                logger.debug(f"Choice {choice.title} appended to exact.")
+            elif choice_title.startswith(pretty_user_input):
                 startwith.append(choice)
-                logger.info(f"Choice {choice.title} appended to startwith.")
-            elif pretty_user_input in choice.title.lower():
+                logger.indebugfo(f"Choice {choice.title} appended to startwith.")
+            elif pretty_user_input in choice_title:
                 contain.append(choice)
-                logger.info(f"Choice {choice.title} appended to contain.")
+                logger.debug(f"Choice {choice.title} appended to contain.")
             else:
                 logger.error(
                     f"Choice {choice.title} does not fall into any of the predefined "
                     "categories. Something needs to be done about that."
                 )
-            logger.info(
+            logger.debug(
                 f"Exact: {len(exact)}, startwith: {len(startwith)}, "
                 f"contain: {len(contain)}, total: {len(exact + startwith + contain)}"
             )
+
+        for choice_list in (exact, startwith, contain):
+
+            def custom_sort_key(point: PointResponse):
+                return point.point_type == PointTypeEnum.settlement
+
+            choice_list.sort(key=custom_sort_key)
+
         return (exact + startwith + contain)[:50]
 
     def _split_choice_list(
@@ -60,50 +71,36 @@ class PointSelector:
             for i in range(0, len(choice_list), chunk_size)
         )
 
-    def _add_point_to_choices(
-        self,
-        points_from_db: list[Station | Settlement],
-    ) -> None:
+    def _add_point_to_choices(self, points_from_db: list[Point]) -> None:
         for point_from_db in points_from_db:
             point = PointResponse(
-                is_station=point_from_db.__class__.__name__ == "Station",
                 id=point_from_db.id,
+                point_type=point_from_db.point_type,
                 title=point_from_db.title,
                 yandex_code=point_from_db.yandex_code,
                 region_title=point_from_db.region.title,
             )
             self.choices.append(point)
 
-    async def _get_points_from_db(
-        self,
-        pretty_user_input: str,
-    ) -> tuple[list[Station], list[Settlement]]:
+    async def _get_points_from_db(self, pretty_user_input: str) -> list[Point]:
         strict_search: bool = self._validate_user_input(
             pretty_user_input=pretty_user_input
         )
-        stations_from_db: list[Station] = await crud_stations.get_stations_by_title(
+        points_from_db: list[Point] = await crud_points.get_points_by_title(
             title=pretty_user_input, strict_search=strict_search
         )
-        settlements_from_db: list[
-            Settlement
-        ] = await crud_settlements.get_settlements_by_title(
-            title=pretty_user_input, strict_search=strict_search
-        )
-        return stations_from_db, settlements_from_db
+        return points_from_db
 
     async def select_points(
         self, raw_user_input: str
     ) -> list[list[PointResponse]] | None:
         pretty_user_input: str = self._prettify(raw_user_input=raw_user_input)
-        stations_from_db, settlements_from_db = await self._get_points_from_db(
+        points_from_db = await self._get_points_from_db(
             pretty_user_input=pretty_user_input,
         )
-        if not stations_from_db and not settlements_from_db:
+        if not points_from_db:
             return None
-        if stations_from_db:
-            self._add_point_to_choices(points_from_db=stations_from_db)
-        if settlements_from_db:
-            self._add_point_to_choices(points_from_db=settlements_from_db)
+        self._add_point_to_choices(points_from_db=points_from_db)
         logger.info(f"Кол-во пунктов: {len(self.choices)}")
         sorted_choices: list[PointResponse] = self._sort_choices(
             pretty_user_input=pretty_user_input
@@ -112,20 +109,14 @@ class PointSelector:
 
 
 class PointRetriever:
-    async def _get_point_from_db(
-        self, point_id: int, is_station: bool
-    ) -> Station | Settlement | None:
-        if is_station:
-            return await crud_stations.get_station_by_id(id=point_id)
-        return await crud_settlements.get_settlement_by_id(id=point_id)
+    async def _get_point_from_db(self, point_id: int) -> Point | None:
+        return await crud_points.get_point_by_id(id=point_id)
 
-    async def get_point(self, point_id: int, is_station: bool) -> PointResponse:
-        point_from_db: Station | Settlement = await self._get_point_from_db(
-            point_id=point_id, is_station=is_station
-        )
+    async def get_point(self, point_id: int) -> PointResponse:
+        point_from_db: Point = await self._get_point_from_db(point_id=point_id)
         point = PointResponse(
-            is_station=is_station,
-            id=point_id,
+            id=point_from_db.id,
+            point_type=point_from_db.point_type,
             title=point_from_db.title,
             yandex_code=point_from_db.yandex_code,
             region_title=point_from_db.region.title,
