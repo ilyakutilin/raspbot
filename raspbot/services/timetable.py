@@ -1,8 +1,9 @@
-from datetime import date, datetime
+import datetime as dt
 
 from raspbot.apicalls.search import TransportTypes, search_between_stations
 from raspbot.core.exceptions import InvalidTimeFormatError
 from raspbot.core.logging import configure_logging
+from raspbot.db.routes.schema import RouteResponse
 
 logger = configure_logging(name=__name__)
 
@@ -10,7 +11,9 @@ CLOSEST_DEP_LIMIT = 12
 DEP_FORMAT = "%H:%M"
 
 
-async def _get_timetable_dict(departure_code: str, destination_code: str) -> dict:
+async def _get_timetable_dict(
+    departure_code: str, destination_code: str, date: dt.date = dt.date.today()
+) -> dict:
     """
     Возвращает сырой JSON (в виде словаря) с расписанием от Яндекса.
 
@@ -33,7 +36,7 @@ async def _get_timetable_dict(departure_code: str, destination_code: str) -> dic
     kwargs_dict = {
         "from_": departure_code,
         "to": destination_code,
-        "date": date.today(),
+        "date": date,
         "transport_types": TransportTypes.SUBURBAN.value,
         "offset": 0,
     }
@@ -73,7 +76,7 @@ async def _get_timetable_dict(departure_code: str, destination_code: str) -> dic
     return timetable_dict
 
 
-def _validate_time(raw_time: str) -> datetime:
+def _validate_time(raw_time: str) -> dt.datetime:
     """
     Превращает строку времени, пришедшую в сыром ответе, в объект datetime.
 
@@ -92,14 +95,14 @@ def _validate_time(raw_time: str) -> datetime:
         Объект datetime.
     """
     try:
-        validated_time: datetime = datetime.fromisoformat(raw_time)
+        validated_time: dt.datetime = dt.datetime.fromisoformat(raw_time)
     except ValueError as e:
         logger.error(
             f"Время пришло от Яндекса не в формате ISO: {raw_time}. "
             f"Ошибка ValueError: {e}"
         )
         try:
-            validated_time: datetime = datetime.strptime(raw_time, "%H:%M:%S")
+            validated_time: dt.datetime = dt.datetime.strptime(raw_time, "%H:%M:%S")
         except ValueError as e:
             raise InvalidTimeFormatError(
                 "Время пришло от Яндекса в некорректном формате. Поддерживаются "
@@ -109,7 +112,7 @@ def _validate_time(raw_time: str) -> datetime:
     return validated_time
 
 
-def _get_closest_departures(timetable_dict: dict, limit: int) -> list[datetime]:
+def _get_closest_departures(timetable_dict: dict, limit: int) -> list[dt.datetime]:
     """
     Генерирует список ближайших отправлений.
 
@@ -119,22 +122,23 @@ def _get_closest_departures(timetable_dict: dict, limit: int) -> list[datetime]:
         - limit (int): Лимит количества отправлений.
 
     Возвращает:
-        list[datetime]: Список отправлений в формате datetime.
+        list[datetime]: Список установленного количества отправлений в формате datetime.
     """
-    closest_departures: list[datetime] = []
+
+    closest_departures: list[dt.datetime] = []
     for segment in timetable_dict["segments"]:
         raw_departure_time: str = segment["departure"]
         try:
-            departure_time: datetime = _validate_time(raw_time=raw_departure_time)
+            departure_time: dt.datetime = _validate_time(raw_time=raw_departure_time)
         except InvalidTimeFormatError as e:
             logger.error(
                 f"Время отправления {raw_departure_time} отбраковано "
                 f"и не включено в вывод расписания. Причина: {e}."
             )
-        if departure_time < datetime.now(tz=departure_time.tzinfo):
+        if departure_time < dt.datetime.now(tz=departure_time.tzinfo):
             logger.debug(
                 "Отбраковка отправления: Текущее время "
-                f"{datetime.now(tz=departure_time.tzinfo).strftime('%H:%M')}, "
+                f"{dt.datetime.now(tz=departure_time.tzinfo).strftime('%H:%M')}, "
                 f"поезд {departure_time.strftime('%H:%M')} уже ушёл."
             )
             continue
@@ -143,10 +147,11 @@ def _get_closest_departures(timetable_dict: dict, limit: int) -> list[datetime]:
         closest_departures.append(departure_time)
         logger.debug(f"В список ближайших отправлений добавлено {departure_time}.")
     logger.info(f"Финальное кол-во рейсов в списке: {len(closest_departures)}")
+
     return closest_departures
 
 
-def _get_formatted_timetable(timetable: list[datetime], format: str) -> list[str]:
+def _get_formatted_timetable(timetable: list[dt.datetime], format: str) -> list[str]:
     """
     Форматирует отправления в строку.
 
@@ -165,7 +170,7 @@ def _get_formatted_timetable(timetable: list[datetime], format: str) -> list[str
     return formatted_timetable
 
 
-async def search_timetable(departure_code: str, destination_code: str) -> list[str]:
+async def search_timetable(route: RouteResponse) -> list[str]:
     """
     Ищет расписание между указанными пунктами.
 
@@ -180,9 +185,10 @@ async def search_timetable(departure_code: str, destination_code: str) -> list[s
         установленного формата.
     """
     timetable_dict: dict = await _get_timetable_dict(
-        destination_code=destination_code, departure_code=departure_code
+        departure_code=route.departure_point.yandex_code,
+        destination_code=route.destination_point.yandex_code,
     )
-    closest_departures: list[datetime] = _get_closest_departures(
+    closest_departures: list[dt.datetime] = _get_closest_departures(
         timetable_dict=timetable_dict, limit=CLOSEST_DEP_LIMIT
     )
     return _get_formatted_timetable(timetable=closest_departures, format=DEP_FORMAT)

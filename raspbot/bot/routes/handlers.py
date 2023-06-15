@@ -11,8 +11,8 @@ from raspbot.bot.routes.keyboards import (
 )
 from raspbot.core import exceptions as exc
 from raspbot.core.logging import configure_logging
-from raspbot.db.routes.schema import PointResponse
-from raspbot.services.routes import PointRetriever, PointSelector
+from raspbot.db.routes.schema import PointResponse, RouteResponse
+from raspbot.services.routes import PointRetriever, PointSelector, RouteFinder
 from raspbot.services.timetable import search_timetable
 
 logger = configure_logging(name=__name__)
@@ -20,6 +20,7 @@ logger = configure_logging(name=__name__)
 router = Router()
 
 point_retriever = PointRetriever()
+route_finder = RouteFinder()
 
 
 @router.message(Command("start"))
@@ -159,14 +160,14 @@ async def choose_destination_from_multiple_callback(
     )
     user_data: dict = await state.get_data()
     try:
-        departure_code: str = user_data["departure_point"].yandex_code
+        departure_point: PointResponse = user_data["departure_point"]
     except ValueError as e:
-        logger.error(f"Departure code is not found in the destination founction: {e}")
+        logger.error(f"Departure point is not found in the state data: {e}")
         callback.message.answer(text=msg.ERROR)
-    destination_code: str = selected_point.yandex_code
-    timetable: list[str] = await search_timetable(
-        departure_code=departure_code, destination_code=destination_code
+    route: RouteResponse = await route_finder.get_or_create_route(
+        departure_point=departure_point, destination_point=selected_point
     )
+    timetable: list[str] = await search_timetable(route=route)
     await callback.message.answer(
         text=(
             f"{msg_text}\n\n{msg.CLOSEST_DEPARTURES}\n{', '.join(timetable)}\n\n"

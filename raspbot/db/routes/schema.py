@@ -9,3 +9,9 @@ class PointResponse(BaseModel):
     title: str
     yandex_code: str
     region_title: str
+
+
+class RouteResponse(BaseModel):
+    id: int
+    departure_point: PointResponse
+    destination_point: PointResponse

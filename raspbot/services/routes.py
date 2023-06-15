@@ -1,12 +1,14 @@
-from raspbot.core.exceptions import UserInputTooShortError
+from raspbot.core.exceptions import AlreadyExistsError, UserInputTooShortError
 from raspbot.core.logging import configure_logging
-from raspbot.db.routes.crud import CRUDPoints
-from raspbot.db.routes.schema import PointResponse
+from raspbot.db.routes.crud import CRUDPoints, CRUDRoutes
+from raspbot.db.routes.schema import PointResponse, RouteResponse
 from raspbot.db.stations.models import Point, PointTypeEnum
+from raspbot.db.users.models import Route
 
 logger = configure_logging(name=__name__)
 
 crud_points = CRUDPoints()
+crud_routes = CRUDRoutes()
 
 
 class PointSelector:
@@ -40,7 +42,7 @@ class PointSelector:
                 logger.debug(f"Choice {choice.title} appended to exact.")
             elif choice_title.startswith(pretty_user_input):
                 startwith.append(choice)
-                logger.indebugfo(f"Choice {choice.title} appended to startwith.")
+                logger.debug(f"Choice {choice.title} appended to startwith.")
             elif pretty_user_input in choice_title:
                 contain.append(choice)
                 logger.debug(f"Choice {choice.title} appended to contain.")
@@ -122,3 +124,42 @@ class PointRetriever:
             region_title=point_from_db.region.title,
         )
         return point
+
+
+class RouteFinder:
+    async def _get_route_from_db(
+        self, departure_point_id: int, destination_point_id: int
+    ) -> Route:
+        return await crud_routes.get_route_by_points(
+            departure_point_id, destination_point_id
+        )
+
+    async def get_or_create_route(
+        self, departure_point: PointResponse, destination_point: PointResponse
+    ) -> RouteResponse:
+        instance = Route(
+            departure_point_id=departure_point.id,
+            destination_point_id=destination_point.id,
+        )
+        try:
+            route_from_db: Route = await crud_routes.create(instance=instance)
+        except AlreadyExistsError as e:
+            dep_st_or_stl = (
+                "ст." if departure_point.point_type == PointTypeEnum.station else "г."
+            )
+            dest_st_or_stl = (
+                "ст." if destination_point.point_type == PointTypeEnum.station else "г."
+            )
+            logger.info(
+                f"Маршрут от {dep_st_or_stl} {departure_point.title} до "
+                f"{dest_st_or_stl} {destination_point.title} уже существует: {e}"
+            )
+            route_from_db: Route = await self._get_route_from_db(
+                departure_point.id, destination_point.id
+            )
+        route = RouteResponse(
+            id=route_from_db.id,
+            departure_point=departure_point,
+            destination_point=destination_point,
+        )
+        return route
