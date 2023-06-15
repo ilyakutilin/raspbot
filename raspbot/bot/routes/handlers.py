@@ -11,7 +11,7 @@ from raspbot.bot.routes.keyboards import (
 )
 from raspbot.core import exceptions as exc
 from raspbot.core.logging import configure_logging
-from raspbot.db.stations.schema import PointResponse
+from raspbot.db.routes.schema import PointResponse
 from raspbot.services.routes import PointRetriever, PointSelector
 from raspbot.services.timetable import search_timetable
 
@@ -25,6 +25,7 @@ point_retriever = PointRetriever()
 @router.message(Command("start"))
 async def start_command(message: types.Message, state: FSMContext):
     """User: issues /start command. Bot: please input the departure point."""
+    logger.debug(f"User data: {message.from_user}")
     await message.answer(msg.INPUT_DEPARTURE_POINT)
     await state.set_state(Route.selecting_departure_point)
 
@@ -131,7 +132,7 @@ async def choose_departure_from_multiple_callback(
 ):
     """User: selects the departure from the list. Bot: input the destination point."""
     selected_departure: PointResponse = await point_retriever.get_point(
-        point_id=callback_data.point_id, is_station=callback_data.is_station
+        point_id=callback_data.point_id
     )
     msg_text: str = SinglePointFound(
         point=selected_departure, is_departure=callback_data.is_departure
@@ -152,7 +153,7 @@ async def choose_destination_from_multiple_callback(
 ):
     """User: selects the destination from the list. Bot: here's the timetable."""
     selected_point: PointResponse = await point_retriever.get_point(
-        point_id=callback_data.point_id, is_station=callback_data.is_station
+        point_id=callback_data.point_id
     )
     msg_text: str = SinglePointFound(
         point=selected_point, is_departure=callback_data.is_departure

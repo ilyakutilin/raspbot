@@ -16,5 +16,4 @@ class MissingPointCallbackFactory(CallbackData, prefix="missing_point"):
 
 class PointsCallbackFactory(CallbackData, prefix="pointselect"):
     is_departure: bool
-    is_station: bool
     point_id: int

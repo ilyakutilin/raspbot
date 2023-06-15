@@ -60,11 +60,3 @@ class PointsByRegion(EntitiesByEntity):
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__} {self.region.title}"
-
-
-class PointResponse(BaseModel):
-    is_station: bool
-    id: int
-    title: str
-    yandex_code: str
-    region_title: str

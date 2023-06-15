@@ -34,7 +34,7 @@ async def _get_timetable_dict(departure_code: str, destination_code: str) -> dic
         "from_": departure_code,
         "to": destination_code,
         "date": date.today(),
-        "transport_types": TransportTypes.SUBURBAN,
+        "transport_types": TransportTypes.SUBURBAN.value,
         "offset": 0,
     }
     timetable_dict: dict = await search_between_stations(**kwargs_dict)
