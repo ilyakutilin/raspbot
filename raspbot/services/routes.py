@@ -34,22 +34,22 @@ class PointSelector:
         contain = []
         for choice in self.choices:
             choice_title = self._normalize_choice_title(choice.title)
-            logger.info(f"Choice title: {choice.title}.")
+            logger.debug(f"Choice title: {choice.title}.")
             if choice_title == pretty_user_input:
                 exact.append(choice)
-                logger.info(f"Choice {choice.title} appended to exact.")
+                logger.debug(f"Choice {choice.title} appended to exact.")
             elif choice_title.startswith(pretty_user_input):
                 startwith.append(choice)
-                logger.info(f"Choice {choice.title} appended to startwith.")
+                logger.indebugfo(f"Choice {choice.title} appended to startwith.")
             elif pretty_user_input in choice_title:
                 contain.append(choice)
-                logger.info(f"Choice {choice.title} appended to contain.")
+                logger.debug(f"Choice {choice.title} appended to contain.")
             else:
                 logger.error(
                     f"Choice {choice.title} does not fall into any of the predefined "
                     "categories. Something needs to be done about that."
                 )
-            logger.info(
+            logger.debug(
                 f"Exact: {len(exact)}, startwith: {len(startwith)}, "
                 f"contain: {len(contain)}, total: {len(exact + startwith + contain)}"
             )
