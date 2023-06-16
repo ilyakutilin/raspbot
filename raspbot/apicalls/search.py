@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+import json
 from enum import Enum
 from typing import Mapping
 
@@ -68,7 +69,7 @@ def _validate_arg(
                 f"Значение {key} должно быть одним из: {allowed_values}"
             )
     # В key_str нужно убрать нижнее подчёркивание из поля "from_"
-    key_str = str(key).replace("_", "")
+    key_str = str(key).rstrip("_")
     value_str = str(value)
     logger.debug(f"key_str = {key_str}, value_str = {value_str}")
     return key_str, value_str
@@ -145,8 +146,10 @@ async def search_between_stations(
 
 
 if __name__ == "__main__":
-    asyncio.run(
+    tt = asyncio.run(
         search_between_stations(
-            from_="s9600692", to="s9601805", date=datetime.date.today()
+            from_="s9601728", to="s2000006", date=datetime.date.today(), offset=100
         )
     )
+    with open(file="timetable.json", mode="w", encoding="UTF-8") as file:
+        json.dump(obj=tt, fp=file, ensure_ascii=False, indent=2)
