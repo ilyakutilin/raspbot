@@ -127,36 +127,36 @@ class PointRetriever:
 
 
 class RouteFinder:
-    async def _get_route_from_db(
-        self, departure_point_id: int, destination_point_id: int
-    ) -> Route:
-        return await crud_routes.get_route_by_points(
-            departure_point_id, destination_point_id
-        )
-
     async def get_or_create_route(
         self, departure_point: PointResponse, destination_point: PointResponse
     ) -> RouteResponse:
-        instance = Route(
+        route_from_db: Route = await crud_routes.get_route_by_points(
             departure_point_id=departure_point.id,
             destination_point_id=destination_point.id,
         )
-        try:
-            route_from_db: Route = await crud_routes.create(instance=instance)
-        except AlreadyExistsError as e:
-            dep_st_or_stl = (
-                "ст." if departure_point.point_type == PointTypeEnum.station else "г."
-            )
-            dest_st_or_stl = (
-                "ст." if destination_point.point_type == PointTypeEnum.station else "г."
-            )
+        dep_st_or_stl = (
+            "ст." if departure_point.point_type == PointTypeEnum.station else "г."
+        )
+        dest_st_or_stl = (
+            "ст." if destination_point.point_type == PointTypeEnum.station else "г."
+        )
+        if route_from_db:
             logger.info(
                 f"Маршрут от {dep_st_or_stl} {departure_point.title} до "
-                f"{dest_st_or_stl} {destination_point.title} уже существует: {e}"
+                f"{dest_st_or_stl} {destination_point.title} уже существует."
             )
-            route_from_db: Route = await self._get_route_from_db(
-                departure_point.id, destination_point.id
+        else:
+            logger.info(
+                f"Маршрут от {dep_st_or_stl} {departure_point.title} до "
+                f"{dest_st_or_stl} {destination_point.title} еще не существует."
+                "Создаём новый маршрут."
             )
+            instance = Route(
+                departure_point_id=departure_point.id,
+                destination_point_id=destination_point.id,
+            )
+            route_from_db: Route = await crud_routes.create(instance=instance)
+
         route = RouteResponse(
             id=route_from_db.id,
             departure_point=departure_point,

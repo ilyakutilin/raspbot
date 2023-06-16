@@ -56,7 +56,7 @@ class CRUDRoutes(CRUDBase):
     async def get_route_by_points(
         self, departure_point_id: int, destination_point_id: int
     ) -> Route:
-        async with self._sessionmaker as session:
+        async with self._sessionmaker() as session:
             route = await session.execute(
                 select(Route).where(
                     and_(

@@ -13,7 +13,7 @@ from raspbot.core import exceptions as exc
 from raspbot.core.logging import configure_logging
 from raspbot.db.routes.schema import PointResponse, RouteResponse
 from raspbot.services.routes import PointRetriever, PointSelector, RouteFinder
-from raspbot.services.timetable import search_timetable
+from raspbot.services.timetable import get_closest_departures
 
 logger = configure_logging(name=__name__)
 
@@ -167,12 +167,7 @@ async def choose_destination_from_multiple_callback(
     route: RouteResponse = await route_finder.get_or_create_route(
         departure_point=departure_point, destination_point=selected_point
     )
-    timetable: list[str] = await search_timetable(route=route)
-    await callback.message.answer(
-        text=(
-            f"{msg_text}\n\n{msg.CLOSEST_DEPARTURES}\n{', '.join(timetable)}\n\n"
-            f"{msg.PRESS_DEPARTURE_BUTTON}"
-        )
-    )
+    timetable: str = await get_closest_departures(route=route)
+    await callback.message.answer(text=(f"{msg_text}\n\n{timetable}"))
     await callback.answer()
     await state.clear()

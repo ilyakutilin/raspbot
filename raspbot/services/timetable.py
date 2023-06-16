@@ -1,6 +1,7 @@
 import datetime as dt
 
 from raspbot.apicalls.search import TransportTypes, search_between_stations
+from raspbot.bot.routes.constants.text import msg
 from raspbot.core.exceptions import InvalidTimeFormatError
 from raspbot.core.logging import configure_logging
 from raspbot.db.routes.schema import RouteResponse
@@ -8,6 +9,7 @@ from raspbot.db.routes.schema import RouteResponse
 logger = configure_logging(name=__name__)
 
 CLOSEST_DEP_LIMIT = 12
+SMALL_REMAINDER = 3
 DEP_FORMAT = "%H:%M"
 
 
@@ -76,7 +78,9 @@ async def _get_timetable_dict(
     return timetable_dict
 
 
-def _validate_time(raw_time: str) -> dt.datetime:
+def _validate_time(
+    raw_time: str, timetable_date: dt.date = dt.date.today()
+) -> dt.datetime:
     """
     Превращает строку времени, пришедшую в сыром ответе, в объект datetime.
 
@@ -102,7 +106,10 @@ def _validate_time(raw_time: str) -> dt.datetime:
             f"Ошибка ValueError: {e}"
         )
         try:
-            validated_time: dt.datetime = dt.datetime.strptime(raw_time, "%H:%M:%S")
+            datetime_str = f"{timetable_date} {raw_time}"
+            validated_time: dt.datetime = dt.datetime.strptime(
+                datetime_str, "%Y-%m-%d %H:%M:%S"
+            )
         except ValueError as e:
             raise InvalidTimeFormatError(
                 "Время пришло от Яндекса в некорректном формате. Поддерживаются "
@@ -112,11 +119,15 @@ def _validate_time(raw_time: str) -> dt.datetime:
     return validated_time
 
 
-def _get_closest_departures(timetable_dict: dict, limit: int) -> list[dt.datetime]:
+def _get_closest_departures_for_date(
+    date: dt.date, timetable_dict: dict, limit: int
+) -> list[dt.datetime]:
     """
-    Генерирует список ближайших отправлений.
+    Генерирует список ближайших отправлений на указанную дату.
 
     Принимает на вход:
+        - date_ (datetime): Дата, на которую требуется формирование списка ближайших
+          отправлений;
         - timetable_dict (dict): Полный словарь (JSON) с сырыми данными,
           скомбинированный с учетом пагинации.
         - limit (int): Лимит количества отправлений.
@@ -124,71 +135,150 @@ def _get_closest_departures(timetable_dict: dict, limit: int) -> list[dt.datetim
     Возвращает:
         list[datetime]: Список установленного количества отправлений в формате datetime.
     """
-
     closest_departures: list[dt.datetime] = []
     for segment in timetable_dict["segments"]:
         raw_departure_time: str = segment["departure"]
         try:
-            departure_time: dt.datetime = _validate_time(raw_time=raw_departure_time)
+            departure_time: dt.datetime = _validate_time(
+                raw_time=raw_departure_time, timetable_date=date
+            )
         except InvalidTimeFormatError as e:
             logger.error(
                 f"Время отправления {raw_departure_time} отбраковано "
                 f"и не включено в вывод расписания. Причина: {e}."
             )
+        current_time = dt.datetime.now(tz=departure_time.tzinfo).strftime(DEP_FORMAT)
+        departure_str = departure_time.strftime(DEP_FORMAT)
         if departure_time < dt.datetime.now(tz=departure_time.tzinfo):
             logger.debug(
-                "Отбраковка отправления: Текущее время "
-                f"{dt.datetime.now(tz=departure_time.tzinfo).strftime('%H:%M')}, "
-                f"поезд {departure_time.strftime('%H:%M')} уже ушёл."
+                f"Отбраковка отправления: Текущее время: {current_time}, "
+                f"поезд {departure_str} уже ушёл."
             )
             continue
+        if departure_time.date() > date:
+            logger.debug(
+                f"Отбраковка отправления: Поезд {departure_str} отправляется на "
+                "следующий день, поэтому не включается в выборку на указанную дату."
+            )
         if len(closest_departures) >= limit:
             break
         closest_departures.append(departure_time)
         logger.debug(f"В список ближайших отправлений добавлено {departure_time}.")
-    logger.info(f"Финальное кол-во рейсов в списке: {len(closest_departures)}")
-
+    logger.debug(
+        f"Финальное кол-во рейсов в списке на дату {date}: {len(closest_departures)}"
+    )
     return closest_departures
 
 
-def _get_formatted_timetable(timetable: list[dt.datetime], format: str) -> list[str]:
+def _get_formatted_timetable(
+    today_timetable: list[dt.datetime],
+    tomorrow_timetable: list[dt.datetime],
+    format: str,
+) -> str:
     """
-    Форматирует отправления в строку.
+    Форматирует отправления (рейсы) и формирует готовое сообщение для Telegram.
 
     Принимает на вход:
-        - timetable (list[datetime]): Расписание, которое необходимо отформатировать,
+        - today_timetable: Расписание на сегодня, которое необходимо отформатировать,
           в виде списка с объектами datetime.
-        - format (str): Формат, к которому необходимо привести.
+        - today_timetable: Расписание на завтра, которое необходимо отформатировать,
+          в виде списка с объектами datetime.
+        - format: Формат времени, к которому необходимо привести отправления.
+
+    Примечания:
+        ttbl_dict представляет собой словарь, ключом которого является кортеж из
+        булевых значений списков расписаний на сегодня (первая позиция кортежа)
+        и на завтра (вторая позиция) соответственно.
+        Например, (True, False) следует читать как "в списке отправлений на сегодня
+        есть рейсы, а список на завтра пустой. Значит, нужно сформировать для
+        пользователя сообщение, в котором будут только рейсы на сегодня".
 
     Возвращает:
-        list[str]: Отформатированное расписание в виде списка строк
-        установленного формата.
+        - str: Отформатированный текст с ближайшими отправлениями, готовый к вставке
+          в сообщение Telegram.
     """
-    formatted_timetable: list[str] = []
-    for dep in timetable:
-        formatted_timetable.append(dep.strftime("%H:%M"))
-    return formatted_timetable
+    ttbl_dict = {
+        (True, False): (
+            "{cd}\n{ttbl}\n\n{pb}".format(
+                cd=msg.CLOSEST_DEPARTURES,
+                ttbl=", ".join([dep.strftime(format) for dep in today_timetable]),
+                pb=msg.PRESS_DEPARTURE_BUTTON,
+            )
+        ),
+        (True, True): (
+            "{cd}\n{td} {tdttbl}\n{tm} {tmttbl}\n\n{pb}".format(
+                cd=msg.CLOSEST_DEPARTURES,
+                td=msg.TODAY,
+                tdttbl=", ".join([dep.strftime(format) for dep in today_timetable]),
+                tm=msg.TOMORROW,
+                tmttbl=", ".join([dep.strftime(format) for dep in tomorrow_timetable]),
+                pb=msg.PRESS_DEPARTURE_BUTTON,
+            )
+        ),
+        (False, True): (
+            "{ot}\n{ttbl}\n\n{pb}".format(
+                ot=msg.ONLY_TOMORROW,
+                ttbl=", ".join([dep.strftime(format) for dep in tomorrow_timetable]),
+                pb=msg.PRESS_DEPARTURE_BUTTON,
+            )
+        ),
+        (False, False): msg.NO_CLOSEST_DEPARTURES,
+    }
+    return ttbl_dict[(bool(today_timetable), bool(tomorrow_timetable))]
 
 
-async def search_timetable(route: RouteResponse) -> list[str]:
+async def get_closest_departures(route: RouteResponse) -> str:
     """
-    Ищет расписание между указанными пунктами.
+    Генерирует список ближайших отправлений по указанному маршруту.
+
+    Если ближайших рейсов на сегодня нет или осталось очень мало,
+    то показывается также несколько рейсов на завтра.
 
     Принимает на вход:
-        - departure_code (str): Яндекс-код пункта отправления в виде строки,
-          пример: "s2000006"
-        - destination_code (str): Яндекс-код пункта назначения в виде строки,
-          пример: "s9600721"
+        - route (RouteResponse): Маршрут в формате RouteResponse.
 
     Возвращает:
-        list[str]: Отформатированное расписание в виде списка строк
-        установленного формата.
+        - str: Отформатированный текст с ближайшими отправлениями, готовый к вставке
+          в сообщение Telegram.
     """
-    timetable_dict: dict = await _get_timetable_dict(
+    timetable_dict_today: dict = await _get_timetable_dict(
         departure_code=route.departure_point.yandex_code,
         destination_code=route.destination_point.yandex_code,
+        date=dt.date.today(),
     )
-    closest_departures: list[dt.datetime] = _get_closest_departures(
-        timetable_dict=timetable_dict, limit=CLOSEST_DEP_LIMIT
+    closest_departures_today: list[dt.datetime] = _get_closest_departures_for_date(
+        date=dt.date.today(),
+        timetable_dict=timetable_dict_today,
+        limit=CLOSEST_DEP_LIMIT,
     )
-    return _get_formatted_timetable(timetable=closest_departures, format=DEP_FORMAT)
+    remainder = max(0, CLOSEST_DEP_LIMIT - len(closest_departures_today))
+    closest_departures_tomorrow: list[dt.datetime] = []
+    last_departure_today: dt.datetime = (
+        closest_departures_today[-1] if closest_departures_today else dt.timedelta(0)
+    )
+    current_time = (
+        dt.datetime.now(tz=last_departure_today.tzinfo)
+        if closest_departures_today
+        else dt.timedelta(0)
+    )
+    if len(closest_departures_today) < SMALL_REMAINDER or (
+        ((last_departure_today - current_time) < dt.timedelta(hours=2)) and remainder
+    ):
+        tomorrow = dt.date.today() + dt.timedelta(days=1)
+        timetable_dict_tomorrow: dict = await _get_timetable_dict(
+            departure_code=route.departure_point.yandex_code,
+            destination_code=route.destination_point.yandex_code,
+            date=tomorrow,
+        )
+        closest_departures_tomorrow += _get_closest_departures_for_date(
+            date=tomorrow,
+            timetable_dict=timetable_dict_tomorrow,
+            limit=max(remainder, SMALL_REMAINDER),
+        )
+    formatted_timetable: str = _get_formatted_timetable(
+        today_timetable=closest_departures_today,
+        tomorrow_timetable=closest_departures_tomorrow,
+        format=DEP_FORMAT,
+    )
+
+    return formatted_timetable
