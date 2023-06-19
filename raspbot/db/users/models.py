@@ -1,6 +1,7 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -9,10 +10,12 @@ from raspbot.db.stations.models import Point
 
 
 class User(Base):
-    first_name: Mapped[str] = mapped_column(String(100))
-    last_name: Mapped[str] = mapped_column(String(100))
     telegram_id: Mapped[int] = mapped_column(Integer, unique=True)
-    language_code: Mapped[str] = mapped_column(String(100))
+    is_bot: Mapped[bool] = mapped_column(Boolean, default=False)
+    first_name: Mapped[str] = mapped_column(String(100), default="")
+    last_name: Mapped[str | None] = mapped_column(String(100))
+    username: Mapped[str | None] = mapped_column(String(100))
+    language_code: Mapped[str | None] = mapped_column(String(100))
     added_on: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -23,6 +26,12 @@ class User(Base):
         "Favorite", back_populates="user"
     )
     recents: Mapped[list["Recent"]] = relationship("Recent", back_populates="user")
+
+    @hybrid_property
+    def full_name(self) -> str:
+        if self.last_name:
+            return f"{self.first_name} {self.last_name}"
+        return self.first_name
 
 
 class Route(Base):
