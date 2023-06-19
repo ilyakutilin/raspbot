@@ -23,9 +23,9 @@ point_retriever = PointRetriever()
 route_finder = RouteFinder()
 
 
-@router.message(Command("start"))
-async def start_command(message: types.Message, state: FSMContext):
-    """User: issues /start command. Bot: please input the departure point."""
+@router.message(Command("search"))
+async def search_command(message: types.Message, state: FSMContext):
+    """User: issues /search command. Bot: please input the departure point."""
     await message.answer(msg.INPUT_DEPARTURE_POINT)
     await state.set_state(Route.selecting_departure_point)
 
