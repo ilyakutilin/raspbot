@@ -1,4 +1,4 @@
-from raspbot.core.exceptions import AlreadyExistsError, UserInputTooShortError
+from raspbot.core.exceptions import UserInputTooShortError
 from raspbot.core.logging import configure_logging
 from raspbot.db.routes.crud import CRUDPoints, CRUDRoutes
 from raspbot.db.routes.schema import PointResponse, RouteResponse

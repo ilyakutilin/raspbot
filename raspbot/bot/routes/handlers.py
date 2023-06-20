@@ -2,9 +2,9 @@ from aiogram import F, Router, types
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 
-from raspbot.bot.routes.constants import callback as clb
-from raspbot.bot.routes.constants.states import Route
-from raspbot.bot.routes.constants.text import SinglePointFound, msg
+from raspbot.bot.constants import callback as clb
+from raspbot.bot.constants import messages as msg
+from raspbot.bot.constants import states
 from raspbot.bot.routes.keyboards import (
     get_point_choice_keyboard,
     get_single_point_confirmation_keyboard,
@@ -27,7 +27,7 @@ route_finder = RouteFinder()
 async def search_command(message: types.Message, state: FSMContext):
     """User: issues /search command. Bot: please input the departure point."""
     await message.answer(msg.INPUT_DEPARTURE_POINT)
-    await state.set_state(Route.selecting_departure_point)
+    await state.set_state(states.Route.selecting_departure_point)
 
 
 async def select_point(is_departure: bool, message: types.Message, state: FSMContext):
@@ -64,7 +64,7 @@ async def select_point(is_departure: bool, message: types.Message, state: FSMCon
         )
     else:
         point = point_chunks[0][0]
-        msg_text: str = SinglePointFound(point=point, is_departure=is_departure)
+        msg_text: str = msg.SinglePointFound(point=point, is_departure=is_departure)
         await message.answer(
             text=f"{msg_text} {msg.WHAT_YOU_WERE_LOOKING_FOR}",
             reply_markup=get_single_point_confirmation_keyboard(
@@ -73,13 +73,13 @@ async def select_point(is_departure: bool, message: types.Message, state: FSMCon
         )
 
 
-@router.message(Route.selecting_departure_point)
+@router.message(states.Route.selecting_departure_point)
 async def select_departure(message: types.Message, state: FSMContext):
     """User: inputs the desired departure point. Bot: here's what I have in the DB."""
     await select_point(is_departure=True, message=message, state=state)
 
 
-@router.message(Route.selecting_destination_point)
+@router.message(states.Route.selecting_destination_point)
 async def select_destination(message: types.Message, state: FSMContext):
     """User: inputs the destination point. Bot: here's what I have in the DB."""
     await select_point(is_departure=False, message=message, state=state)
@@ -118,9 +118,9 @@ async def missing_point_callback(
     await callback.message.answer(msg.MISSING_POINT)
     await callback.answer()
     await state.set_state(
-        Route.selecting_departure_point
+        states.Route.selecting_departure_point
         if is_departure
-        else Route.selecting_destination_point
+        else states.Route.selecting_destination_point
     )
 
 
@@ -134,13 +134,13 @@ async def choose_departure_from_multiple_callback(
     selected_departure: PointResponse = await point_retriever.get_point(
         point_id=callback_data.point_id
     )
-    msg_text: str = SinglePointFound(
+    msg_text: str = msg.SinglePointFound(
         point=selected_departure, is_departure=callback_data.is_departure
     )
     await callback.message.answer(text=f"{msg_text}\n{msg.INPUT_DESTINATION_POINT}")
     await callback.answer()
     await state.update_data(departure_point=selected_departure)
-    await state.set_state(Route.selecting_destination_point)
+    await state.set_state(states.Route.selecting_destination_point)
 
 
 @router.callback_query(
@@ -155,7 +155,7 @@ async def choose_destination_from_multiple_callback(
     selected_point: PointResponse = await point_retriever.get_point(
         point_id=callback_data.point_id
     )
-    msg_text: str = SinglePointFound(
+    msg_text: str = msg.SinglePointFound(
         point=selected_point, is_departure=callback_data.is_departure
     )
     user_data: dict = await state.get_data()
