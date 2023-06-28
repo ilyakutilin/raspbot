@@ -1,5 +1,6 @@
 from raspbot.db.routes.schema import PointResponse
 from raspbot.db.stations.models import PointTypeEnum
+from raspbot.services.shorteners.short_point import get_short_point_type
 
 # START
 
@@ -26,7 +27,7 @@ class SinglePointFound:
 
     def __str__(self):
         dep_or_dest = "отправления" if self.is_departure else "назначения"
-        type_ = "ст." if self.point_type == PointTypeEnum.station else "г."
+        type_ = get_short_point_type(self.point_type)
         title = self.title
         region = self.region_title
         return f"Пункт {dep_or_dest} - {type_} {title}, {region}."
@@ -65,3 +66,9 @@ ERROR = "Произошла внутренняя ошибка приложени
 
 
 # USERS
+
+NO_LAST = (
+    "Вы еще не искали раписания, поэтому список недавних маршрутов пуст 🤷‍♂️\n\n"
+    "Нажмите <b>/search</b>, чтобы начать новый поиск\n🚃🚃🚃🚃🚃🚃"
+)
+LAST_LIST = ""
