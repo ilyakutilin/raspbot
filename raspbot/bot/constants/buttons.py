@@ -1,5 +1,5 @@
 NEW_SEARCH_COMMAND = "/search"
-RECENTS_COMMAND = "/last"
+RECENTS_COMMAND = "/recent"
 FAVORITES_COMMAND = "/fav"
 
 
