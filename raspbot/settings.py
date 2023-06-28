@@ -32,6 +32,13 @@ class Settings(BaseSettings):
     DB_HOST: str
     DB_PORT: str
 
+    # Timetables
+    CLOSEST_DEP_LIMIT: int = 12
+    SMALL_REMAINDER: int = 3
+    DEP_FORMAT: str = "%H:%M"
+    ROUTE_INLINE_DELIMITER: str = f" {chr(10145)} "
+    ROUTE_INLINE_LIMIT: int = 38
+
     # Logging
     LOG_FORMAT: str = (
         "%(asctime)s — %(name)s — %(levelname)s — %(funcName)s:%(lineno)d — %(message)s"
