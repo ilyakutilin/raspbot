@@ -7,6 +7,8 @@ from sqlalchemy.sql import func
 
 from raspbot.db.base import Base
 from raspbot.db.stations.models import Point
+from raspbot.services.shorteners.short_route import shorten_route_description
+from raspbot.settings import settings
 
 
 class User(Base):
@@ -60,6 +62,18 @@ class Route(Base):
             name="uq_departure_destination",
         ),
     )
+
+    def __str__(self) -> str:
+        return (
+            f"{self.departure_point.title} {settings.ROUTE_INLINE_DELIMITER} "
+            f"{self.destination_point.title}"
+        )
+
+    @property
+    def short(self) -> str:
+        return shorten_route_description(
+            route_descr=self.__str__, limit=settings.ROUTE_INLINE_LIMIT
+        )
 
 
 class FavoriteRecentMixin(object):
