@@ -10,7 +10,7 @@ def configure_logging(name: str, level: int = logging.DEBUG) -> logging.Logger:
     settings.LOG_DIR.mkdir(exist_ok=True)
 
     logger = logging.getLogger(name)
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(level)
     formatter = logging.Formatter(fmt=settings.LOG_FORMAT, datefmt=settings.LOG_DT_FMT)
     rotating_handler = RotatingFileHandler(
         filename=settings.LOG_FILE,
@@ -31,24 +31,20 @@ def configure_logging(name: str, level: int = logging.DEBUG) -> logging.Logger:
 # Декоратор
 
 
-def get_default_logger():
-    return logging.get_logger(__name__)
+def log(logger: logging.Logger = None):
+    if logger is None:
+        logger = logging.get_logger(__name__)
 
-
-def log(_func=None, *, my_logger: logging.Logger = None):
     def decorator_log(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
-            if my_logger is None:
-                logger = get_default_logger()
-            else:
-                logger = my_logger
             args_repr = [repr(a) for a in args]
             kwargs_repr = [f"{k}={v!r}" for k, v in kwargs.items()]
             signature = ", ".join(args_repr + kwargs_repr)
             logger.debug(f"Функция {func.__name__} вызвана с аргументами {signature}.")
             try:
                 result = func(*args, **kwargs)
+                logger.debug(f"Результат функции {func.__name__}: {result}")
                 return result
             except Exception as e:
                 logger.exception(
@@ -58,6 +54,4 @@ def log(_func=None, *, my_logger: logging.Logger = None):
 
         return wrapper
 
-    if _func is None:
-        return decorator_log
-    return decorator_log(_func)
+    return decorator_log
