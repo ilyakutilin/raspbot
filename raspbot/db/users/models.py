@@ -84,6 +84,9 @@ class FavoriteRecentMixin(object):
     added_on: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
+    updated_on: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
 
 
 class Favorite(Base, FavoriteRecentMixin):
@@ -96,8 +99,5 @@ class Favorite(Base, FavoriteRecentMixin):
 class Recent(Base, FavoriteRecentMixin):
     user: Mapped["User"] = relationship("User", back_populates="recents")
     route: Mapped["Route"] = relationship("Route", back_populates="recents_list")
-    updated_on: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
-    )
 
     __table_args__ = (UniqueConstraint("user_id", "route_id", name="uq_user_recent"),)
