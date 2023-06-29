@@ -1,6 +1,7 @@
 from aiogram import types
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
+from raspbot.bot.constants import buttons as btn
 from raspbot.bot.constants import callback as clb
 from raspbot.core.logging import configure_logging, log
 from raspbot.db.models import Favorite, Recent
@@ -24,8 +25,18 @@ def get_recent_command_keyboard(
 
 @log(logger)
 def add_recent_to_fav_keyboard(user_recent: list[Recent]) -> types.InlineKeyboardMarkup:
-    # TODO: Complete add_recent_to_fav_keyboard
-    pass
+    builder = InlineKeyboardBuilder()
+    for recent in user_recent:
+        builder.button(
+            text=recent.route.short,
+            callback_data=clb.RecentToFavCallbackFactory(route_id=recent.route_id),
+        )
+    callback_arg = "_".join([str(recent.id) for recent in user_recent])
+    builder.button(
+        text=btn.ADD_ALL_RECENT_TO_FAV,
+        callback_data=clb.AllRecentToFavCallbackFactory(route_ids=callback_arg),
+    )
+    builder.button(text=btn.NEW_SEARCH, callback_data=clb.NEW_SEARCH)
 
 
 @log(logger)

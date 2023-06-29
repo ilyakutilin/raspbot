@@ -2,7 +2,7 @@ from typing import Generator
 
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import aliased, joinedload
+from sqlalchemy.orm import joinedload
 
 from raspbot.db.base import get_session
 from raspbot.db.crud import CRUDBase

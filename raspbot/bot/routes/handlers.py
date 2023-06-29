@@ -1,5 +1,5 @@
 from aiogram import F, Router, types
-from aiogram.filters import Command
+from aiogram.filters import Command, Text
 from aiogram.fsm.context import FSMContext
 
 from raspbot.bot.constants import callback as clb
@@ -30,6 +30,13 @@ async def search_command(message: types.Message, state: FSMContext):
     """User: issues /search command. Bot: please input the departure point."""
     await message.answer(msg.INPUT_DEPARTURE_POINT)
     await state.set_state(states.RouteState.selecting_departure_point)
+
+
+@router.callback_query(Text(text=clb.NEW_SEARCH))
+async def new_search_callback(callback: types.CallbackQuery, state: FSMContext):
+    await callback.message.answer(msg.INPUT_DEPARTURE_POINT)
+    await state.set_state(states.RouteState.selecting_departure_point)
+    await callback.answer()
 
 
 async def select_point(is_departure: bool, message: types.Message, state: FSMContext):
