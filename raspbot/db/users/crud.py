@@ -7,6 +7,7 @@ from sqlalchemy.orm import joinedload
 from raspbot.db.base import get_session
 from raspbot.db.crud import CRUDBase
 from raspbot.db.models import Favorite, Recent, Route, User
+from raspbot.settings import settings
 
 
 class CRUDUsers(CRUDBase):
@@ -31,6 +32,6 @@ class CRUDUsers(CRUDBase):
                 .options(joinedload(model.route).joinedload(Route.departure_point))
                 .options(joinedload(model.route).joinedload(Route.destination_point))
                 .order_by(desc(model.updated_on))
-                .limit(10)
+                .limit(settings.RECENT_FAV_LIST_LENGTH)
             )
             return recent.scalars().unique().all()
