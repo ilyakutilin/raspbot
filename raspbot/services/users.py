@@ -2,7 +2,7 @@ from aiogram.types.user import User as TgUser
 
 from raspbot.core.logging import configure_logging
 from raspbot.db.users.crud import CRUDUsers
-from raspbot.db.users.models import User
+from raspbot.db.users.models import Recent, User
 
 logger = configure_logging(name=__name__)
 
@@ -34,7 +34,8 @@ async def get_user_from_db(telegram_id: int) -> User | None:
 
 
 async def create_user(tg_user: TgUser) -> User:
-    """Создает пользователя в БД.
+    """
+    Создает пользователя в БД.
 
     Принимает на вход:
         tg_user (TgUser): Объект пользователя aiogram.
@@ -52,3 +53,7 @@ async def create_user(tg_user: TgUser) -> User:
     )
     user_db: User = await crud_users.create(instance=instance)
     return user_db
+
+
+async def get_user_recent(user: User) -> list[Recent] | None:
+    return await crud_users.get_recent_by_user_id(user_id=user.id)

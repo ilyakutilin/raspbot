@@ -7,7 +7,7 @@ from sqlalchemy.sql import func
 
 from raspbot.db.base import Base
 from raspbot.db.stations.models import Point
-from raspbot.services.shorteners.short_route import shorten_route_description
+from raspbot.services.shorteners import get_short_point_type, shorten_route_description
 from raspbot.settings import settings
 
 
@@ -65,14 +65,16 @@ class Route(Base):
 
     def __str__(self) -> str:
         return (
-            f"{self.departure_point.title} {settings.ROUTE_INLINE_DELIMITER} "
+            f"{get_short_point_type(self.departure_point.point_type)} "
+            f"{self.departure_point.title}{settings.ROUTE_INLINE_DELIMITER}"
+            f"{get_short_point_type(self.destination_point.point_type)} "
             f"{self.destination_point.title}"
         )
 
     @property
     def short(self) -> str:
         return shorten_route_description(
-            route_descr=self.__str__, limit=settings.ROUTE_INLINE_LIMIT
+            route_descr=self.__str__(), limit=settings.ROUTE_INLINE_LIMIT
         )
 
 

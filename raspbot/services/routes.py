@@ -3,12 +3,15 @@ from raspbot.core.logging import configure_logging
 from raspbot.db.routes.crud import CRUDPoints, CRUDRoutes
 from raspbot.db.routes.schema import PointResponse, RouteResponse
 from raspbot.db.stations.models import Point, PointTypeEnum
+from raspbot.db.users.crud import CRUDUsers
+from raspbot.db.users.models import Recent, Route, User
 from raspbot.services.shorteners import get_short_point_type
 
 logger = configure_logging(name=__name__)
 
 crud_points = CRUDPoints()
 crud_routes = CRUDRoutes()
+crud_users = CRUDUsers()
 
 
 class PointSelector:
@@ -127,8 +130,15 @@ class PointRetriever:
 
 
 class RouteFinder:
+    async def add_route_to_recent(self, user: User, route: Route):
+        instance = Recent(user_id=user.id, route_id=route.id)
+        await crud_users.create(instance=instance)
+
     async def get_or_create_route(
-        self, departure_point: PointResponse, destination_point: PointResponse
+        self,
+        departure_point: PointResponse,
+        destination_point: PointResponse,
+        user: User,
     ) -> RouteResponse:
         route_from_db: Route = await crud_routes.get_route_by_points(
             departure_point_id=departure_point.id,
@@ -153,9 +163,16 @@ class RouteFinder:
             )
             route_from_db: Route = await crud_routes.create(instance=instance)
 
+        await self.add_route_to_recent(user=user, route=route_from_db)
+
         route = RouteResponse(
             id=route_from_db.id,
             departure_point=departure_point,
             destination_point=destination_point,
         )
         return route
+
+
+class RouteRetriever:
+    async def get_route_from_db(self, route_id: int) -> Route | None:
+        return await crud_routes.get_route_by_id(id=route_id)

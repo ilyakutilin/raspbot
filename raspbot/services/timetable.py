@@ -5,6 +5,7 @@ from raspbot.bot.constants import messages as msg
 from raspbot.core.exceptions import InvalidTimeFormatError
 from raspbot.core.logging import configure_logging
 from raspbot.db.routes.schema import RouteResponse
+from raspbot.db.users.models import Route
 from raspbot.settings import settings
 
 logger = configure_logging(name=__name__)
@@ -226,7 +227,7 @@ def _get_formatted_timetable(
     return ttbl_dict[(bool(today_timetable), bool(tomorrow_timetable))]
 
 
-async def get_closest_departures(route: RouteResponse) -> str:
+async def get_closest_departures(route: RouteResponse | Route) -> str:
     """
     Генерирует список ближайших отправлений по указанному маршруту.
 

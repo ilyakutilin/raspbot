@@ -67,5 +67,14 @@ class CRUDRoutes(CRUDBase):
             )
             return route.scalars().first()
 
-    async def create_route(departure_code: str, destination_code: str) -> Route:
-        pass
+    async def get_route_by_id(self, id: int) -> Route:
+        async with self._sessionmaker() as session:
+            route = await session.execute(
+                select(Route)
+                .options(
+                    selectinload(Route.departure_point),
+                    selectinload(Route.destination_point),
+                )
+                .where(Route.id == id)
+            )
+            return route.scalars().first()

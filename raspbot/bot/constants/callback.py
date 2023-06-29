@@ -17,3 +17,7 @@ class MissingPointCallbackFactory(CallbackData, prefix="missing_point"):
 class PointsCallbackFactory(CallbackData, prefix="pointselect"):
     is_departure: bool
     point_id: int
+
+
+class RecentCallbackFactory(CallbackData, prefix="recent"):
+    route_id: int
