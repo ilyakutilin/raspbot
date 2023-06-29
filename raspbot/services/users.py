@@ -1,7 +1,7 @@
 from aiogram.types.user import User as TgUser
 
 from raspbot.core.logging import configure_logging
-from raspbot.db.models import Recent, User
+from raspbot.db.models import Favorite, Recent, User
 from raspbot.db.users.crud import CRUDUsers
 
 logger = configure_logging(name=__name__)
@@ -57,3 +57,8 @@ async def create_user(tg_user: TgUser) -> User:
 
 async def get_user_recent(user: User) -> list[Recent] | None:
     return await crud_users.get_recent_by_user_id(user_id=user.id)
+
+
+async def get_user_fav(user: User) -> list[Favorite] | None:
+    # TODO: Complete get_user_fav service
+    pass
