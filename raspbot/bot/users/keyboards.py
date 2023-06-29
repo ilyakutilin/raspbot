@@ -3,7 +3,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from raspbot.bot.constants import callback as clb
 from raspbot.core.logging import configure_logging, log
-from raspbot.db.users.models import Recent
+from raspbot.db.models import Recent
 
 logger = configure_logging(name=__name__)
 

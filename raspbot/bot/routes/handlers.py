@@ -11,8 +11,8 @@ from raspbot.bot.routes.keyboards import (
 )
 from raspbot.core import exceptions as exc
 from raspbot.core.logging import configure_logging
+from raspbot.db.models import User
 from raspbot.db.routes.schema import PointResponse, RouteResponse
-from raspbot.db.users.models import User
 from raspbot.services.routes import PointRetriever, PointSelector, RouteFinder
 from raspbot.services.timetable import get_closest_departures
 from raspbot.services.users import get_user_from_db

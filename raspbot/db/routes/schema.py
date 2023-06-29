@@ -1,11 +1,11 @@
 from pydantic import BaseModel
 
-from raspbot.db.stations import models
+from raspbot.db.models import PointTypeEnum
 
 
 class PointResponse(BaseModel):
     id: int
-    point_type: models.PointTypeEnum
+    point_type: PointTypeEnum
     title: str
     yandex_code: str
     region_title: str

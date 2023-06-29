@@ -2,7 +2,7 @@ from aiogram import Router, types
 
 from raspbot.bot.constants import callback as clb
 from raspbot.core.logging import configure_logging
-from raspbot.db.routes.models import Route
+from raspbot.db.models import Route
 from raspbot.services.routes import RouteRetriever
 from raspbot.services.timetable import get_closest_departures
 

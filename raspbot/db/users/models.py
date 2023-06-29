@@ -6,7 +6,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from raspbot.db.base import Base
-from raspbot.db.routes.models import Route
+from raspbot.db.models import Route
 
 
 class User(Base):

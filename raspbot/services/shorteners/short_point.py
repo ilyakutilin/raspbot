@@ -1,4 +1,4 @@
-from raspbot.db.stations.models import PointTypeEnum
+from raspbot.db.models import PointTypeEnum
 
 
 def get_short_point_type(point_type: PointTypeEnum) -> str:

@@ -5,8 +5,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from raspbot.db.base import Base
-from raspbot.db.stations.models import Point
-from raspbot.db.users.models import Favorite, Recent
+from raspbot.db.models import Favorite, Point, Recent
 from raspbot.services.shorteners import get_short_point_type, shorten_route_description
 from raspbot.settings import settings
 

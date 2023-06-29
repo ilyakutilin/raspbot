@@ -1,8 +1,8 @@
 from aiogram.types.user import User as TgUser
 
 from raspbot.core.logging import configure_logging
+from raspbot.db.models import Recent, User
 from raspbot.db.users.crud import CRUDUsers
-from raspbot.db.users.models import Recent, User
 
 logger = configure_logging(name=__name__)
 

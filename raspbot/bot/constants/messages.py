@@ -1,5 +1,5 @@
+from raspbot.db.models import PointTypeEnum
 from raspbot.db.routes.schema import PointResponse
-from raspbot.db.stations.models import PointTypeEnum
 from raspbot.services.shorteners.short_point import get_short_point_type
 
 # START
