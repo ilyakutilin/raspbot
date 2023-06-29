@@ -56,9 +56,10 @@ async def create_user(tg_user: TgUser) -> User:
 
 
 async def get_user_recent(user: User) -> list[Recent] | None:
-    return await crud_users.get_recent_by_user_id(user_id=user.id)
+    return await crud_users.get_recent_or_fav_by_user_id(user_id=user.id, model=Recent)
 
 
 async def get_user_fav(user: User) -> list[Favorite] | None:
-    # TODO: Complete get_user_fav service
-    pass
+    return await crud_users.get_recent_or_fav_by_user_id(
+        user_id=user.id, model=Favorite
+    )

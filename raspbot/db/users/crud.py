@@ -6,7 +6,7 @@ from sqlalchemy.orm import aliased, joinedload
 
 from raspbot.db.base import get_session
 from raspbot.db.crud import CRUDBase
-from raspbot.db.models import Point, Recent, Route, User
+from raspbot.db.models import Favorite, Recent, Route, User
 
 
 class CRUDUsers(CRUDBase):
@@ -20,19 +20,17 @@ class CRUDUsers(CRUDBase):
             )
             return user.scalars().first()
 
-    async def get_recent_by_user_id(self, user_id: int) -> list[Recent]:
-        departure_point_alias = aliased(Point)
-        destination_point_alias = aliased(Point)
+    async def get_recent_or_fav_by_user_id(
+        self, user_id: int, model: Recent | Favorite
+    ) -> list[Recent | Favorite]:
         async with self._sessionmaker() as session:
             recent = await session.execute(
-                select(Recent)
-                .where(Recent.user_id == user_id)
+                select(model)
+                .where(model.user_id == user_id)
                 .join(Route)
-                .join(departure_point_alias, Route.departure_point)
-                .join(destination_point_alias, Route.destination_point)
-                .options(joinedload(Recent.route).joinedload(Route.departure_point))
-                .options(joinedload(Recent.route).joinedload(Route.destination_point))
-                .order_by(desc(Recent.updated_on))
+                .options(joinedload(model.route).joinedload(Route.departure_point))
+                .options(joinedload(model.route).joinedload(Route.destination_point))
+                .order_by(desc(model.updated_on))
                 .limit(10)
             )
             return recent.scalars().unique().all()
