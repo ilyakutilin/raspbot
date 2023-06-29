@@ -31,3 +31,7 @@ class RecentToFavCallbackFactory(CallbackData, prefix="recent_to_fav"):
 
 class AllRecentToFavCallbackFactory(CallbackData, prefix="all_recent_to_fav"):
     route_ids: str
+
+
+class FavCallbackFactory(CallbackData, prefix="fav"):
+    route_id: int

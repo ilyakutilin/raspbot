@@ -37,9 +37,17 @@ def add_recent_to_fav_keyboard(user_recent: list[Recent]) -> types.InlineKeyboar
         callback_data=clb.AllRecentToFavCallbackFactory(route_ids=callback_arg),
     )
     builder.button(text=btn.NEW_SEARCH, callback_data=clb.NEW_SEARCH)
+    builder.adjust(1)
+    return builder.as_markup()
 
 
 @log(logger)
 def get_fav_command_keyboard(user_fav: list[Favorite]) -> types.InlineKeyboardMarkup:
-    # TODO: Complete get_fav_command_keyboard
-    pass
+    builder = InlineKeyboardBuilder()
+    for fav in user_fav:
+        builder.button(
+            text=fav.route.short,
+            callback_data=clb.FavCallbackFactory(route_id=fav.route_id),
+        )
+    builder.adjust(1)
+    return builder.as_markup()
