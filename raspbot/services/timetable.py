@@ -4,8 +4,8 @@ from raspbot.apicalls.search import TransportTypes, search_between_stations
 from raspbot.bot.constants import messages as msg
 from raspbot.core.exceptions import InvalidTimeFormatError
 from raspbot.core.logging import configure_logging
+from raspbot.db.routes.models import Route
 from raspbot.db.routes.schema import RouteResponse
-from raspbot.db.users.models import Route
 from raspbot.settings import settings
 
 logger = configure_logging(name=__name__)

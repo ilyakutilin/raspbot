@@ -6,8 +6,9 @@ from sqlalchemy.orm import aliased, joinedload
 
 from raspbot.db.base import get_session
 from raspbot.db.crud import CRUDBase
+from raspbot.db.routes.models import Route
 from raspbot.db.stations.models import Point
-from raspbot.db.users.models import Recent, Route, User
+from raspbot.db.users.models import Recent, User
 
 
 class CRUDUsers(CRUDBase):

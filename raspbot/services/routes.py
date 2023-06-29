@@ -1,10 +1,11 @@
 from raspbot.core.exceptions import UserInputTooShortError
 from raspbot.core.logging import configure_logging
 from raspbot.db.routes.crud import CRUDPoints, CRUDRoutes
+from raspbot.db.routes.models import Route
 from raspbot.db.routes.schema import PointResponse, RouteResponse
 from raspbot.db.stations.models import Point, PointTypeEnum
 from raspbot.db.users.crud import CRUDUsers
-from raspbot.db.users.models import Recent, Route, User
+from raspbot.db.users.models import Recent, User
 from raspbot.services.shorteners import get_short_point_type
 
 logger = configure_logging(name=__name__)

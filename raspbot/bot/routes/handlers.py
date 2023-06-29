@@ -29,7 +29,7 @@ route_finder = RouteFinder()
 async def search_command(message: types.Message, state: FSMContext):
     """User: issues /search command. Bot: please input the departure point."""
     await message.answer(msg.INPUT_DEPARTURE_POINT)
-    await state.set_state(states.Route.selecting_departure_point)
+    await state.set_state(states.RouteState.selecting_departure_point)
 
 
 async def select_point(is_departure: bool, message: types.Message, state: FSMContext):
@@ -75,13 +75,13 @@ async def select_point(is_departure: bool, message: types.Message, state: FSMCon
         )
 
 
-@router.message(states.Route.selecting_departure_point)
+@router.message(states.RouteState.selecting_departure_point)
 async def select_departure(message: types.Message, state: FSMContext):
     """User: inputs the desired departure point. Bot: here's what I have in the DB."""
     await select_point(is_departure=True, message=message, state=state)
 
 
-@router.message(states.Route.selecting_destination_point)
+@router.message(states.RouteState.selecting_destination_point)
 async def select_destination(message: types.Message, state: FSMContext):
     """User: inputs the destination point. Bot: here's what I have in the DB."""
     await select_point(is_departure=False, message=message, state=state)
@@ -120,9 +120,9 @@ async def missing_point_callback(
     await callback.message.answer(msg.MISSING_POINT)
     await callback.answer()
     await state.set_state(
-        states.Route.selecting_departure_point
+        states.RouteState.selecting_departure_point
         if is_departure
-        else states.Route.selecting_destination_point
+        else states.RouteState.selecting_destination_point
     )
 
 
@@ -142,7 +142,7 @@ async def choose_departure_from_multiple_callback(
     await callback.message.answer(text=f"{msg_text}\n{msg.INPUT_DESTINATION_POINT}")
     await callback.answer()
     await state.update_data(departure_point=selected_departure)
-    await state.set_state(states.Route.selecting_destination_point)
+    await state.set_state(states.RouteState.selecting_destination_point)
 
 
 @router.callback_query(
