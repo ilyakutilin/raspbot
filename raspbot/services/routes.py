@@ -3,7 +3,7 @@ from raspbot.core.logging import configure_logging
 from raspbot.db.routes.crud import CRUDPoints, CRUDRoutes
 from raspbot.db.routes.schema import PointResponse, RouteResponse
 from raspbot.db.stations.models import Point, PointTypeEnum
-from raspbot.db.users.models import Route
+from raspbot.services.shorteners import get_short_point_type
 
 logger = configure_logging(name=__name__)
 
@@ -134,12 +134,8 @@ class RouteFinder:
             departure_point_id=departure_point.id,
             destination_point_id=destination_point.id,
         )
-        dep_st_or_stl = (
-            "ст." if departure_point.point_type == PointTypeEnum.station else "г."
-        )
-        dest_st_or_stl = (
-            "ст." if destination_point.point_type == PointTypeEnum.station else "г."
-        )
+        dep_st_or_stl = get_short_point_type(point_type=departure_point.point_type)
+        dest_st_or_stl = get_short_point_type(point_type=destination_point.point_type)
         if route_from_db:
             logger.info(
                 f"Маршрут от {dep_st_or_stl} {departure_point.title} до "
