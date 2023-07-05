@@ -24,9 +24,6 @@ class User(Base):
     updated_on: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
-    favorites: Mapped[list["Favorite"]] = relationship(
-        "Favorite", back_populates="user"
-    )
     recents: Mapped[list["Recent"]] = relationship("Recent", back_populates="user")
 
     @hybrid_property
@@ -47,9 +44,6 @@ class Route(Base):
     )
     added_on: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
-    )
-    favorites_list: Mapped[list["Favorite"]] = relationship(
-        "Favorite", back_populates="route"
     )
     recents_list: Mapped[list["Recent"]] = relationship(
         "Recent", back_populates="route"
@@ -78,7 +72,7 @@ class Route(Base):
         )
 
 
-class FavoriteRecentMixin(object):
+class Recent(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
     route_id: Mapped[int] = mapped_column(ForeignKey("route.id"))
     added_on: Mapped[datetime] = mapped_column(
@@ -87,16 +81,8 @@ class FavoriteRecentMixin(object):
     updated_on: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
-
-
-class Favorite(Base, FavoriteRecentMixin):
-    user: Mapped["User"] = relationship("User", back_populates="favorites")
-    route: Mapped["Route"] = relationship("Route", back_populates="favorites_list")
-
-    __table_args__ = (UniqueConstraint("user_id", "route_id", name="uq_user_favorite"),)
-
-
-class Recent(Base, FavoriteRecentMixin):
+    count: Mapped[int] = mapped_column(Integer(), default=0)
+    favorite: Mapped[bool] = mapped_column(Boolean, default=False)
     user: Mapped["User"] = relationship("User", back_populates="recents")
     route: Mapped["Route"] = relationship("Route", back_populates="recents_list")
 
