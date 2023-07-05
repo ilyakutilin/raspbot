@@ -21,17 +21,13 @@ class PointsCallbackFactory(CallbackData, prefix="pointselect"):
     point_id: int
 
 
-class RecentCallbackFactory(CallbackData, prefix="recent"):
-    route_id: int
+class GetTimetableCallbackFactory(CallbackData, prefix="recent"):
+    recent_id: int
 
 
 class RecentToFavCallbackFactory(CallbackData, prefix="recent_to_fav"):
-    route_id: int
+    recent_id: int
 
 
 class AllRecentToFavCallbackFactory(CallbackData, prefix="all_recent_to_fav"):
-    route_ids: str
-
-
-class FavCallbackFactory(CallbackData, prefix="fav"):
-    route_id: int
+    recent_ids: str

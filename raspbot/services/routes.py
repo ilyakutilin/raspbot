@@ -1,16 +1,15 @@
 from raspbot.core.exceptions import UserInputTooShortError
 from raspbot.core.logging import configure_logging
-from raspbot.db.models import Point, PointTypeEnum, Recent, Route, User
+from raspbot.db.models import Point, PointTypeEnum, Route, User
 from raspbot.db.routes.crud import CRUDPoints, CRUDRoutes
 from raspbot.db.routes.schema import PointResponse, RouteResponse
-from raspbot.db.users.crud import CRUDUsers
 from raspbot.services.shorteners import get_short_point_type
+from raspbot.services.users import add_or_update_recent
 
 logger = configure_logging(name=__name__)
 
 crud_points = CRUDPoints()
 crud_routes = CRUDRoutes()
-crud_users = CRUDUsers()
 
 
 class PointSelector:
@@ -129,10 +128,6 @@ class PointRetriever:
 
 
 class RouteFinder:
-    async def add_route_to_recent(self, user: User, route: Route):
-        instance = Recent(user_id=user.id, route_id=route.id)
-        await crud_users.create(instance=instance)
-
     async def get_or_create_route(
         self,
         departure_point: PointResponse,
@@ -162,7 +157,8 @@ class RouteFinder:
             )
             route_from_db: Route = await crud_routes.create(instance=instance)
 
-        await self.add_route_to_recent(user=user, route=route_from_db)
+        # Добавляем маршрут в последние у пользователя (либо обновляем дату)
+        await add_or_update_recent(user_id=user.id, route_id=route_from_db.id)
 
         route = RouteResponse(
             id=route_from_db.id,
@@ -175,3 +171,7 @@ class RouteFinder:
 class RouteRetriever:
     async def get_route_from_db(self, route_id: int) -> Route | None:
         return await crud_routes.get_route_by_id(id=route_id)
+
+    async def get_route_by_recent(self, recent_id: int) -> Route | None:
+        route: Route = await crud_routes.get_or_none(_id=recent_id)
+        return await crud_routes.get_route_by_id(id=route.id)

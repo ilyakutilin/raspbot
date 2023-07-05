@@ -1,14 +1,16 @@
 from aiogram.types.user import User as TgUser
 
-from raspbot.core.logging import configure_logging
-from raspbot.db.models import Favorite, Recent, User
-from raspbot.db.users.crud import CRUDUsers
+from raspbot.core.logging import configure_logging, log
+from raspbot.db.models import Recent, User
+from raspbot.db.users.crud import CRUDRecents, CRUDUsers
 
 logger = configure_logging(name=__name__)
 
 crud_users = CRUDUsers()
+crud_recents = CRUDRecents()
 
 
+@log(logger)
 async def get_user_from_db(telegram_id: int) -> User | None:
     """
     Получает объект пользователя из БД или None при его отсутствии.
@@ -33,6 +35,7 @@ async def get_user_from_db(telegram_id: int) -> User | None:
     return user_from_db
 
 
+@log(logger)
 async def create_user(tg_user: TgUser) -> User:
     """
     Создает пользователя в БД.
@@ -55,11 +58,50 @@ async def create_user(tg_user: TgUser) -> User:
     return user_db
 
 
+@log(logger)
 async def get_user_recent(user: User) -> list[Recent] | None:
-    return await crud_users.get_recent_or_fav_by_user_id(user_id=user.id, model=Recent)
+    return await crud_recents.get_recent_or_fav_by_user_id(user_id=user.id, fav=False)
 
 
-async def get_user_fav(user: User) -> list[Favorite] | None:
-    return await crud_users.get_recent_or_fav_by_user_id(
-        user_id=user.id, model=Favorite
+@log(logger)
+async def get_user_fav(user: User) -> list[Recent] | None:
+    return await crud_recents.get_recent_or_fav_by_user_id(user_id=user.id, fav=True)
+
+
+@log(logger)
+async def update_recent(recent_id: int) -> Recent:
+    recent = await crud_recents.get_or_none(_id=recent_id)
+    update_date_before = recent.updated_on
+    logger.info(
+        "Здесь должна происходить магия обновления даты. До обновления: "
+        f"ID пользователя {recent.user_id}, ID маршрута {recent.route_id}"
+        f", дата создания {recent.added_on}, "
+        f"дата обновления {update_date_before}."
     )
+
+    updated_element = await crud_recents.update_recent(recent_id=recent_id)
+    if updated_element.updated_on == update_date_before:
+        logger.warning(
+            "Обновление даты не получилось: дата по-прежнему "
+            f"{updated_element.updated_on}."
+        )
+    else:
+        logger.info(f"Дата обновлена: новая дата {updated_element.updated_on}")
+    return updated_element
+
+
+@log(logger)
+async def add_or_update_recent(user_id: int, route_id: int):
+    route_added: Recent | None = await crud_recents.route_in_recent(
+        user_id=user_id, route_id=route_id
+    )
+    if not route_added:
+        instance = Recent(user_id=user_id, route_id=route_id, count=1)
+        await crud_recents.create(instance=instance)
+    else:
+        await update_recent(recent_id=route_added.id)
+
+
+@log(logger)
+async def add_recent_to_fav(recent_id: int) -> Recent:
+    return await crud_recents.add_recent_to_fav(recent_id=recent_id)
