@@ -1,4 +1,3 @@
 """Imports of class Base and all models for Alembic."""
 from raspbot.db.base import Base  # noqa
-from raspbot.db.stations.models import Country, Point, Region  # noqa
-from raspbot.db.users.models import Favorite, Recent, Route, User  # noqa
+from raspbot.db.models import Country, Point, Recent, Region, Route, User  # noqa

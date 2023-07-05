@@ -1,16 +1,14 @@
 import datetime as dt
 
 from raspbot.apicalls.search import TransportTypes, search_between_stations
-from raspbot.bot.routes.constants.text import msg
+from raspbot.bot.constants import messages as msg
 from raspbot.core.exceptions import InvalidTimeFormatError
 from raspbot.core.logging import configure_logging
+from raspbot.db.models import Route
 from raspbot.db.routes.schema import RouteResponse
+from raspbot.settings import settings
 
 logger = configure_logging(name=__name__)
-
-CLOSEST_DEP_LIMIT = 12
-SMALL_REMAINDER = 3
-DEP_FORMAT = "%H:%M"
 
 
 async def _get_timetable_dict(
@@ -147,8 +145,10 @@ def _get_closest_departures_for_date(
                 f"Время отправления {raw_departure_time} отбраковано "
                 f"и не включено в вывод расписания. Причина: {e}."
             )
-        current_time = dt.datetime.now(tz=departure_time.tzinfo).strftime(DEP_FORMAT)
-        departure_str = departure_time.strftime(DEP_FORMAT)
+        current_time = dt.datetime.now(tz=departure_time.tzinfo).strftime(
+            settings.DEP_FORMAT
+        )
+        departure_str = departure_time.strftime(settings.DEP_FORMAT)
         if departure_time < dt.datetime.now(tz=departure_time.tzinfo):
             logger.debug(
                 f"Отбраковка отправления: Текущее время: {current_time}, "
@@ -227,7 +227,7 @@ def _get_formatted_timetable(
     return ttbl_dict[(bool(today_timetable), bool(tomorrow_timetable))]
 
 
-async def get_closest_departures(route: RouteResponse) -> str:
+async def get_closest_departures(route: RouteResponse | Route) -> str:
     """
     Генерирует список ближайших отправлений по указанному маршруту.
 
@@ -249,9 +249,9 @@ async def get_closest_departures(route: RouteResponse) -> str:
     closest_departures_today: list[dt.datetime] = _get_closest_departures_for_date(
         date=dt.date.today(),
         timetable_dict=timetable_dict_today,
-        limit=CLOSEST_DEP_LIMIT,
+        limit=settings.CLOSEST_DEP_LIMIT,
     )
-    remainder = max(0, CLOSEST_DEP_LIMIT - len(closest_departures_today))
+    remainder = max(0, settings.CLOSEST_DEP_LIMIT - len(closest_departures_today))
     closest_departures_tomorrow: list[dt.datetime] = []
     last_departure_today: dt.datetime = (
         closest_departures_today[-1] if closest_departures_today else dt.timedelta(0)
@@ -261,7 +261,7 @@ async def get_closest_departures(route: RouteResponse) -> str:
         if closest_departures_today
         else dt.timedelta(0)
     )
-    if len(closest_departures_today) < SMALL_REMAINDER or (
+    if len(closest_departures_today) < settings.SMALL_REMAINDER or (
         ((last_departure_today - current_time) < dt.timedelta(hours=2)) and remainder
     ):
         tomorrow = dt.date.today() + dt.timedelta(days=1)
@@ -273,12 +273,12 @@ async def get_closest_departures(route: RouteResponse) -> str:
         closest_departures_tomorrow += _get_closest_departures_for_date(
             date=tomorrow,
             timetable_dict=timetable_dict_tomorrow,
-            limit=max(remainder, SMALL_REMAINDER),
+            limit=max(remainder, settings.SMALL_REMAINDER),
         )
     formatted_timetable: str = _get_formatted_timetable(
         today_timetable=closest_departures_today,
         tomorrow_timetable=closest_departures_tomorrow,
-        format=DEP_FORMAT,
+        format=settings.DEP_FORMAT,
     )
 
     return formatted_timetable

@@ -1,9 +1,10 @@
-from raspbot.core.exceptions import AlreadyExistsError, UserInputTooShortError
+from raspbot.core.exceptions import UserInputTooShortError
 from raspbot.core.logging import configure_logging
+from raspbot.db.models import Point, PointTypeEnum, Route, User
 from raspbot.db.routes.crud import CRUDPoints, CRUDRoutes
 from raspbot.db.routes.schema import PointResponse, RouteResponse
-from raspbot.db.stations.models import Point, PointTypeEnum
-from raspbot.db.users.models import Route
+from raspbot.services.shorteners import get_short_point_type
+from raspbot.services.users import add_or_update_recent
 
 logger = configure_logging(name=__name__)
 
@@ -128,18 +129,17 @@ class PointRetriever:
 
 class RouteFinder:
     async def get_or_create_route(
-        self, departure_point: PointResponse, destination_point: PointResponse
+        self,
+        departure_point: PointResponse,
+        destination_point: PointResponse,
+        user: User,
     ) -> RouteResponse:
         route_from_db: Route = await crud_routes.get_route_by_points(
             departure_point_id=departure_point.id,
             destination_point_id=destination_point.id,
         )
-        dep_st_or_stl = (
-            "ст." if departure_point.point_type == PointTypeEnum.station else "г."
-        )
-        dest_st_or_stl = (
-            "ст." if destination_point.point_type == PointTypeEnum.station else "г."
-        )
+        dep_st_or_stl = get_short_point_type(point_type=departure_point.point_type)
+        dest_st_or_stl = get_short_point_type(point_type=destination_point.point_type)
         if route_from_db:
             logger.info(
                 f"Маршрут от {dep_st_or_stl} {departure_point.title} до "
@@ -157,9 +157,21 @@ class RouteFinder:
             )
             route_from_db: Route = await crud_routes.create(instance=instance)
 
+        # Добавляем маршрут в последние у пользователя (либо обновляем дату)
+        await add_or_update_recent(user_id=user.id, route_id=route_from_db.id)
+
         route = RouteResponse(
             id=route_from_db.id,
             departure_point=departure_point,
             destination_point=destination_point,
         )
         return route
+
+
+class RouteRetriever:
+    async def get_route_from_db(self, route_id: int) -> Route | None:
+        return await crud_routes.get_route_by_id(id=route_id)
+
+    async def get_route_by_recent(self, recent_id: int) -> Route | None:
+        route: Route = await crud_routes.get_or_none(_id=recent_id)
+        return await crud_routes.get_route_by_id(id=route.id)

@@ -7,8 +7,7 @@ from sqlalchemy.orm import selectinload
 from raspbot.apicalls.search import TransportTypes
 from raspbot.db.base import get_session
 from raspbot.db.crud import CRUDBase
-from raspbot.db.stations.models import Country, Point
-from raspbot.db.users.models import Route
+from raspbot.db.models import Country, Point, Route
 
 
 class CRUDPoints(CRUDBase):
@@ -67,5 +66,14 @@ class CRUDRoutes(CRUDBase):
             )
             return route.scalars().first()
 
-    async def create_route(departure_code: str, destination_code: str) -> Route:
-        pass
+    async def get_route_by_id(self, id: int) -> Route:
+        async with self._sessionmaker() as session:
+            route = await session.execute(
+                select(Route)
+                .options(
+                    selectinload(Route.departure_point),
+                    selectinload(Route.destination_point),
+                )
+                .where(Route.id == id)
+            )
+            return route.scalars().first()
