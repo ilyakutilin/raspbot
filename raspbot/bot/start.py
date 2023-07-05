@@ -39,4 +39,5 @@ async def start_command(message: types.Message):
         await message.answer(
             msg.GREETING_EXISTING_USER.format(first_name=user.first_name),
             reply_markup=keyboard,
+            parse_mode="HTML",
         )
