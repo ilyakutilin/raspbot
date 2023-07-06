@@ -14,7 +14,7 @@ from raspbot.core.logging import configure_logging
 from raspbot.db.models import User
 from raspbot.db.routes.schema import PointResponse, RouteResponse
 from raspbot.services.routes import PointRetriever, PointSelector, RouteFinder
-from raspbot.services.timetable import get_closest_departures
+from raspbot.services.timetable import ClosestTimetable
 from raspbot.services.users import get_user_from_db
 
 logger = configure_logging(name=__name__)
@@ -177,7 +177,8 @@ async def choose_destination_from_multiple_callback(
     route: RouteResponse = await route_finder.get_or_create_route(
         departure_point=departure_point, destination_point=selected_point, user=user
     )
-    timetable: str = await get_closest_departures(route=route)
+    timetable_obj = await ClosestTimetable(route=route)
+    timetable = await timetable_obj.msg()
     await callback.message.answer(text=(f"{msg_text}\n\n{timetable}"))
     await callback.answer()
     await state.clear()
