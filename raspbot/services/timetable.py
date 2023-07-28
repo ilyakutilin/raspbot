@@ -7,15 +7,20 @@ from pydantic import ValidationError
 from raspbot.apicalls.search import TransportTypes, search_between_stations
 from raspbot.bot.constants import messages as msg
 from raspbot.core.exceptions import InvalidTimeFormatError
-from raspbot.core.logging import configure_logging
-from raspbot.db.models import Route
+from raspbot.core.logging import configure_logging, log
+from raspbot.db.models import PointTypeEnum, Route
 from raspbot.db.routes.schema import RouteResponse, ThreadResponse
 from raspbot.settings import settings
 
 logger = configure_logging(name=__name__)
 
 
+@asyncinit
 class Timetable(ABC):
+    async def __init__(self, route: Route | RouteResponse):
+        self.route = route
+        self.threads: list[ThreadResponse] = []
+
     async def _get_timetable_dict(
         self,
         departure_code: str,
@@ -141,15 +146,13 @@ class Timetable(ABC):
         """
         try:
             if not date:
-                timetable_date = dt.datetime.strptime(
-                    segment["start_date"], "%Y-%m-%d"
-                ).date()
+                date = dt.datetime.strptime(segment["start_date"], "%Y-%m-%d").date()
             if not departure_time:
                 departure: dt.datetime = self._validate_time(
-                    raw_time=segment["departure"], timetable_date=timetable_date
+                    raw_time=segment["departure"], timetable_date=date
                 )
             arrival: dt.datetime = self._validate_time(
-                raw_time=segment["arrival"], timetable_date=timetable_date
+                raw_time=segment["arrival"], timetable_date=date
             )
         except InvalidTimeFormatError:  # TODO: Complete Exception handling
             logger.error("Error")
@@ -160,67 +163,114 @@ class Timetable(ABC):
 
         try:
             short_title = segment.get("thread").get("short_title")
-
-            uid_ = segment["thread"]["uid"]
-            title_ = short_title if short_title else segment["thread"]["title"]
-            express_type_ = segment["thread"]["express_type"]
-            departure_ = departure_time if departure_time else departure
-            arrival_ = arrival
-            date_ = date if date else timetable_date
-
-            logger.debug("Информация об аргументах объекта ThreadResponse:")
-            logger.debug(f"uid = {uid_}, тип: {type(uid_)}")
-            logger.debug(f"title = {title_}, тип: {type(title_)}")
-            logger.debug(f"express_type = {express_type_}, тип: {type(express_type_)}")
-            logger.debug(f"departure = {departure_}, тип: {type(departure_)}")
-            logger.debug(f"arrival = {arrival_}, тип: {type(arrival_)}")
-            logger.debug(f"date = {date_}, тип: {type(date_)}")
+            short_from_title = segment.get("from").get("short_title")
+            short_to_title = segment.get("to").get("short_title")
 
             threadresponse = ThreadResponse(
                 uid=segment["thread"]["uid"],
                 title=short_title if short_title else segment["thread"]["title"],
                 express_type=segment["thread"]["express_type"],
+                from_=short_from_title
+                if short_from_title
+                else segment["from"]["title"],
+                to=short_to_title if short_to_title else segment["to"]["title"],
                 departure=departure_time if departure_time else departure,
                 arrival=arrival,
-                date=date if date else timetable_date,
+                date=date,
             )
+            logger.debug(f"Threadresponse: {threadresponse}")
+            return threadresponse
         except KeyError:  # TODO: Complete Exception handling
             logger.error("Error")
-        except ValidationError:  # TODO: Complete Exception handling
-            logger.error("Error")
+        except ValidationError as e:  # TODO: Complete Exception handling
+            logger.error(f"ValidationError: {e}")
 
-        return threadresponse
+    @log(logger)
+    def format_thread_list(self, thread_list: list[ThreadResponse]) -> str:
+        simple_threads = "\n".join([dep.message_with_route for dep in thread_list])
+        one_from_station = all(dep.from_ == thread_list[0].from_ for dep in thread_list)
+        logger.debug(f"one_from_station = {str(one_from_station)}")
+        one_to_station = all(dep.to == thread_list[0].to for dep in thread_list)
+        logger.debug(f"one_to_station = {str(one_to_station)}")
+        formatted_unified = msg.FormattedUnifiedThreadList(thread_list=thread_list)
+        logger.debug(f"formatted_unified = {formatted_unified}")
+        formatted_different = msg.FormattedDifferentThreadList(thread_list=thread_list)
+        logger.debug(f"formatted_different = {formatted_different}")
+        match (
+            self.route.departure_point.point_type,
+            self.route.destination_point.point_type,
+        ):
+            case PointTypeEnum.station, PointTypeEnum.station:
+                return simple_threads
+            case PointTypeEnum.station, PointTypeEnum.settlement:
+                if one_to_station:
+                    return formatted_unified.station_to_settlement()
+                return formatted_different.station_to_settlement()
+            case PointTypeEnum.settlement, PointTypeEnum.station:
+                if one_from_station:
+                    return formatted_unified.settlement_to_station()
+                return formatted_different.settlement_to_station()
+            case PointTypeEnum.settlement, PointTypeEnum.settlement:
+                logger.debug("Case settlement, settlement starts.")
+                if one_from_station and one_to_station:
+                    logger.debug(
+                        "formatted_unified.settlement_to_settlement() = "
+                        f"{formatted_unified.settlement_to_settlement()}"
+                    )
+                    return formatted_unified.settlement_to_settlement()
+                if one_from_station and not one_to_station:
+                    logger.debug(
+                        "formatted_different.settlement_one_to_settlement_diff() = "
+                        f"{formatted_different.settlement_one_to_settlement_diff()}"
+                    )
+                    return formatted_different.settlement_one_to_settlement_diff()
+                if one_to_station and not one_from_station:
+                    logger.debug(
+                        "formatted_different.settlement_diff_to_settlement_one() = "
+                        f"{formatted_different.settlement_diff_to_settlement_one()}"
+                    )
+                    return formatted_different.settlement_diff_to_settlement_one()
+                logger.debug(
+                    "formatted_different.settlement_diff_to_settlement_diff() = "
+                    f"{formatted_different.settlement_diff_to_settlement_diff()}"
+                )
+                return formatted_different.settlement_diff_to_settlement_diff()
+        return "\n".join([dep.str_time_with_express_type for dep in thread_list])
 
 
 @asyncinit
 class ClosestTimetable(Timetable):
-    async def __init__(self, route: RouteResponse | Route):
-        self.route = route
+    async def __init__(self, route: Route | RouteResponse):
+        await super().__init__(route)
         self.threads: list[ThreadResponse] = await self._get_closest_departures()
 
-    def _get_closest_departures_for_date(
-        self, date: dt.date, timetable_dict: dict, limit: int
+    async def _get_closest_departures(
+        self,
+        limit: int = settings.CLOSEST_DEP_LIMIT,
     ) -> list[ThreadResponse]:
         """
-        Генерирует список ближайших отправлений на указанную дату.
+        Генерирует список ближайших отправлений на сегодня.
 
         Принимает на вход:
-            - date_ (datetime): Дата, на которую требуется формирование списка ближайших
-            отправлений;
-            - timetable_dict (dict): Полный словарь (JSON) с сырыми данными,
-            скомбинированный с учетом пагинации.
             - limit (int): Лимит количества отправлений.
+              По умолчанию - лимит, указанный в настройках.
 
         Возвращает:
             list[ThreadResponse]: Список установленного количества отправлений
             в формате ThreadResponse.
         """
-        closest_departures: list[dt.datetime] = []
+        today = dt.date.today()
+        timetable_dict: dict = await self._get_timetable_dict(
+            departure_code=self.route.departure_point.yandex_code,
+            destination_code=self.route.destination_point.yandex_code,
+            date=today,
+        )
+        closest_departures: list[ThreadResponse] = []
         for segment in timetable_dict["segments"]:
             raw_departure_time: str = segment["departure"]
             try:
                 departure_time: dt.datetime = self._validate_time(
-                    raw_time=raw_departure_time, timetable_date=date
+                    raw_time=raw_departure_time, timetable_date=today
                 )
             except InvalidTimeFormatError as e:
                 logger.error(
@@ -237,191 +287,23 @@ class ClosestTimetable(Timetable):
                     f"поезд {departure_str} уже ушёл."
                 )
                 continue
-            if departure_time.date() > date:
-                logger.debug(
-                    f"Отбраковка отправления: Поезд {departure_str} отправляется на "
-                    "следующий день, поэтому не включается в выборку на указанную дату."
-                )
             if len(closest_departures) >= limit:
                 break
             threadresponse = self._get_threadresponse_object(
                 segment=segment,
-                # date=date,
-                # departure_time=departure_time,
+                date=today,
+                departure_time=departure_time,
             )
             closest_departures.append(threadresponse)
-            logger.debug(f"В список ближайших отправлений добавлено {departure_time}.")
+            logger.debug(
+                f"В список ближайших отправлений добавлено {threadresponse.str_time}, "
+                f"объект типа {threadresponse.__class__.__name__}"
+            )
         logger.debug(
-            f"Финальное кол-во рейсов в списке на дату {date}: "
+            f"Финальное кол-во рейсов в списке на сегодня, {today}: "
             f"{len(closest_departures)}"
         )
         return closest_departures
-
-    async def _get_closest_departures(
-        self,
-    ) -> tuple[list[ThreadResponse], list[ThreadResponse]]:
-        """
-        Генерирует список ближайших отправлений по указанному маршруту.
-
-        Если ближайших рейсов на сегодня нет или осталось очень мало,
-        то показывается также несколько рейсов на завтра.
-
-        Принимает на вход:
-            - route (RouteResponse): Маршрут в формате RouteResponse или Route.
-
-        Возвращает:
-            - Кортеж из двух элементов: список рейсов на сегодня и список рейсов
-            на завтра. Рейсы в формате ThreadResponse.
-        """
-        timetable_dict_today: dict = await self._get_timetable_dict(
-            departure_code=self.route.departure_point.yandex_code,
-            destination_code=self.route.destination_point.yandex_code,
-            date=dt.date.today(),
-        )
-        closest_departures_today: list[
-            ThreadResponse
-        ] = self._get_closest_departures_for_date(
-            date=dt.date.today(),
-            timetable_dict=timetable_dict_today,
-            limit=settings.CLOSEST_DEP_LIMIT,
-        )
-        remainder = max(0, settings.CLOSEST_DEP_LIMIT - len(closest_departures_today))
-        closest_departures_tomorrow: list[ThreadResponse] = []
-        last_departure_today: dt.datetime = (
-            closest_departures_today[-1].departure
-            if closest_departures_today
-            else dt.timedelta(0)
-        )
-        current_time = (
-            dt.datetime.now(tz=last_departure_today.tzinfo)
-            if closest_departures_today
-            else dt.timedelta(0)
-        )
-        if len(closest_departures_today) < settings.SMALL_REMAINDER or (
-            ((last_departure_today - current_time) < dt.timedelta(hours=2))
-            and remainder
-        ):
-            tomorrow = dt.date.today() + dt.timedelta(days=1)
-            timetable_dict_tomorrow: dict = await self._get_timetable_dict(
-                departure_code=self.route.departure_point.yandex_code,
-                destination_code=self.route.destination_point.yandex_code,
-                date=tomorrow,
-            )
-            closest_departures_tomorrow += self._get_closest_departures_for_date(
-                date=tomorrow,
-                timetable_dict=timetable_dict_tomorrow,
-                limit=max(remainder, settings.SMALL_REMAINDER),
-            )
-
-        return closest_departures_today, closest_departures_tomorrow
-
-    def _format_timetable_for_message(
-        self,
-        today_timetable: list[ThreadResponse],
-        tomorrow_timetable: list[ThreadResponse],
-        format: str,
-    ) -> str:
-        """
-        Форматирует отправления (рейсы) и формирует готовое сообщение для Telegram.
-
-        Принимает на вход:
-            - today_timetable: Расписание на сегодня, которое необходимо
-            отформатировать, в виде списка с объектами ThreadResponse.
-            - today_timetable: Расписание на завтра, которое необходимо
-            отформатировать, в виде списка с объектами ThreadResponse.
-            - format: Формат времени, к которому необходимо привести отправления.
-
-        Примечания:
-            ttbl_dict представляет собой словарь, ключом которого является кортеж из
-            булевых значений списков расписаний на сегодня (первая позиция кортежа)
-            и на завтра (вторая позиция) соответственно.
-            Например, (True, False) следует читать как "в списке отправлений на сегодня
-            есть рейсы, а список на завтра пустой. Значит, нужно сформировать для
-            пользователя сообщение, в котором будут только рейсы на сегодня".
-
-        Возвращает:
-            - str: Отформатированный текст с ближайшими отправлениями, готовый к вставке
-            в сообщение Telegram.
-        """
-        ttbl_dict = {
-            (True, False): (
-                "{cd}\n{ttbl}\n\n{pb}".format(
-                    cd=msg.CLOSEST_DEPARTURES,
-                    ttbl=", ".join(
-                        [dep.departure.strftime(format) for dep in today_timetable]
-                    ),
-                    pb=msg.PRESS_DEPARTURE_BUTTON,
-                )
-            ),
-            (True, True): (
-                "{cd}\n{td}: {tdttbl}\n{tm}: {tmttbl}\n\n{pb}".format(
-                    cd=msg.CLOSEST_DEPARTURES,
-                    td=msg.TODAY,
-                    tdttbl=", ".join(
-                        [dep.departure.strftime(format) for dep in today_timetable]
-                    ),
-                    tm=msg.TOMORROW,
-                    tmttbl=", ".join(
-                        [dep.departure.strftime(format) for dep in tomorrow_timetable]
-                    ),
-                    pb=msg.PRESS_DEPARTURE_BUTTON,
-                )
-            ),
-            (False, True): (
-                "{ot}\n{ttbl}\n\n{pb}".format(
-                    ot=msg.ONLY_TOMORROW,
-                    ttbl=", ".join(
-                        [dep.departure.strftime(format) for dep in tomorrow_timetable]
-                    ),
-                    pb=msg.PRESS_DEPARTURE_BUTTON,
-                )
-            ),
-            (False, False): msg.NO_CLOSEST_DEPARTURES,
-        }
-        return ttbl_dict[(bool(today_timetable), bool(tomorrow_timetable))]
-
-    def _format_timetable_for_buttons(
-        self,
-        today_timetable: list[ThreadResponse],
-        tomorrow_timetable: list[ThreadResponse],
-        format: str,
-    ) -> list[str]:
-        """
-        Форматирует отправления (рейсы) и формирует строки для инлайн-кнопок.
-
-        Принимает на вход:
-            - today_timetable: Расписание на сегодня, которое необходимо
-            отформатировать, в виде списка с объектами ThreadResponse.
-            - today_timetable: Расписание на завтра, которое необходимо
-            отформатировать, в виде списка с объектами ThreadResponse.
-            - format: Формат времени, к которому необходимо привести отправления.
-
-        Примечания:
-            ttbl_dict представляет собой словарь, ключом которого является кортеж из
-            булевых значений списков расписаний на сегодня (первая позиция кортежа)
-            и на завтра (вторая позиция) соответственно.
-            Например, (True, False) следует читать как "в списке отправлений на сегодня
-            есть рейсы, а список на завтра пустой. Значит, нужно сформировать кнопки,
-            в которых будут только рейсы на сегодня".
-
-        Возвращает:
-            - Список строк, представляющих собой текст для инлайн-кнопки о рейсе.
-        """
-        ttbl_dict = {
-            (True, False): [dep.strftime(format) for dep in today_timetable],
-            (True, True): (
-                [f"{msg.TODAY} {dep.strftime(format)}" for dep in today_timetable]
-                + [
-                    f"{msg.TOMORROW} {dep.strftime(format)}"
-                    for dep in tomorrow_timetable
-                ]
-            ),
-            (False, True): [
-                f"{msg.TOMORROW} {dep.strftime(format)}" for dep in tomorrow_timetable
-            ],
-            (False, False): [],
-        }
-        return ttbl_dict[(bool(today_timetable), bool(tomorrow_timetable))]
 
     async def msg(self) -> str:
         """
@@ -437,13 +319,14 @@ class ClosestTimetable(Timetable):
             - str: Отформатированный текст с ближайшими отправлениями, готовый к вставке
             в сообщение Telegram.
         """
-        today, tomorrow = await self._get_closest_departures()
-        formatted_timetable: str = self._format_timetable_for_message(
-            today_timetable=today,
-            tomorrow_timetable=tomorrow,
-            format=settings.DEP_FORMAT,
+        closest_departures = await self._get_closest_departures()
+        thread_list: str = self.format_thread_list(closest_departures)
+        if not closest_departures:
+            return msg.NO_CLOSEST_DEPARTURES.format(route=str(self.route))
+        return (
+            f"{msg.CLOSEST_DEPARTURES.format(route=str(self.route))}\n\n{thread_list}"
+            f"\n\n{msg.PRESS_DEPARTURE_BUTTON}"
         )
-        return formatted_timetable
 
     async def btn(self) -> list[str]:
         """
@@ -458,10 +341,7 @@ class ClosestTimetable(Timetable):
         Возвращает:
             - Список строк, представляющих собой текст для инлайн-кнопки о рейсе.
         """
-        today, tomorrow = await self._get_closest_departures()
-        formatted_timetable: list[str] = self._format_timetable_for_buttons(
-            today_timetable=today,
-            tomorrow_timetable=tomorrow,
-            format=settings.DEP_FORMAT,
-        )
-        return formatted_timetable
+        closest_departures = await self._get_closest_departures()
+        if not closest_departures:
+            return []
+        return [dep.str_time for dep in closest_departures]

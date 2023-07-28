@@ -34,7 +34,6 @@ class Settings(BaseSettings):
 
     # Timetables
     CLOSEST_DEP_LIMIT: int = 12
-    SMALL_REMAINDER: int = 3
     DEP_FORMAT: str = "%H:%M"
     ROUTE_INLINE_DELIMITER: str = f" {chr(10145)} "
     ROUTE_INLINE_LIMIT: int = 38

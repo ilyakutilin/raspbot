@@ -24,5 +24,5 @@ async def show_timetable_callback(
     route: Route = await route_retriever.get_route_from_db(route_id=recent.route_id)
     timetable_obj = await ClosestTimetable(route=route)
     timetable = await timetable_obj.msg()
-    await callback.message.answer(text=timetable)
+    await callback.message.answer(text=timetable, parse_mode="HTML")
     await callback.answer()

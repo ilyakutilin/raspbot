@@ -179,6 +179,8 @@ async def choose_destination_from_multiple_callback(
     )
     timetable_obj = await ClosestTimetable(route=route)
     timetable = await timetable_obj.msg()
-    await callback.message.answer(text=(f"{msg_text}\n\n{timetable}"))
+    await callback.message.answer(
+        text=(f"{msg_text}\n\n{timetable}"), parse_mode="HTML"
+    )
     await callback.answer()
     await state.clear()
