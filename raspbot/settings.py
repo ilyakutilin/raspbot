@@ -38,6 +38,7 @@ class Settings(BaseSettings):
     ROUTE_INLINE_DELIMITER: str = f" {chr(10145)} "
     ROUTE_INLINE_LIMIT: int = 38
     RECENT_FAV_LIST_LENGTH: int = 8
+    INLINE_DEPARTURES_QTY: int = 4
 
     # Logging
     LOG_FORMAT: str = (
