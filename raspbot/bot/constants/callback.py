@@ -35,3 +35,11 @@ class AllRecentToFavCallbackFactory(CallbackData, prefix="all_recent_to_fav"):
 
 class DepartureTimeCallbackFactory(CallbackData, prefix="dep_time"):
     dep_time: str
+
+
+class TomorrowTimetableCallbackFactory(CallbackData, prefix="tomorrow"):
+    route_id: int
+
+
+class OtherDateTimetableCallbackFactory(CallbackData, prefix="tomorrow"):
+    route_id: int

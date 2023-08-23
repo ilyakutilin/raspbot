@@ -1,6 +1,7 @@
 from aiogram import Router, types
 
 from raspbot.bot.constants import callback as clb
+from raspbot.bot.timetable.keyboards import get_closest_departures_keyboard
 from raspbot.core.logging import configure_logging
 from raspbot.db.models import Recent, Route
 from raspbot.services.routes import RouteRetriever
@@ -23,6 +24,13 @@ async def show_timetable_callback(
     recent: Recent = await update_recent(recent_id=callback_data.recent_id)
     route: Route = await route_retriever.get_route_from_db(route_id=recent.route_id)
     timetable_obj = await ClosestTimetable(route=route)
-    timetable = await timetable_obj.msg()
-    await callback.message.answer(text=timetable, parse_mode="HTML")
+    timetable_msg = await timetable_obj.msg()
+    timetable_btn = await timetable_obj.btn()
+    await callback.message.answer(
+        text=timetable_msg,
+        reply_markup=get_closest_departures_keyboard(
+            departures_list=timetable_btn, route_id=route.id
+        ),
+        parse_mode="HTML",
+    )
     await callback.answer()

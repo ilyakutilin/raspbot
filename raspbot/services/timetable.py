@@ -1,5 +1,5 @@
 import datetime as dt
-from abc import ABC
+from abc import ABC, abstractmethod
 
 from asyncinit import asyncinit
 from pydantic import ValidationError
@@ -189,13 +189,9 @@ class Timetable(ABC):
     def format_thread_list(self, thread_list: list[ThreadResponse]) -> str:
         simple_threads = "\n".join([dep.message_with_route for dep in thread_list])
         one_from_station = all(dep.from_ == thread_list[0].from_ for dep in thread_list)
-        logger.debug(f"one_from_station = {str(one_from_station)}")
         one_to_station = all(dep.to == thread_list[0].to for dep in thread_list)
-        logger.debug(f"one_to_station = {str(one_to_station)}")
         formatted_unified = msg.FormattedUnifiedThreadList(thread_list=thread_list)
-        logger.debug(f"formatted_unified = {formatted_unified}")
         formatted_different = msg.FormattedDifferentThreadList(thread_list=thread_list)
-        logger.debug(f"formatted_different = {formatted_different}")
         match (
             self.route.departure_point.point_type,
             self.route.destination_point.point_type,
@@ -211,40 +207,35 @@ class Timetable(ABC):
                     return formatted_unified.settlement_to_station()
                 return formatted_different.settlement_to_station()
             case PointTypeEnum.settlement, PointTypeEnum.settlement:
-                logger.debug("Case settlement, settlement starts.")
                 if one_from_station and one_to_station:
-                    logger.debug(
-                        "formatted_unified.settlement_to_settlement() = "
-                        f"{formatted_unified.settlement_to_settlement()}"
-                    )
                     return formatted_unified.settlement_to_settlement()
                 if one_from_station and not one_to_station:
-                    logger.debug(
-                        "formatted_different.settlement_one_to_settlement_diff() = "
-                        f"{formatted_different.settlement_one_to_settlement_diff()}"
-                    )
                     return formatted_different.settlement_one_to_settlement_diff()
                 if one_to_station and not one_from_station:
-                    logger.debug(
-                        "formatted_different.settlement_diff_to_settlement_one() = "
-                        f"{formatted_different.settlement_diff_to_settlement_one()}"
-                    )
                     return formatted_different.settlement_diff_to_settlement_one()
-                logger.debug(
-                    "formatted_different.settlement_diff_to_settlement_diff() = "
-                    f"{formatted_different.settlement_diff_to_settlement_diff()}"
-                )
                 return formatted_different.settlement_diff_to_settlement_diff()
         return "\n".join([dep.str_time_with_express_type for dep in thread_list])
+
+    @abstractmethod
+    async def get_timetable(self) -> list[ThreadResponse]:
+        pass
+
+    @abstractmethod
+    async def msg(self) -> str:
+        pass
+
+    @abstractmethod
+    async def btn(self) -> str:
+        pass
 
 
 @asyncinit
 class ClosestTimetable(Timetable):
     async def __init__(self, route: Route | RouteResponse):
         await super().__init__(route)
-        self.threads: list[ThreadResponse] = await self._get_closest_departures()
+        self.threads: list[ThreadResponse] = await self.get_timetable()
 
-    async def _get_closest_departures(
+    async def get_timetable(
         self,
         limit: int = settings.CLOSEST_DEP_LIMIT,
     ) -> list[ThreadResponse]:
@@ -319,7 +310,7 @@ class ClosestTimetable(Timetable):
             - str: Отформатированный текст с ближайшими отправлениями, готовый к вставке
             в сообщение Telegram.
         """
-        closest_departures = await self._get_closest_departures()
+        closest_departures = await self.get_timetable()
         thread_list: str = self.format_thread_list(closest_departures)
         if not closest_departures:
             return msg.NO_CLOSEST_DEPARTURES.format(route=str(self.route))
@@ -341,7 +332,7 @@ class ClosestTimetable(Timetable):
         Возвращает:
             - Список строк, представляющих собой текст для инлайн-кнопки о рейсе.
         """
-        closest_departures = await self._get_closest_departures()
+        closest_departures = await self.get_timetable()
         if not closest_departures:
             return []
-        return [dep.str_time for dep in closest_departures]
+        return [dep for dep in closest_departures]

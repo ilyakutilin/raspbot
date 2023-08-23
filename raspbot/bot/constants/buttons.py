@@ -10,3 +10,6 @@ MY_POINT_IS_NOT_HERE = "Нет моего пункта 😕"
 MORE_POINT_CHOICES = "Ещё ➡️"
 
 ADD_ALL_RECENT_TO_FAV = "Добавить все"
+
+TOMORROW = "Завтра"
+OTHER_DATE = "Другая дата"
