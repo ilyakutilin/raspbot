@@ -34,3 +34,11 @@ async def show_timetable_callback(
         parse_mode="HTML",
     )
     await callback.answer()
+
+
+@router.callback_query(clb.DepartureTimeCallbackFactory.filter())
+async def show_departure_callback(
+    callback: types.CallbackQuery,
+    callback_data: clb.DepartureTimeCallbackFactory,
+):
+    pass
