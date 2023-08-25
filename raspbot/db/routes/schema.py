@@ -37,13 +37,23 @@ class RouteResponse(BaseModel):
 
 class ThreadResponse(BaseModel):
     uid: str
+    number: str
     title: str
+    carrier: str
+    transport_subtype: str | None
     express_type: str | None
     from_: str
     to: str
     departure: dt.datetime
     arrival: dt.datetime
     date: dt.date
+    stops: str
+    departure_platform: str | None
+    arrival_platform: str | None
+    departure_terminal: str | None
+    arrival_terminal: str | None
+    duration: float
+    ticket_price: float
 
     @property
     def str_time(self) -> str:

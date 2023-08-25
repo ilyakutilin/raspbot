@@ -165,11 +165,19 @@ class Timetable(ABC):
             short_title = segment.get("thread").get("short_title")
             short_from_title = segment.get("from").get("short_title")
             short_to_title = segment.get("to").get("short_title")
+            thread = segment["thread"]
+            ticket_price_dict = segment["tickets_info"]["places"]["price"]
+            ticket_price = float(
+                f"{ticket_price_dict['whole']}.{ticket_price_dict['cents']}"
+            )
 
             threadresponse = ThreadResponse(
-                uid=segment["thread"]["uid"],
-                title=short_title if short_title else segment["thread"]["title"],
-                express_type=segment["thread"]["express_type"],
+                uid=thread["uid"],
+                number=thread["number"],
+                title=short_title if short_title else thread["title"],
+                carrier=thread["carrier"],
+                transport_subtype=thread["transport_subtype"]["title"],
+                express_type=thread["express_type"],
                 from_=short_from_title
                 if short_from_title
                 else segment["from"]["title"],
@@ -177,6 +185,13 @@ class Timetable(ABC):
                 departure=departure_time if departure_time else departure,
                 arrival=arrival,
                 date=date,
+                stops=segment["stops"],
+                departure_platform=segment["departure_platform"],
+                arrival_platform=segment["arrival_platform"],
+                departure_terminal=segment["departure_terminal"],
+                arrival_terminal=segment["arrival_terminal"],
+                duration=segment["duration"],
+                ticket_price=ticket_price,
             )
             logger.debug(f"Threadresponse: {threadresponse}")
             return threadresponse
