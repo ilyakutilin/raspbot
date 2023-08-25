@@ -333,21 +333,3 @@ class ClosestTimetable(Timetable):
             f"{msg.CLOSEST_DEPARTURES.format(route=str(self.route))}\n\n{thread_list}"
             f"\n\n{msg.PRESS_DEPARTURE_BUTTON}"
         )
-
-    async def btn(self) -> list[str]:
-        """
-        Генерирует список ближайших отправлений по указанному маршруту для кнопок.
-
-        Если ближайших рейсов на сегодня нет или осталось очень мало,
-        то выводится также несколько рейсов на завтра.
-
-        Принимает на вход:
-            - route (RouteResponse): Маршрут в формате RouteResponse или Route.
-
-        Возвращает:
-            - Список строк, представляющих собой текст для инлайн-кнопки о рейсе.
-        """
-        closest_departures = await self.get_timetable()
-        if not closest_departures:
-            return []
-        return [dep for dep in closest_departures]

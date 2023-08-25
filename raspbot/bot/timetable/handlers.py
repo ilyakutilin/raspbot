@@ -25,11 +25,11 @@ async def show_timetable_callback(
     route: Route = await route_retriever.get_route_from_db(route_id=recent.route_id)
     timetable_obj = await ClosestTimetable(route=route)
     timetable_msg = await timetable_obj.msg()
-    timetable_btn = await timetable_obj.btn()
+    timetable = await timetable_obj.get_timetable()
     await callback.message.answer(
         text=timetable_msg,
         reply_markup=get_closest_departures_keyboard(
-            departures_list=timetable_btn, route_id=route.id
+            departures_list=timetable, route_id=route.id
         ),
         parse_mode="HTML",
     )

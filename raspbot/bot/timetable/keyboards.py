@@ -14,7 +14,7 @@ logger = configure_logging(name=__name__)
 def get_closest_departures_keyboard(
     departures_list: list[ThreadResponse],
     route_id: int,
-    buttons_qty: int = settings.INLINE_DEPARTURES_QTY,
+    buttons_qty_in_row: int = settings.INLINE_DEPARTURES_QTY,
 ) -> types.InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     for dep in departures_list:
@@ -24,9 +24,9 @@ def get_closest_departures_keyboard(
                 dep_time=dep.str_time.replace(":", "-")
             ),
         )
-    remainder = len(departures_list) % buttons_qty
+    remainder = len(departures_list) % buttons_qty_in_row
     if remainder != 0:
-        for i in range(buttons_qty - remainder):
+        for i in range(buttons_qty_in_row - remainder):
             builder.button(text="", callback_data="empty_button")
     builder.button(
         text=btn.TOMORROW,
@@ -36,6 +36,6 @@ def get_closest_departures_keyboard(
         text=btn.OTHER_DATE,
         callback_data=clb.OtherDateTimetableCallbackFactory(route_id=route_id),
     )
-    button_groups = [buttons_qty] * -(-len(departures_list) // buttons_qty)
-    builder.adjust(*button_groups, 2)
+    button_rows = [buttons_qty_in_row] * -(-len(departures_list) // buttons_qty_in_row)
+    builder.adjust(*button_rows, 2)
     return builder.as_markup()
