@@ -1,6 +1,9 @@
+import time
+
 from raspbot.db.models import PointTypeEnum
 from raspbot.db.routes.schema import PointResponse, ThreadResponse
 from raspbot.services.shorteners.short_point import get_short_point_type
+from raspbot.settings import settings
 
 # START
 
@@ -139,6 +142,46 @@ class FormattedDifferentThreadList:
             "и прибытия!\nОни указаны в скобках рядом с каждым отправлением.\n\n"
         ) + "\n".join(
             dep.message_with_departure_and_destination for dep in self.thread_list
+        )
+
+
+class ThreadInfo:
+    def __init__(self, thread: ThreadResponse):
+        self.thread = thread
+
+    def __str__(self):
+        express = ", " + self.thread.express_type if self.thread.express_type else ""
+        dep_platform = (
+            ", " + self.thread.departure_platform
+            if self.thread.departure_platform
+            else ""
+        )
+        dep_terminal = (
+            ", " + self.thread.departure_terminal
+            if self.thread.departure_terminal
+            else ""
+        )
+        dest_platform = (
+            ", " + self.thread.arrival_platform if self.thread.arrival_platform else ""
+        )
+        dest_terminal = (
+            ", " + self.thread.arrival_terminal if self.thread.arrival_terminal else ""
+        )
+        duration = time.strftime("%H ч. %M мин.", time.gmtime(self.thread.duration))
+        return (
+            f"<b>№ поезда:</b> {self.thread.number}\n"
+            f"<b>Тип поезда:</b> {self.thread.transport_subtype}{express}\n"
+            f"<b>Маршрут поезда:</b> {self.thread.title}\n"
+            f"<b>Перевозчик:</b> {self.thread.carrier}\n"
+            f"<b>Отправление от ст. {self.thread.from_}:</b> "
+            f"{self.thread.str_time}{dep_platform}{dep_terminal}\n"
+            f"<b>Прибытие на ст. {self.thread.to}:</b> "
+            f"{self.thread.arrival.strftime(settings.DEP_FORMAT)}"
+            f"{dest_platform}{dest_terminal}\n"
+            f"<b>Останавливается:</b> {self.thread.stops}\n"
+            f"<b>Время в пути:</b> {duration}\n"
+            # TODO: Ticket prices
+            f"<b>Стоимость билета:</b> {self.thread.ticket_price} руб.\n"
         )
 
 

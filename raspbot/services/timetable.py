@@ -166,7 +166,8 @@ class Timetable(ABC):
             short_from_title = segment.get("from").get("short_title")
             short_to_title = segment.get("to").get("short_title")
             thread = segment["thread"]
-            ticket_price_dict = segment["tickets_info"]["places"]["price"]
+            # TODO: Ticket prices
+            ticket_price_dict = segment["tickets_info"]["places"][0]["price"]
             ticket_price = float(
                 f"{ticket_price_dict['whole']}.{ticket_price_dict['cents']}"
             )
@@ -175,7 +176,7 @@ class Timetable(ABC):
                 uid=thread["uid"],
                 number=thread["number"],
                 title=short_title if short_title else thread["title"],
-                carrier=thread["carrier"],
+                carrier=thread["carrier"]["title"],
                 transport_subtype=thread["transport_subtype"]["title"],
                 express_type=thread["express_type"],
                 from_=short_from_title
@@ -237,10 +238,6 @@ class Timetable(ABC):
 
     @abstractmethod
     async def msg(self) -> str:
-        pass
-
-    @abstractmethod
-    async def btn(self) -> str:
         pass
 
 

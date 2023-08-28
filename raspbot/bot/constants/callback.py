@@ -33,8 +33,8 @@ class AllRecentToFavCallbackFactory(CallbackData, prefix="all_recent_to_fav"):
     recent_ids: str
 
 
-class DepartureTimeCallbackFactory(CallbackData, prefix="dep_time"):
-    dep_time: str
+class DepartureUIDCallbackFactory(CallbackData, prefix="dep_uid"):
+    uid: str
 
 
 class TomorrowTimetableCallbackFactory(CallbackData, prefix="tomorrow"):

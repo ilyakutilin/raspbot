@@ -20,9 +20,7 @@ def get_closest_departures_keyboard(
     for dep in departures_list:
         builder.button(
             text=dep.str_time,
-            callback_data=clb.DepartureTimeCallbackFactory(
-                dep_time=dep.str_time.replace(":", "-")
-            ),
+            callback_data=clb.DepartureUIDCallbackFactory(uid=dep.uid),
         )
     remainder = len(departures_list) % buttons_qty_in_row
     if remainder != 0:
