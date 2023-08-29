@@ -11,5 +11,6 @@ MORE_POINT_CHOICES = "Ещё ➡️"
 
 ADD_ALL_RECENT_TO_FAV = "Добавить все"
 
+TILL_THE_END_OF_THE_DAY = "Все рейсы до конца дня"
 TOMORROW = "Завтра"
 OTHER_DATE = "Другая дата"

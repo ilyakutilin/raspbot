@@ -27,6 +27,10 @@ def get_closest_departures_keyboard(
         for i in range(buttons_qty_in_row - remainder):
             builder.button(text="", callback_data="empty_button")
     builder.button(
+        text=btn.TILL_THE_END_OF_THE_DAY,
+        callback_data=clb.EndOfTheDayTimetableCallbackFactory(route_id=route_id),
+    )
+    builder.button(
         text=btn.TOMORROW,
         callback_data=clb.TomorrowTimetableCallbackFactory(route_id=route_id),
     )
@@ -35,5 +39,5 @@ def get_closest_departures_keyboard(
         callback_data=clb.OtherDateTimetableCallbackFactory(route_id=route_id),
     )
     button_rows = [buttons_qty_in_row] * -(-len(departures_list) // buttons_qty_in_row)
-    builder.adjust(*button_rows, 2)
+    builder.adjust(*button_rows, 1, 2)
     return builder.as_markup()

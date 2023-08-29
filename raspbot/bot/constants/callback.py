@@ -37,9 +37,13 @@ class DepartureUIDCallbackFactory(CallbackData, prefix="dep_uid"):
     uid: str
 
 
+class EndOfTheDayTimetableCallbackFactory(CallbackData, prefix="till_the_end"):
+    route_id: int
+
+
 class TomorrowTimetableCallbackFactory(CallbackData, prefix="tomorrow"):
     route_id: int
 
 
-class OtherDateTimetableCallbackFactory(CallbackData, prefix="tomorrow"):
+class OtherDateTimetableCallbackFactory(CallbackData, prefix="other_date"):
     route_id: int
