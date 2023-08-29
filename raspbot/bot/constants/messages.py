@@ -1,6 +1,9 @@
+import time
+
 from raspbot.db.models import PointTypeEnum
-from raspbot.db.routes.schema import PointResponse
+from raspbot.db.routes.schema import PointResponse, ThreadResponse
 from raspbot.services.shorteners.short_point import get_short_point_type
+from raspbot.settings import settings
 
 # START
 
@@ -52,16 +55,134 @@ INPUT_DESTINATION_POINT = "Теперь введите пункт назначе
 
 # TIMETABLE
 
-CLOSEST_DEPARTURES = "Ближайшие отправления:"
-TODAY = "Сегодня:"
-TOMORROW = "Завтра:"
-ONLY_TOMORROW = "Ближайшие электрички только завтра:"
-NO_CLOSEST_DEPARTURES = "В ближайшее время электричек по данному маршруту не будет 😕"
+CLOSEST_DEPARTURES = "Вот ближайшие отправления по маршруту {route}."
+ROUTE_IN_BRACKETS = (
+    "В скобках рядом с каждым отправлением указан маршрут электрички "
+    "(ее начальный и конечный пункт) для информации."
+)
+DEPARTURE_STATION_IN_BRACKETS = (
+    "В скобках рядом с каждым отправлением указана станция отправления."
+)
+DESTINATION_STATION_IN_BRACKETS = (
+    "В скобках рядом с каждым отправлением указана станция назначения."
+)
+STATIONS_IN_BRACKETS = (
+    "В скобках рядом с каждым отправлением указаны станции отправления и назначения."
+)
+NO_CLOSEST_DEPARTURES = (
+    "Сегодня электричек по маршруту {route} не будет 😕\n\n"
+    'Можно поискать на завтра. Для этого нажмите на кнопку "Завтра" под этим '
+    "сообщением."
+)
 PRESS_DEPARTURE_BUTTON = (
     "Нажмите на кнопку со временем отправления под этим сообщением, "
     "чтобы посмотреть подробную информацию о рейсе, или выберите другую дату."
 )
 ERROR = "Произошла внутренняя ошибка приложения, приносим свои извинения."
+
+
+class FormattedUnifiedThreadList:
+    def __init__(self, thread_list: list[ThreadResponse]):
+        self.thread_list = thread_list
+        self.simple_threads = "\n".join([dep.message_with_route for dep in thread_list])
+
+    def station_to_settlement(self) -> str:
+        return (
+            f"Все электрички прибывают на станцию {self.thread_list[0].to}."
+            f"\n{ROUTE_IN_BRACKETS}\n\n{self.simple_threads}"
+        )
+
+    def settlement_to_station(self) -> str:
+        return (
+            f"Все электрички отправляются от станции {self.thread_list[0].from_}."
+            f"\n{ROUTE_IN_BRACKETS}\n\n{self.simple_threads}"
+        )
+
+    def settlement_to_settlement(self) -> str:
+        return (
+            f"Все электрички отправляются от станции {self.thread_list[0].from_} "
+            f"и прибывают на станцию {self.thread_list[0].to}."
+            f"\n{ROUTE_IN_BRACKETS}\n\n{self.simple_threads}"
+        )
+
+
+class FormattedDifferentThreadList:
+    def __init__(self, thread_list: list[ThreadResponse]):
+        self.thread_list = thread_list
+
+    def station_to_settlement(self) -> str:
+        return (
+            "⚠️ Обратите внимание, что электрички прибывают на разные станции!\n"
+            "В скобках рядом с каждым отправлением указана станция прибытия.\n\n"
+        ) + "\n".join(dep.message_with_destination_station for dep in self.thread_list)
+
+    def settlement_to_station(self) -> str:
+        return (
+            "⚠️ Обратите внимание, что электрички отправляются с разных станций!\n"
+            "В скобках рядом с каждым отправлением указана станция отправления.\n\n"
+        ) + "\n".join(dep.message_with_departure_station for dep in self.thread_list)
+
+    def settlement_one_to_settlement_diff(self) -> str:
+        return (
+            f"Все электрички отправляются от станции {self.thread_list[0].from_}.\n"
+            "⚠️ Однако обратите внимание, что станции прибытия у всех электричек "
+            "разные!\nОни указаны в скобках рядом с каждым отправлением.\n\n"
+        ) + "\n".join(dep.message_with_destination_station for dep in self.thread_list)
+
+    def settlement_diff_to_settlement_one(self) -> str:
+        return (
+            "⚠️ Обратите внимание, что у всех электричек разные станции отправления!\n"
+            "Они указаны в скобках рядом с каждым отправлением.\n"
+            f"Станция прибытия всех электричек - {self.thread_list[0].to}.\n\n"
+        ) + "\n".join(dep.message_with_departure_station for dep in self.thread_list)
+
+    def settlement_diff_to_settlement_diff(self) -> str:
+        return (
+            "⚠️ Обратите внимание, что у всех электричек разные станции отправления "
+            "и прибытия!\nОни указаны в скобках рядом с каждым отправлением.\n\n"
+        ) + "\n".join(
+            dep.message_with_departure_and_destination for dep in self.thread_list
+        )
+
+
+class ThreadInfo:
+    def __init__(self, thread: ThreadResponse):
+        self.thread = thread
+
+    def __str__(self):
+        express = ", " + self.thread.express_type if self.thread.express_type else ""
+        dep_platform = (
+            ", " + self.thread.departure_platform
+            if self.thread.departure_platform
+            else ""
+        )
+        dep_terminal = (
+            ", " + self.thread.departure_terminal
+            if self.thread.departure_terminal
+            else ""
+        )
+        dest_platform = (
+            ", " + self.thread.arrival_platform if self.thread.arrival_platform else ""
+        )
+        dest_terminal = (
+            ", " + self.thread.arrival_terminal if self.thread.arrival_terminal else ""
+        )
+        duration = time.strftime("%H ч. %M мин.", time.gmtime(self.thread.duration))
+        return (
+            f"<b>№ поезда:</b> {self.thread.number}\n"
+            f"<b>Тип поезда:</b> {self.thread.transport_subtype}{express}\n"
+            f"<b>Маршрут поезда:</b> {self.thread.title}\n"
+            f"<b>Перевозчик:</b> {self.thread.carrier}\n"
+            f"<b>Отправление от ст. {self.thread.from_}:</b> "
+            f"{self.thread.str_time}{dep_platform}{dep_terminal}\n"
+            f"<b>Прибытие на ст. {self.thread.to}:</b> "
+            f"{self.thread.arrival.strftime(settings.DEP_FORMAT)}"
+            f"{dest_platform}{dest_terminal}\n"
+            f"<b>Останавливается:</b> {self.thread.stops}\n"
+            f"<b>Время в пути:</b> {duration}\n"
+            # TODO: Ticket prices
+            f"<b>Стоимость билета:</b> {self.thread.ticket_price} руб.\n"
+        )
 
 
 # USERS

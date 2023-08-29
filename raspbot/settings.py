@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     # Endpoints and Headers
     SEARCH_ENDPOINT: str = "https://api.rasp.yandex.net/v3.0/search/"
     SCHEDULE_ENDPOINT: str = "https://api.rasp.yandex.net/v3.0/schedule/"
+    THREAD_INFO_ENDPOINT: str = "https://api.rasp.yandex.net/v3.0/thread/"
     STATIONS_LIST_ENDPOINT: str = "https://api.rasp.yandex.net/v3.0/stations_list/"
 
     # Files and directories
@@ -34,11 +35,11 @@ class Settings(BaseSettings):
 
     # Timetables
     CLOSEST_DEP_LIMIT: int = 12
-    SMALL_REMAINDER: int = 3
     DEP_FORMAT: str = "%H:%M"
     ROUTE_INLINE_DELIMITER: str = f" {chr(10145)} "
     ROUTE_INLINE_LIMIT: int = 38
     RECENT_FAV_LIST_LENGTH: int = 8
+    INLINE_DEPARTURES_QTY: int = 4
 
     # Logging
     LOG_FORMAT: str = (
