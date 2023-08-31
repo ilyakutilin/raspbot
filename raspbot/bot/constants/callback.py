@@ -35,6 +35,7 @@ class AllRecentToFavCallbackFactory(CallbackData, prefix="all_recent_to_fav"):
 
 class DepartureUIDCallbackFactory(CallbackData, prefix="dep_uid"):
     uid: str
+    route_id: int
 
 
 class EndOfTheDayTimetableCallbackFactory(CallbackData, prefix="till_the_end"):

@@ -20,7 +20,9 @@ def get_closest_departures_keyboard(
     for dep in departures_list:
         builder.button(
             text=dep.str_time,
-            callback_data=clb.DepartureUIDCallbackFactory(uid=dep.uid),
+            callback_data=clb.DepartureUIDCallbackFactory(
+                uid=dep.uid, route_id=route_id
+            ),
         )
     remainder = len(departures_list) % buttons_qty_in_row
     if remainder != 0:
@@ -41,3 +43,24 @@ def get_closest_departures_keyboard(
     button_rows = [buttons_qty_in_row] * -(-len(departures_list) // buttons_qty_in_row)
     builder.adjust(*button_rows, 1, 2)
     return builder.as_markup()
+
+
+@log(logger)
+def get_separate_departure_keyboard(
+    departures_list: list[ThreadResponse],
+    this_departure: ThreadResponse,
+    route_id: int,
+    buttons_qty_in_row: int = settings.INLINE_DEPARTURES_QTY,
+) -> types.InlineKeyboardMarkup:
+    markup: types.InlineKeyboardMarkup = get_closest_departures_keyboard(
+        departures_list=departures_list,
+        route_id=route_id,
+        buttons_qty_in_row=buttons_qty_in_row,
+    )
+    for row in markup.inline_keyboard:
+        for button in row:
+            uid = button.callback_data.split(":")[1].strip()
+            if uid == this_departure.uid:
+                button.text = f"[-- {button.text} --]"
+                return markup
+    return markup

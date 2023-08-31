@@ -4,7 +4,7 @@ from aiogram.fsm.context import FSMContext
 from raspbot.bot.constants import callback as clb
 from raspbot.bot.constants import messages as msg
 from raspbot.bot.constants import states
-from raspbot.bot.timetable.keyboards import get_closest_departures_keyboard
+from raspbot.bot.timetable import keyboards as kb
 from raspbot.core.logging import configure_logging
 from raspbot.db.models import Recent, Route
 from raspbot.db.routes.schema import ThreadResponse
@@ -29,8 +29,8 @@ async def process_timetable_callback(
     timetable_msg = await timetable_obj.msg()
     timetable = await timetable_obj.get_timetable()
     await callback.message.answer(
-        text=(add_msg_text + "\n" * 2) if add_msg_text else "" + timetable_msg,
-        reply_markup=get_closest_departures_keyboard(
+        text=((add_msg_text + "\n" * 2) if add_msg_text else "") + timetable_msg,
+        reply_markup=kb.get_closest_departures_keyboard(
             departures_list=timetable, route_id=route_id
         ),
         parse_mode="HTML",
@@ -61,18 +61,21 @@ async def show_departure_callback(
     callback_data: clb.DepartureUIDCallbackFactory,
     state: FSMContext,
 ):
-    logger.debug(f"show_departure_callback: callback_data = {callback_data}")
     user_data: dict = await state.get_data()
-    logger.debug(f"show_departure_callback: user_data = {user_data}")
     timetable: list[ThreadResponse] = user_data["timetable"]
-    logger.debug(f"show_departure_callback: timetable = {timetable}")
     uid: str = callback_data.uid
-    logger.debug(f"show_departure_callback: uid = {uid}")
+    route_id: int = callback_data.route_id
     try:
         dep_info: ThreadResponse = next(dep for dep in timetable if dep.uid == uid)
     except StopIteration:
         # TODO: Complete error handling
         logger.error("StopIteration error")
     msg_obj = msg.ThreadInfo(thread=dep_info)
-    await callback.message.answer(text=str(msg_obj), parse_mode="HTML")
+    await callback.message.answer(
+        text=str(msg_obj),
+        reply_markup=kb.get_separate_departure_keyboard(
+            departures_list=timetable, this_departure=dep_info, route_id=route_id
+        ),
+        parse_mode="HTML",
+    )
     await callback.answer()
