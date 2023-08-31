@@ -59,8 +59,11 @@ def get_separate_departure_keyboard(
     )
     for row in markup.inline_keyboard:
         for button in row:
-            uid = button.callback_data.split(":")[1].strip()
-            if uid == this_departure.uid:
+            callpback_split = button.callback_data.split(":")
+            callback_prefix = callpback_split[0]
+            uid = callpback_split[1] if callback_prefix == clb.DEP_UID else None
+            if uid == this_departure.uid and not None:
                 button.text = f"[-- {button.text} --]"
+                button.callback_data = clb.SAME_DEPARTURE
                 return markup
     return markup

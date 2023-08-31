@@ -1,4 +1,5 @@
 from aiogram import Router, types
+from aiogram.filters import Text
 from aiogram.fsm.context import FSMContext
 
 from raspbot.bot.constants import callback as clb
@@ -79,3 +80,8 @@ async def show_departure_callback(
         parse_mode="HTML",
     )
     await callback.answer()
+
+
+@router.callback_query(Text(clb.SAME_DEPARTURE))
+async def same_departure_callback(callback: types.CallbackQuery, state: FSMContext):
+    await callback.answer(text=msg.SAME_DEPARTURE, show_alert=True)
