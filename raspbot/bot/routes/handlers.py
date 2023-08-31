@@ -165,7 +165,7 @@ async def choose_destination_from_multiple_callback(
     selected_point: PointResponse = await point_retriever.get_point(
         point_id=callback_data.point_id
     )
-    msg_text: str = msg.SinglePointFound(
+    msg_text = msg.SinglePointFound(
         point=selected_point, is_departure=callback_data.is_departure
     )
     user_data: dict = await state.get_data()
@@ -184,5 +184,5 @@ async def choose_destination_from_multiple_callback(
         state=state,
         timetable_obj=timetable_obj,
         route_id=route.id,
-        add_msg_text=msg_text,
+        add_msg_text=str(msg_text),
     )
