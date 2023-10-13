@@ -38,7 +38,6 @@ DEP_UID = "dep_uid"
 
 class DepartureUIDCallbackFactory(CallbackData, prefix=DEP_UID):
     uid: str
-    route_id: int
 
 
 SAME_DEPARTURE = "same_dep"
