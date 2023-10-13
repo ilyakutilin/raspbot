@@ -180,6 +180,7 @@ async def choose_destination_from_multiple_callback(
         departure_point=departure_point, destination_point=selected_point, user=user
     )
     timetable_obj = await TodayTimetable(route=route, limit=settings.CLOSEST_DEP_LIMIT)
+    logger.debug(f"Creating timetable_obj: {timetable_obj.__dict__}")
     await process_timetable_callback(
         callback=callback,
         state=state,

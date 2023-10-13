@@ -27,9 +27,8 @@ async def process_timetable_callback(
     timetable_obj: Timetable,
     add_msg_text: str | None = None,
 ):
-    timetable_msg = await timetable_obj.msg
     await callback.message.answer(
-        text=((add_msg_text + "\n" * 2) if add_msg_text else "") + timetable_msg,
+        text=((add_msg_text + "\n" * 2) if add_msg_text else "") + timetable_obj.msg,
         reply_markup=await kb.get_closest_departures_keyboard(
             timetable_obj=timetable_obj
         ),
@@ -63,7 +62,7 @@ async def show_departure_callback(
 ):
     user_data: dict = await state.get_data()
     timetable_obj: Timetable = user_data["timetable_obj"]
-    timetable = await timetable_obj.timetable
+    timetable = timetable_obj.timetable
     uid: str = callback_data.uid
     try:
         dep_info: ThreadResponse = next(dep for dep in timetable if dep.uid == uid)

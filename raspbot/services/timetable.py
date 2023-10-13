@@ -22,6 +22,9 @@ class Timetable(ABC):
     ):
         self.route = route
         self.date = date
+        self.timetable = await self._get_timetable()
+        self.length = await self._get_length()
+        self.msg = await self._get_msg()
 
     async def _get_timetable_dict(
         self,
@@ -228,19 +231,16 @@ class Timetable(ABC):
                 return formatted_different.settlement_diff_to_settlement_diff()
         return "\n".join([dep.str_time_with_express_type for dep in thread_list])
 
-    @property
     @abstractmethod
-    async def timetable(self) -> list[ThreadResponse]:
+    async def _get_timetable(self) -> list[ThreadResponse]:
         pass
 
-    @property
     @abstractmethod
-    async def length(self) -> list[ThreadResponse]:
+    async def _get_length(self) -> list[ThreadResponse]:
         pass
 
-    @property
     @abstractmethod
-    async def msg(self) -> str:
+    async def _get_msg(self) -> str:
         pass
 
 
@@ -256,8 +256,8 @@ class TodayTimetable(Timetable):
     """
 
     async def __init__(self, route: Route | RouteResponse, limit: int | None = None):
-        await super().__init__(route)
         self.limit = limit
+        await super().__init__(route)
 
     async def _get_timetable_till_the_end_of_the_day(self) -> list[ThreadResponse]:
         # TODO: Complete docstring
@@ -308,13 +308,11 @@ class TodayTimetable(Timetable):
         )
         return today_departures
 
-    @property
-    async def length(self) -> int:
+    async def _get_length(self) -> int:
         timetable = await self._get_timetable_till_the_end_of_the_day()
         return len(timetable)
 
-    @property
-    async def timetable(self) -> list[ThreadResponse]:
+    async def _get_timetable(self) -> list[ThreadResponse]:
         """
         Генерирует список отправлений на сегодня.
 
@@ -331,8 +329,7 @@ class TodayTimetable(Timetable):
             return timetable[: self.limit]
         return await self._get_timetable_till_the_end_of_the_day()
 
-    @property
-    async def msg(self) -> str:
+    async def _get_msg(self) -> str:
         """
         Генерирует список ближайших отправлений по указанному маршруту для сообщения.
 
@@ -340,19 +337,17 @@ class TodayTimetable(Timetable):
             - str: Отформатированный текст с отправлениями, готовый к вставке
             в сообщение Telegram.
         """
-        today_departures = await self.timetable
-        thread_list: str = self.format_thread_list(today_departures)
-        if not today_departures:
+        thread_list: str = self.format_thread_list(self.timetable)
+        if not self.timetable:
             return msg.NO_TODAY_DEPARTURES.format(route=str(self.route))
-        length = await self.length
         message_part_one = (
             msg.CLOSEST_DEPARTURES
-            if self.limit and length > self.limit
+            if self.limit and self.length > self.limit
             else msg.TODAY_DEPARTURES
         )
         message_part_two = (
             msg.PRESS_DEPARTURE_BUTTON
-            if self.limit or length <= settings.INLINE_DEPARTURES_QTY
+            if self.limit or self.length <= settings.INLINE_DEPARTURES_QTY
             else msg.PRESS_DEPARTURE_BUTTON_OR_TYPE
         )
         return (
