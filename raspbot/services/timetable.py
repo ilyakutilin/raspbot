@@ -17,15 +17,16 @@ logger = configure_logging(name=__name__)
 
 @asyncinit
 class Timetable(ABC):
-    async def __init__(self, route: Route | RouteResponse):
+    async def __init__(
+        self, route: Route | RouteResponse, date: dt.date = dt.date.today()
+    ):
         self.route = route
-        self.threads: list[ThreadResponse] = []
+        self.date = date
 
     async def _get_timetable_dict(
         self,
         departure_code: str,
         destination_code: str,
-        date: dt.date = dt.date.today(),
     ) -> dict:
         """
         Возвращает сырой JSON (в виде словаря) с расписанием от Яндекса.
@@ -49,7 +50,7 @@ class Timetable(ABC):
         kwargs_dict = {
             "from_": departure_code,
             "to": destination_code,
-            "date": date,
+            "date": self.date,
             "transport_types": TransportTypes.SUBURBAN.value,
             "offset": 0,
         }
@@ -59,10 +60,12 @@ class Timetable(ABC):
             f"{len(timetable_dict['segments'])}."
         )
         try:
-            total = int(timetable_dict["pagination"]["total"])
-            limit = int(timetable_dict["pagination"]["limit"])
-            offset = int(timetable_dict["pagination"]["offset"])
-            logger.debug(f"Пагинация: total={total}, limit={limit}, offset={offset}")
+            api_total = int(timetable_dict["pagination"]["total"])
+            api_limit = int(timetable_dict["pagination"]["limit"])
+            api_offset = int(timetable_dict["pagination"]["offset"])
+            logger.debug(
+                f"Пагинация: total={api_total}, limit={api_limit}, offset={api_offset}"
+            )
         except KeyError as e:
             logger.error(
                 "Невозможно обработать информацию о пагинации из ответа Яндекса: "
@@ -71,8 +74,8 @@ class Timetable(ABC):
             )
             logger.info(f"Кол-во рейсов от Яндекса: {len(timetable_dict['segments'])}")
             return timetable_dict
-        while total > (limit + offset):
-            kwargs_dict["offset"] += limit
+        while api_total > (api_limit + api_offset):
+            kwargs_dict["offset"] += api_limit
             logger.debug(f"Новый оффсет: {kwargs_dict['offset']}")
             next_dict: dict = await search_between_stations(**kwargs_dict)
             logger.debug(
@@ -84,13 +87,11 @@ class Timetable(ABC):
                 "Элементов в обновленном основном словаре: "
                 f"{len(timetable_dict['segments'])}"
             )
-            offset += 100
+            api_offset += 100
         logger.info(f"Кол-во рейсов от Яндекса: {len(timetable_dict['segments'])}")
         return timetable_dict
 
-    def _validate_time(
-        self, raw_time: str, timetable_date: dt.date = dt.date.today()
-    ) -> dt.datetime:
+    def _validate_time(self, raw_time: str) -> dt.datetime:
         """
         Превращает строку времени, пришедшую в сыром ответе, в объект datetime.
 
@@ -116,7 +117,7 @@ class Timetable(ABC):
                 f"Ошибка ValueError: {e}"
             )
             try:
-                datetime_str = f"{timetable_date} {raw_time}"
+                datetime_str = f"{self.date} {raw_time}"
                 validated_time: dt.datetime = dt.datetime.strptime(
                     datetime_str, "%Y-%m-%d %H:%M:%S"
                 )
@@ -131,7 +132,6 @@ class Timetable(ABC):
     def _get_threadresponse_object(
         self,
         segment: dict,
-        date: dt.date | None = None,
         departure_time: dt.datetime | None = None,
     ) -> ThreadResponse:
         # TODO: Complete docstring
@@ -145,15 +145,11 @@ class Timetable(ABC):
             ThreadResponse: _description_
         """
         try:
-            if not date:
-                date = dt.datetime.strptime(segment["start_date"], "%Y-%m-%d").date()
             if not departure_time:
                 departure: dt.datetime = self._validate_time(
-                    raw_time=segment["departure"], timetable_date=date
+                    raw_time=segment["departure"]
                 )
-            arrival: dt.datetime = self._validate_time(
-                raw_time=segment["arrival"], timetable_date=date
-            )
+            arrival: dt.datetime = self._validate_time(raw_time=segment["arrival"])
         except InvalidTimeFormatError:  # TODO: Complete Exception handling
             logger.error("Error")
         except KeyError:  # TODO: Complete Exception handling
@@ -185,7 +181,7 @@ class Timetable(ABC):
                 to=short_to_title if short_to_title else segment["to"]["title"],
                 departure=departure_time if departure_time else departure,
                 arrival=arrival,
-                date=date,
+                date=self.date,
                 stops=segment["stops"],
                 departure_platform=segment["departure_platform"],
                 arrival_platform=segment["arrival_platform"],
@@ -232,48 +228,55 @@ class Timetable(ABC):
                 return formatted_different.settlement_diff_to_settlement_diff()
         return "\n".join([dep.str_time_with_express_type for dep in thread_list])
 
+    @property
     @abstractmethod
-    async def get_timetable(self) -> list[ThreadResponse]:
+    async def timetable(self) -> list[ThreadResponse]:
         pass
 
+    @property
+    @abstractmethod
+    async def length(self) -> list[ThreadResponse]:
+        pass
+
+    @property
     @abstractmethod
     async def msg(self) -> str:
         pass
 
 
 @asyncinit
-class ClosestTimetable(Timetable):
-    async def __init__(self, route: Route | RouteResponse):
+class TodayTimetable(Timetable):
+    # TODO: Complete the docstring
+    """_summary_
+
+    Args:
+        - limit (int): Лимит количества отправлений.
+          Задаётся если нужно вывести расписание ближайших отправлений.
+
+    """
+
+    async def __init__(self, route: Route | RouteResponse, limit: int | None = None):
         await super().__init__(route)
-        self.threads: list[ThreadResponse] = await self.get_timetable()
+        self.limit = limit
 
-    async def get_timetable(
-        self,
-        limit: int = settings.CLOSEST_DEP_LIMIT,
-    ) -> list[ThreadResponse]:
-        """
-        Генерирует список ближайших отправлений на сегодня.
+    async def _get_timetable_till_the_end_of_the_day(self) -> list[ThreadResponse]:
+        # TODO: Complete docstring
+        """_summary_
 
-        Принимает на вход:
-            - limit (int): Лимит количества отправлений.
-              По умолчанию - лимит, указанный в настройках.
-
-        Возвращает:
-            list[ThreadResponse]: Список установленного количества отправлений
-            в формате ThreadResponse.
+        Returns:
+            list[ThreadResponse]: _description_
         """
         today = dt.date.today()
         timetable_dict: dict = await self._get_timetable_dict(
             departure_code=self.route.departure_point.yandex_code,
             destination_code=self.route.destination_point.yandex_code,
-            date=today,
         )
-        closest_departures: list[ThreadResponse] = []
+        today_departures: list[ThreadResponse] = []
         for segment in timetable_dict["segments"]:
             raw_departure_time: str = segment["departure"]
             try:
                 departure_time: dt.datetime = self._validate_time(
-                    raw_time=raw_departure_time, timetable_date=today
+                    raw_time=raw_departure_time
                 )
             except InvalidTimeFormatError as e:
                 logger.error(
@@ -290,43 +293,69 @@ class ClosestTimetable(Timetable):
                     f"поезд {departure_str} уже ушёл."
                 )
                 continue
-            if len(closest_departures) >= limit:
-                break
             threadresponse = self._get_threadresponse_object(
                 segment=segment,
-                date=today,
                 departure_time=departure_time,
             )
-            closest_departures.append(threadresponse)
+            today_departures.append(threadresponse)
             logger.debug(
-                f"В список ближайших отправлений добавлено {threadresponse.str_time}, "
-                f"объект типа {threadresponse.__class__.__name__}"
+                f"В список сегодняшних отправлений добавлено {threadresponse.str_time},"
+                f" объект типа {threadresponse.__class__.__name__}"
             )
         logger.debug(
             f"Финальное кол-во рейсов в списке на сегодня, {today}: "
-            f"{len(closest_departures)}"
+            f"{len(today_departures)}"
         )
-        return closest_departures
+        return today_departures
 
+    @property
+    async def length(self) -> int:
+        timetable = await self._get_timetable_till_the_end_of_the_day()
+        return len(timetable)
+
+    @property
+    async def timetable(self) -> list[ThreadResponse]:
+        """
+        Генерирует список отправлений на сегодня.
+
+        Принимает на вход:
+            - limit (int): Лимит количества отправлений.
+              Задаётся если нужно вывести расписание ближайших отправлений.
+
+        Возвращает:
+            list[ThreadResponse]: Список установленного количества отправлений
+            в формате ThreadResponse.
+        """
+        if self.limit:
+            timetable = await self._get_timetable_till_the_end_of_the_day()
+            return timetable[: self.limit]
+        return await self._get_timetable_till_the_end_of_the_day()
+
+    @property
     async def msg(self) -> str:
         """
         Генерирует список ближайших отправлений по указанному маршруту для сообщения.
 
-        Если ближайших рейсов на сегодня нет или осталось очень мало,
-        то показывается также несколько рейсов на завтра.
-
-        Принимает на вход:
-            - route (RouteResponse): Маршрут в формате RouteResponse или Route.
-
         Возвращает:
-            - str: Отформатированный текст с ближайшими отправлениями, готовый к вставке
+            - str: Отформатированный текст с отправлениями, готовый к вставке
             в сообщение Telegram.
         """
-        closest_departures = await self.get_timetable()
-        thread_list: str = self.format_thread_list(closest_departures)
-        if not closest_departures:
-            return msg.NO_CLOSEST_DEPARTURES.format(route=str(self.route))
+        today_departures = await self.timetable
+        thread_list: str = self.format_thread_list(today_departures)
+        if not today_departures:
+            return msg.NO_TODAY_DEPARTURES.format(route=str(self.route))
+        length = await self.length
+        message_part_one = (
+            msg.CLOSEST_DEPARTURES
+            if self.limit and length > self.limit
+            else msg.TODAY_DEPARTURES
+        )
+        message_part_two = (
+            msg.PRESS_DEPARTURE_BUTTON
+            if self.limit or length <= settings.INLINE_DEPARTURES_QTY
+            else msg.PRESS_DEPARTURE_BUTTON_OR_TYPE
+        )
         return (
-            f"{msg.CLOSEST_DEPARTURES.format(route=str(self.route))}\n\n{thread_list}"
-            f"\n\n{msg.PRESS_DEPARTURE_BUTTON}"
+            f"{message_part_one.format(route=str(self.route))}\n\n{thread_list}"
+            f"\n\n{message_part_two}"
         )
