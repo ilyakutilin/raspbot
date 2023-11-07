@@ -27,8 +27,12 @@ async def process_timetable_callback(
     timetable_obj: Timetable,
     add_msg_text: str | None = None,
 ):
+    timetable_obj_msg = await timetable_obj.msg
+    logger.debug(
+        "text: " f"{(add_msg_text if add_msg_text else '') + timetable_obj_msg}"
+    )
     await callback.message.answer(
-        text=((add_msg_text + "\n" * 2) if add_msg_text else "") + timetable_obj.msg,
+        text=((add_msg_text + "\n" * 2) if add_msg_text else "") + timetable_obj_msg,
         reply_markup=await kb.get_closest_departures_keyboard(
             timetable_obj=timetable_obj
         ),
@@ -48,7 +52,7 @@ async def show_closest_departures_callback(
     """User: selects the route from the list. Bot: here's the timetable."""
     recent: Recent = await update_recent(recent_id=callback_data.recent_id)
     route: Route = await route_retriever.get_route_from_db(route_id=recent.route_id)
-    timetable_obj = await TodayTimetable(route=route, limit=settings.CLOSEST_DEP_LIMIT)
+    timetable_obj = TodayTimetable(route=route, limit=settings.CLOSEST_DEP_LIMIT)
     await process_timetable_callback(
         callback=callback, state=state, timetable_obj=timetable_obj
     )
@@ -93,8 +97,17 @@ async def show_till_the_end_of_the_day_callabck(
     state: FSMContext,
 ):
     route_id: int = callback_data.route_id
-    route: Route = await route_retriever.get_route_from_db(route_id=route_id)
-    timetable_obj = await TodayTimetable(route=route)
+    user_data: dict = await state.get_data()
+    timetable_obj: Timetable = user_data["timetable_obj"]
+    timetable_obj = timetable_obj.unlimit()
+    if timetable_obj.route.id != route_id:
+        route: Route = await route_retriever.get_route_from_db(route_id=route_id)
+        timetable_obj = TodayTimetable(route=route)
+    timetable = await timetable_obj.timetable
+    logger.debug(
+        "This is what I pass to the process_timetable_callback function after "
+        f"unlimiting: {len(timetable)}, last departure: {timetable[-1]}"
+    )
     await process_timetable_callback(
         callback=callback, state=state, timetable_obj=timetable_obj
     )

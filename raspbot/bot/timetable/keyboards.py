@@ -17,7 +17,8 @@ async def get_closest_departures_keyboard(
     buttons_qty_in_row: int = settings.INLINE_DEPARTURES_QTY,
 ) -> types.InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
-    timetable = timetable_obj.timetable
+    timetable = await timetable_obj.timetable
+    logger.debug(f"Timetable len: {len(timetable)}")
     route_id = timetable_obj.route.id
     for dep in timetable[: settings.CLOSEST_DEP_LIMIT]:
         builder.button(
@@ -28,7 +29,8 @@ async def get_closest_departures_keyboard(
     if remainder != 0:
         for i in range(buttons_qty_in_row - remainder):
             builder.button(text="", callback_data="empty_button")
-    if timetable_obj.length > len(timetable):
+    timetable_obj_length = await timetable_obj.length
+    if timetable_obj_length > len(timetable):
         builder.button(
             text=btn.TILL_THE_END_OF_THE_DAY,
             callback_data=clb.EndOfTheDayTimetableCallbackFactory(route_id=route_id),

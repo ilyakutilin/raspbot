@@ -1,7 +1,7 @@
 import datetime as dt
 from abc import ABC, abstractmethod
 
-from asyncinit import asyncinit
+from async_property import async_cached_property, async_property
 from pydantic import ValidationError
 
 from raspbot.apicalls.search import TransportTypes, search_between_stations
@@ -15,16 +15,10 @@ from raspbot.settings import settings
 logger = configure_logging(name=__name__)
 
 
-@asyncinit
 class Timetable(ABC):
-    async def __init__(
-        self, route: Route | RouteResponse, date: dt.date = dt.date.today()
-    ):
+    def __init__(self, route: Route | RouteResponse, date: dt.date = dt.date.today()):
         self.route = route
         self.date = date
-        self.timetable = await self._get_timetable()
-        self.length = await self._get_length()
-        self.msg = await self._get_msg()
 
     async def _get_timetable_dict(
         self,
@@ -231,20 +225,22 @@ class Timetable(ABC):
                 return formatted_different.settlement_diff_to_settlement_diff()
         return "\n".join([dep.str_time_with_express_type for dep in thread_list])
 
+    @async_property
     @abstractmethod
-    async def _get_timetable(self) -> list[ThreadResponse]:
+    async def timetable(self) -> list[ThreadResponse]:
         pass
 
+    @async_property
     @abstractmethod
-    async def _get_length(self) -> list[ThreadResponse]:
+    async def length(self) -> list[ThreadResponse]:
         pass
 
+    @async_property
     @abstractmethod
-    async def _get_msg(self) -> str:
+    async def msg(self) -> str:
         pass
 
 
-@asyncinit
 class TodayTimetable(Timetable):
     # TODO: Complete the docstring
     """_summary_
@@ -255,11 +251,12 @@ class TodayTimetable(Timetable):
 
     """
 
-    async def __init__(self, route: Route | RouteResponse, limit: int | None = None):
+    def __init__(self, route: Route | RouteResponse, limit: int | None = None):
         self.limit = limit
-        await super().__init__(route)
+        super().__init__(route)
 
-    async def _get_timetable_till_the_end_of_the_day(self) -> list[ThreadResponse]:
+    @async_cached_property
+    async def _timetable_till_the_end_of_the_day(self) -> list[ThreadResponse]:
         # TODO: Complete docstring
         """_summary_
 
@@ -308,28 +305,32 @@ class TodayTimetable(Timetable):
         )
         return today_departures
 
-    async def _get_length(self) -> int:
-        timetable = await self._get_timetable_till_the_end_of_the_day()
+    @async_cached_property
+    async def length(self) -> int:
+        timetable = await self._timetable_till_the_end_of_the_day
         return len(timetable)
 
-    async def _get_timetable(self) -> list[ThreadResponse]:
+    @async_property
+    async def timetable(self) -> list[ThreadResponse]:
         """
         Генерирует список отправлений на сегодня.
-
-        Принимает на вход:
-            - limit (int): Лимит количества отправлений.
-              Задаётся если нужно вывести расписание ближайших отправлений.
 
         Возвращает:
             list[ThreadResponse]: Список установленного количества отправлений
             в формате ThreadResponse.
         """
         if self.limit:
-            timetable = await self._get_timetable_till_the_end_of_the_day()
+            logger.debug(
+                "So there is a limit set in the timetable object. "
+                f"The limit is {self.limit}"
+            )
+            timetable = await self._timetable_till_the_end_of_the_day
             return timetable[: self.limit]
-        return await self._get_timetable_till_the_end_of_the_day()
+        logger.debug(f"There is no limit in the timetable object, proof: {self.limit}")
+        return await self._timetable_till_the_end_of_the_day
 
-    async def _get_msg(self) -> str:
+    @async_property
+    async def msg(self) -> str:
         """
         Генерирует список ближайших отправлений по указанному маршруту для сообщения.
 
@@ -337,20 +338,32 @@ class TodayTimetable(Timetable):
             - str: Отформатированный текст с отправлениями, готовый к вставке
             в сообщение Telegram.
         """
-        thread_list: str = self.format_thread_list(self.timetable)
+        timetable = await self.timetable
+        thread_list: str = self.format_thread_list(timetable)
         if not self.timetable:
             return msg.NO_TODAY_DEPARTURES.format(route=str(self.route))
+        length = await self.length
         message_part_one = (
             msg.CLOSEST_DEPARTURES
-            if self.limit and self.length > self.limit
+            if self.limit and length > self.limit
             else msg.TODAY_DEPARTURES
         )
         message_part_two = (
             msg.PRESS_DEPARTURE_BUTTON
-            if self.limit or self.length <= settings.INLINE_DEPARTURES_QTY
+            if self.limit or length <= settings.INLINE_DEPARTURES_QTY
             else msg.PRESS_DEPARTURE_BUTTON_OR_TYPE
         )
         return (
             f"{message_part_one.format(route=str(self.route))}\n\n{thread_list}"
             f"\n\n{message_part_two}"
         )
+
+    def unlimit(self) -> Timetable:
+        # TODO: Complete docstring
+        """_summary_
+
+        Returns:
+            TodayTimetable: _description_
+        """
+        self.limit = None
+        return self
