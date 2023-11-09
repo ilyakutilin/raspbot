@@ -66,7 +66,7 @@ async def show_departure_callback(
 ):
     user_data: dict = await state.get_data()
     timetable_obj: Timetable = user_data["timetable_obj"]
-    timetable = timetable_obj.timetable
+    timetable = await timetable_obj.timetable
     uid: str = callback_data.uid
     try:
         dep_info: ThreadResponse = next(dep for dep in timetable if dep.uid == uid)
