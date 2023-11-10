@@ -12,7 +12,7 @@ from raspbot.db.models import Recent, Route
 from raspbot.db.routes.schema import ThreadResponse
 from raspbot.services.deptime import get_uid_by_time
 from raspbot.services.routes import RouteRetriever
-from raspbot.services.timetable import Timetable, TodayTimetable
+from raspbot.services.timetable import Timetable
 from raspbot.services.users import update_recent
 from raspbot.settings import settings
 
@@ -54,7 +54,7 @@ async def show_closest_departures_callback(
     """User: selects the route from the list. Bot: here's the timetable."""
     recent: Recent = await update_recent(recent_id=callback_data.recent_id)
     route: Route = await route_retriever.get_route_from_db(route_id=recent.route_id)
-    timetable_obj = TodayTimetable(route=route, limit=settings.CLOSEST_DEP_LIMIT)
+    timetable_obj = Timetable(route=route, limit=settings.CLOSEST_DEP_LIMIT)
     await process_timetable_callback(
         callback=callback, state=state, timetable_obj=timetable_obj
     )
@@ -129,7 +129,7 @@ async def show_till_the_end_of_the_day_callback(
     timetable_obj = timetable_obj.unlimit()
     if timetable_obj.route.id != route_id:
         route: Route = await route_retriever.get_route_from_db(route_id=route_id)
-        timetable_obj = TodayTimetable(route=route)
+        timetable_obj = Timetable(route=route)
     timetable = await timetable_obj.timetable
     logger.debug(
         "This is what I pass to the process_timetable_callback function after "
