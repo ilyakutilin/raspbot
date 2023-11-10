@@ -66,6 +66,14 @@ class InvalidTimeFormatError(InvalidDataError):
     """Raised if the time format received from Yandex cannot be processed."""
 
 
+class InvalidTimeUserInputError(InvalidDataError):
+    """Raised if user inputs the dep time in unreadable format."""
+
+
+class TimeNotFoundError(InvalidDataError):
+    """Raised if the dep time cannot be found."""
+
+
 # DB
 
 
