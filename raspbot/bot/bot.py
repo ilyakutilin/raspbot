@@ -13,7 +13,7 @@ async def start_bot():
     bot = Bot(token=settings.TELEGRAM_TOKEN)
     dp = Dispatcher()
 
-    dp.include_routers(routes_router, start_router, timetable_router, users_router)
+    dp.include_routers(users_router, start_router, routes_router, timetable_router)
 
     await bot.delete_webhook(drop_pending_updates=True)
     logger.info("Starting the bot.")
