@@ -1,5 +1,5 @@
 import datetime as dt
-from abc import ABC, abstractmethod
+from typing import Self
 
 from async_property import async_cached_property, async_property
 from pydantic import ValidationError
@@ -10,15 +10,22 @@ from raspbot.core.exceptions import InvalidTimeFormatError
 from raspbot.core.logging import configure_logging, log
 from raspbot.db.models import PointTypeEnum, Route
 from raspbot.db.routes.schema import RouteResponse, ThreadResponse
+from raspbot.services.pretty_day import prettify_day
 from raspbot.settings import settings
 
 logger = configure_logging(name=__name__)
 
 
-class Timetable(ABC):
-    def __init__(self, route: Route | RouteResponse, date: dt.date = dt.date.today()):
+class Timetable:
+    def __init__(
+        self,
+        route: Route | RouteResponse,
+        date: dt.date = dt.date.today(),
+        limit: int | None = None,
+    ):
         self.route = route
         self.date = date
+        self.limit = limit
 
     async def _get_timetable_dict(
         self,
@@ -225,50 +232,19 @@ class Timetable(ABC):
                 return formatted_different.settlement_diff_to_settlement_diff()
         return "\n".join([dep.str_time_with_express_type for dep in thread_list])
 
-    @async_property
-    @abstractmethod
-    async def timetable(self) -> list[ThreadResponse]:
-        pass
-
-    @async_property
-    @abstractmethod
-    async def length(self) -> list[ThreadResponse]:
-        pass
-
-    @async_property
-    @abstractmethod
-    async def msg(self) -> str:
-        pass
-
-
-class TodayTimetable(Timetable):
-    # TODO: Complete the docstring
-    """_summary_
-
-    Args:
-        - limit (int): Лимит количества отправлений.
-          Задаётся если нужно вывести расписание ближайших отправлений.
-
-    """
-
-    def __init__(self, route: Route | RouteResponse, limit: int | None = None):
-        self.limit = limit
-        super().__init__(route)
-
     @async_cached_property
-    async def _timetable_till_the_end_of_the_day(self) -> list[ThreadResponse]:
+    async def _full_timetable(self) -> list[ThreadResponse]:
         # TODO: Complete docstring
         """_summary_
 
         Returns:
             list[ThreadResponse]: _description_
         """
-        today = dt.date.today()
         timetable_dict: dict = await self._get_timetable_dict(
             departure_code=self.route.departure_point.yandex_code,
             destination_code=self.route.destination_point.yandex_code,
         )
-        today_departures: list[ThreadResponse] = []
+        departures: list[ThreadResponse] = []
         for segment in timetable_dict["segments"]:
             raw_departure_time: str = segment["departure"]
             try:
@@ -294,40 +270,27 @@ class TodayTimetable(Timetable):
                 segment=segment,
                 departure_time=departure_time,
             )
-            today_departures.append(threadresponse)
+            departures.append(threadresponse)
             logger.debug(
                 f"В список сегодняшних отправлений добавлено {threadresponse.str_time},"
                 f" объект типа {threadresponse.__class__.__name__}"
             )
         logger.debug(
-            f"Финальное кол-во рейсов в списке на сегодня, {today}: "
-            f"{len(today_departures)}"
+            f"Финальное кол-во рейсов в списке на {self.date}: " f"{len(departures)}"
         )
-        return today_departures
-
-    @async_cached_property
-    async def length(self) -> int:
-        timetable = await self._timetable_till_the_end_of_the_day
-        return len(timetable)
+        return departures
 
     @async_property
     async def timetable(self) -> list[ThreadResponse]:
-        """
-        Генерирует список отправлений на сегодня.
-
-        Возвращает:
-            list[ThreadResponse]: Список установленного количества отправлений
-            в формате ThreadResponse.
-        """
         if self.limit:
-            logger.debug(
-                "So there is a limit set in the timetable object. "
-                f"The limit is {self.limit}"
-            )
-            timetable = await self._timetable_till_the_end_of_the_day
+            timetable = await self._full_timetable
             return timetable[: self.limit]
-        logger.debug(f"There is no limit in the timetable object, proof: {self.limit}")
-        return await self._timetable_till_the_end_of_the_day
+        return await self._full_timetable
+
+    @async_cached_property
+    async def length(self) -> int:
+        timetable = await self._full_timetable
+        return len(timetable)
 
     @async_property
     async def msg(self) -> str:
@@ -338,16 +301,22 @@ class TodayTimetable(Timetable):
             - str: Отформатированный текст с отправлениями, готовый к вставке
             в сообщение Telegram.
         """
+        route = str(self.route)
         timetable = await self.timetable
         thread_list: str = self.format_thread_list(timetable)
         if not self.timetable:
-            return msg.NO_TODAY_DEPARTURES.format(route=str(self.route))
+            return msg.NO_TODAY_DEPARTURES.format(route=route)
         length = await self.length
-        message_part_one = (
-            msg.CLOSEST_DEPARTURES
-            if self.limit and length > self.limit
-            else msg.TODAY_DEPARTURES
-        )
+        if self.date == dt.date.today():
+            message_part_one = (
+                msg.CLOSEST_DEPARTURES
+                if self.limit and length > self.limit
+                else msg.TODAY_DEPARTURES.format(route=route)
+            )
+        else:
+            message_part_one = msg.DATE_DEPARTURES.format(
+                route=route, date=prettify_day(date=self.date)
+            )
         message_part_two = (
             msg.PRESS_DEPARTURE_BUTTON
             if self.limit or length <= settings.INLINE_DEPARTURES_QTY
@@ -358,12 +327,12 @@ class TodayTimetable(Timetable):
             f"\n\n{message_part_two}"
         )
 
-    def unlimit(self) -> Timetable:
+    def unlimit(self) -> Self:
         # TODO: Complete docstring
         """_summary_
 
         Returns:
-            TodayTimetable: _description_
+            Timetable: _description_
         """
         self.limit = None
         return self

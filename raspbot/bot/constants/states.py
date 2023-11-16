@@ -9,3 +9,4 @@ class RouteState(StatesGroup):
 
 class TimetableState(StatesGroup):
     exact_departure_info = State()
+    other_date = State()
