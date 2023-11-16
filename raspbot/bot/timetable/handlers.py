@@ -1,3 +1,5 @@
+import datetime as dt
+
 from aiogram import Router, types
 from aiogram.filters import Text
 from aiogram.fsm.context import FSMContext
@@ -23,7 +25,7 @@ router = Router()
 route_retriever = RouteRetriever()
 
 
-async def process_timetable_callback(
+async def process_today_timetable_callback(
     callback: types.CallbackQuery,
     state: FSMContext,
     timetable_obj: Timetable,
@@ -35,7 +37,7 @@ async def process_timetable_callback(
     )
     await callback.message.answer(
         text=((add_msg_text + "\n" * 2) if add_msg_text else "") + timetable_obj_msg,
-        reply_markup=await kb.get_closest_departures_keyboard(
+        reply_markup=await kb.get_today_departures_keyboard(
             timetable_obj=timetable_obj
         ),
         parse_mode="HTML",
@@ -43,6 +45,23 @@ async def process_timetable_callback(
     await callback.answer()
     await state.update_data(timetable_obj=timetable_obj)
     await state.set_state(states.TimetableState.exact_departure_info)
+
+
+async def process_date_timetable_callback(
+    callback: types.CallbackQuery,
+    state: FSMContext,
+    timetable_obj: Timetable,
+):
+    timetable_obj_msg = await timetable_obj.msg
+    await callback.message.answer(
+        text=timetable_obj_msg,
+        reply_markup=await kb.get_date_departures_keyboard(
+            route_id=timetable_obj.route.id
+        ),
+        parse_mode="HTML",
+    )
+    await callback.answer()
+    await state.set_state(states.TimetableState.other_date)
 
 
 @router.callback_query(clb.GetTimetableCallbackFactory.filter())
@@ -55,7 +74,7 @@ async def show_closest_departures_callback(
     recent: Recent = await update_recent(recent_id=callback_data.recent_id)
     route: Route = await route_retriever.get_route_from_db(route_id=recent.route_id)
     timetable_obj = Timetable(route=route, limit=settings.CLOSEST_DEP_LIMIT)
-    await process_timetable_callback(
+    await process_today_timetable_callback(
         callback=callback, state=state, timetable_obj=timetable_obj
     )
 
@@ -135,7 +154,7 @@ async def show_till_the_end_of_the_day_callback(
         "This is what I pass to the process_timetable_callback function after "
         f"unlimiting: {len(timetable)}, last departure: {timetable[-1]}"
     )
-    await process_timetable_callback(
+    await process_today_timetable_callback(
         callback=callback, state=state, timetable_obj=timetable_obj
     )
 
@@ -159,3 +178,18 @@ async def select_departure_info_by_text(message: types.Message, state: FSMContex
         await show_dep_info(timetable_obj=timetable_obj, uid=uid, message=message)
     except exc.InvalidDataError as e:
         await message.answer(text=str(e))
+
+
+@router.callback_query(clb.TomorrowTimetableCallbackFactory.filter())
+async def show_tomorrow_timetable_callback(
+    callback: types.CallbackQuery,
+    callback_data: clb.TomorrowTimetableCallbackFactory,
+    state: FSMContext,
+):
+    route_id: int = callback_data.route_id
+    route: Route = await route_retriever.get_route_from_db(route_id=route_id)
+    tomorrow = dt.date.today() + dt.timedelta(days=1)
+    timetable_obj = Timetable(route=route, date=tomorrow)
+    await process_date_timetable_callback(
+        callback=callback, state=state, timetable_obj=timetable_obj
+    )

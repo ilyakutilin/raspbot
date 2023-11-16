@@ -12,7 +12,7 @@ logger = configure_logging(name=__name__)
 
 
 @log(logger)
-async def get_closest_departures_keyboard(
+async def get_today_departures_keyboard(
     timetable_obj: Timetable,
     buttons_qty_in_row: int = settings.INLINE_DEPARTURES_QTY,
 ) -> types.InlineKeyboardMarkup:
@@ -52,12 +52,25 @@ async def get_closest_departures_keyboard(
 
 
 @log(logger)
+async def get_date_departures_keyboard(
+    route_id: int,
+) -> types.InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.button(
+        text=btn.OTHER_DATE,
+        callback_data=clb.OtherDateTimetableCallbackFactory(route_id=route_id),
+    )
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+@log(logger)
 async def get_separate_departure_keyboard(
     timetable_obj: Timetable,
     this_departure: ThreadResponse,
     buttons_qty_in_row: int = settings.INLINE_DEPARTURES_QTY,
 ) -> types.InlineKeyboardMarkup:
-    markup: types.InlineKeyboardMarkup = await get_closest_departures_keyboard(
+    markup: types.InlineKeyboardMarkup = await get_today_departures_keyboard(
         timetable_obj=timetable_obj,
         buttons_qty_in_row=buttons_qty_in_row,
     )
