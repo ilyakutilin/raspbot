@@ -292,6 +292,13 @@ class Timetable:
         timetable = await self._full_timetable
         return len(timetable)
 
+    async def shorten_msg(self) -> str:
+        """Shortens the message that is too long.
+
+        Returns the shortened message.
+        """
+        pass
+
     @async_property
     async def msg(self) -> str:
         """
@@ -322,10 +329,13 @@ class Timetable:
             if self.limit or length <= settings.INLINE_DEPARTURES_QTY
             else msg.PRESS_DEPARTURE_BUTTON_OR_TYPE
         )
-        return (
+        message = (
             f"{message_part_one.format(route=str(self.route))}\n\n{thread_list}"
             f"\n\n{message_part_two}"
         )
+        if len(message) > settings.MAX_TG_MSG_LENGTH:
+            message = await self.shorten_msg()
+        return message
 
     def unlimit(self) -> Self:
         # TODO: Complete docstring

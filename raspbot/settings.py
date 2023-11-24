@@ -33,6 +33,9 @@ class Settings(BaseSettings):
     DB_HOST: str
     DB_PORT: str
 
+    # Telegram API
+    MAX_TG_MSG_LENGTH: int
+
     # Timetables
     CLOSEST_DEP_LIMIT: int = 12
     DEP_FORMAT: str = "%H:%M"
