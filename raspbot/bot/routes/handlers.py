@@ -179,11 +179,12 @@ async def choose_destination_from_multiple_callback(
     route: RouteResponse = await route_finder.get_or_create_route(
         departure_point=departure_point, destination_point=selected_point, user=user
     )
-    timetable_obj = Timetable(route=route, limit=settings.CLOSEST_DEP_LIMIT)
+    timetable_obj = Timetable(
+        route=route, limit=settings.CLOSEST_DEP_LIMIT, add_msg_text=str(msg_text)
+    )
     logger.debug(f"Creating timetable_obj: {timetable_obj.__dict__}")
     await process_today_timetable_callback(
         callback=callback,
         state=state,
         timetable_obj=timetable_obj,
-        add_msg_text=str(msg_text),
     )

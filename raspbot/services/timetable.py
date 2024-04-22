@@ -22,10 +22,12 @@ class Timetable:
         route: Route | RouteResponse,
         date: dt.date = dt.date.today(),
         limit: int | None = None,
+        add_msg_text: str | None = None,
     ):
         self.route = route
         self.date = date
         self.limit = limit
+        self.add_msg_text = add_msg_text
 
     async def _get_timetable_dict(
         self,
@@ -179,10 +181,10 @@ class Timetable:
                 carrier=thread["carrier"]["title"],
                 transport_subtype=thread["transport_subtype"]["title"],
                 express_type=thread["express_type"],
-                from_=short_from_title
-                if short_from_title
-                else segment["from"]["title"],
-                to=short_to_title if short_to_title else segment["to"]["title"],
+                from_=(
+                    short_from_title if short_from_title else segment["from"]["title"]
+                ),
+                to=(short_to_title if short_to_title else segment["to"]["title"]),
                 departure=departure_time if departure_time else departure,
                 arrival=arrival,
                 date=self.date,
@@ -357,7 +359,9 @@ class Timetable:
             if self.limit or length <= settings.INLINE_DEPARTURES_QTY
             else msg.PRESS_DEPARTURE_BUTTON_OR_TYPE
         )
+        add_msg_text = (self.add_msg_text + "\n" * 2) if self.add_msg_text else ""
         pre_thread_msg_length = len(
+            f"{add_msg_text}"
             f"{message_part_one.format(route=str(self.route))}\n\n"
             f"\n\n{message_part_two}"
         )
@@ -368,6 +372,7 @@ class Timetable:
         if isinstance(thread_list, tuple):
             pass
         message = (
+            f"{add_msg_text}"
             f"{message_part_one.format(route=str(self.route))}\n\n{thread_list}"
             f"\n\n{message_part_two}"
         )

@@ -29,14 +29,11 @@ async def process_today_timetable_callback(
     callback: types.CallbackQuery,
     state: FSMContext,
     timetable_obj: Timetable,
-    add_msg_text: str | None = None,
 ):
     timetable_obj_msg = await timetable_obj.msg
-    logger.debug(
-        "text: " f"{(add_msg_text if add_msg_text else '') + timetable_obj_msg}"
-    )
+    logger.debug(f"text: {timetable_obj_msg}")
     await callback.message.answer(
-        text=((add_msg_text + "\n" * 2) if add_msg_text else "") + timetable_obj_msg,
+        text=timetable_obj_msg,
         reply_markup=await kb.get_today_departures_keyboard(
             timetable_obj=timetable_obj
         ),
