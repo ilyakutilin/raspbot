@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     DB_PORT: str
 
     # Telegram API
-    MAX_TG_MSG_LENGTH: int
+    MAX_TG_MSG_LENGTH: int = 4096
 
     # Timetables
     CLOSEST_DEP_LIMIT: int = 12
