@@ -202,35 +202,71 @@ class Timetable:
             logger.error(f"ValidationError: {e}")
 
     @log(logger)
-    def format_thread_list(self, thread_list: list[ThreadResponse]) -> str:
+    def format_thread_list(
+        self,
+        thread_list: list[ThreadResponse],
+        max_length: int = settings.MAX_TG_MSG_LENGTH,
+    ) -> str:
+        simple_threads_short = "\n".join(
+            [dep.str_time_with_express_type for dep in thread_list]
+        )
+        formatted_unified_split = msg.FormattedDifferentThreadListSplit(
+            thread_list=thread_list, max_length=max_length
+        )
+        formatted_different_split = msg.FormattedDifferentThreadListSplit(
+            thread_list=thread_list, max_length=max_length
+        )
         simple_threads = "\n".join([dep.message_with_route for dep in thread_list])
-        one_from_station = all(dep.from_ == thread_list[0].from_ for dep in thread_list)
-        one_to_station = all(dep.to == thread_list[0].to for dep in thread_list)
         formatted_unified = msg.FormattedUnifiedThreadList(thread_list=thread_list)
         formatted_different = msg.FormattedDifferentThreadList(thread_list=thread_list)
+        one_from_station: bool = all(
+            dep.from_ == thread_list[0].from_ for dep in thread_list
+        )
+        one_to_station: bool = all(dep.to == thread_list[0].to for dep in thread_list)
+
+        def either(option_one: str, option_two: str | tuple[str]) -> str | tuple[str]:
+            if len(option_one) > max_length:
+                return option_two
+            return option_one
+
         match (
             self.route.departure_point.point_type,
             self.route.destination_point.point_type,
         ):
             case PointTypeEnum.station, PointTypeEnum.station:
-                return simple_threads
+                return either(simple_threads, simple_threads_short)
             case PointTypeEnum.station, PointTypeEnum.settlement:
                 if one_to_station:
-                    return formatted_unified.station_to_settlement()
-                return formatted_different.station_to_settlement()
+                    formatted = either(formatted_unified, formatted_unified_split)
+                else:
+                    formatted = either(formatted_different, formatted_different_split)
+                return formatted.station_to_settlement()
             case PointTypeEnum.settlement, PointTypeEnum.station:
                 if one_from_station:
-                    return formatted_unified.settlement_to_station()
-                return formatted_different.settlement_to_station()
+                    formatted = either(formatted_unified, formatted_unified_split)
+                else:
+                    formatted = either(formatted_different, formatted_different_split)
+                return formatted.settlement_to_station()
             case PointTypeEnum.settlement, PointTypeEnum.settlement:
                 if one_from_station and one_to_station:
-                    return formatted_unified.settlement_to_settlement()
+                    formatted = either(formatted_unified, formatted_unified_split)
+                    return formatted.settlement_to_settlement()
                 if one_from_station and not one_to_station:
-                    return formatted_different.settlement_one_to_settlement_diff()
+                    formatted = either(formatted_different, formatted_different_split)
+                    return formatted.settlement_one_to_settlement_diff()
                 if one_to_station and not one_from_station:
-                    return formatted_different.settlement_diff_to_settlement_one()
-                return formatted_different.settlement_diff_to_settlement_diff()
+                    formatted = either(formatted_different, formatted_different_split)
+                    return formatted.settlement_diff_to_settlement_one()
+                formatted = either(formatted_different, formatted_different_split)
+                return formatted.settlement_diff_to_settlement_diff()
         return "\n".join([dep.str_time_with_express_type for dep in thread_list])
+
+    async def shorten_thread_list(self) -> str:
+        """Shortens the thread list format if the message is too long.
+
+        Returns the shortened thread list.
+        """
+        pass
 
     @async_cached_property
     async def _full_timetable(self) -> list[ThreadResponse]:
@@ -292,13 +328,6 @@ class Timetable:
         timetable = await self._full_timetable
         return len(timetable)
 
-    async def shorten_msg(self) -> str:
-        """Shortens the message that is too long.
-
-        Returns the shortened message.
-        """
-        pass
-
     @async_property
     async def msg(self) -> str:
         """
@@ -310,7 +339,6 @@ class Timetable:
         """
         route = str(self.route)
         timetable = await self.timetable
-        thread_list: str = self.format_thread_list(timetable)
         if not self.timetable:
             return msg.NO_TODAY_DEPARTURES.format(route=route)
         length = await self.length
@@ -329,12 +357,20 @@ class Timetable:
             if self.limit or length <= settings.INLINE_DEPARTURES_QTY
             else msg.PRESS_DEPARTURE_BUTTON_OR_TYPE
         )
+        pre_thread_msg_length = len(
+            f"{message_part_one.format(route=str(self.route))}\n\n"
+            f"\n\n{message_part_two}"
+        )
+        thread_list: str | tuple[str] = self.format_thread_list(
+            thread_list=timetable,
+            max_length=settings.MAX_TG_MSG_LENGTH - pre_thread_msg_length,
+        )
+        if isinstance(thread_list, tuple):
+            pass
         message = (
             f"{message_part_one.format(route=str(self.route))}\n\n{thread_list}"
             f"\n\n{message_part_two}"
         )
-        if len(message) > settings.MAX_TG_MSG_LENGTH:
-            message = await self.shorten_msg()
         return message
 
     def unlimit(self) -> Self:

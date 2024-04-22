@@ -3,6 +3,7 @@ import time
 from raspbot.db.models import PointTypeEnum
 from raspbot.db.routes.schema import PointResponse, ThreadResponse
 from raspbot.services.shorteners.short_point import get_short_point_type
+from raspbot.services.split import split_string_list
 from raspbot.settings import settings
 
 # START
@@ -181,6 +182,59 @@ class FormattedDifferentThreadList:
     def settlement_diff_to_settlement_diff(self) -> str:
         return self.diff_dep_diff_dest_stations + "\n".join(
             dep.message_with_departure_and_destination for dep in self.thread_list
+        )
+
+
+class FormattedDifferentThreadListSplit(FormattedDifferentThreadList):
+    def __init__(
+        self,
+        thread_list: list[ThreadResponse],
+        max_length: int = settings.MAX_TG_MSG_LENGTH,
+    ):
+        super().__init__(thread_list=thread_list)
+        self.max_length = max_length
+
+    def _split_threads(self, basic_msg: str, threads: list[str]) -> tuple[str]:
+        split_at = self.max_length - len(basic_msg)
+        split_thread_lists: list[list[str]] = split_string_list(
+            string_list=threads, limit=split_at
+        )
+        for tl in split_thread_lists:
+            split_thread_lists[split_thread_lists.index(tl)] = "\n".join(
+                dep for dep in tl
+            )
+        return tuple(split_thread_lists)
+
+    def station_to_settlement(self) -> tuple[str]:
+        return self._split_threads(
+            basic_msg=self.different_destination_stations,
+            threads=[dep.message_with_destination_station for dep in self.thread_list],
+        )
+
+    def settlement_to_station(self) -> tuple[str]:
+        return self._split_threads(
+            basic_msg=self.different_departure_stations,
+            threads=[dep.message_with_departure_station for dep in self.thread_list],
+        )
+
+    def settlement_one_to_settlement_diff(self) -> tuple[str]:
+        return self._split_threads(
+            basic_msg=self.same_dep_diff_dest_stations,
+            threads=[dep.message_with_destination_station for dep in self.thread_list],
+        )
+
+    def settlement_diff_to_settlement_one(self) -> tuple[str]:
+        return self._split_threads(
+            basic_msg=self.diff_dep_same_dest_stations,
+            threads=[dep.message_with_departure_station for dep in self.thread_list],
+        )
+
+    def settlement_diff_to_settlement_diff(self) -> tuple[str]:
+        return self._split_threads(
+            basic_msg=self.diff_dep_diff_dest_stations,
+            threads=[
+                dep.message_with_departure_and_destination for dep in self.thread_list
+            ],
         )
 
 
