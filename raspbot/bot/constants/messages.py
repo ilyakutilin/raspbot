@@ -121,37 +121,65 @@ class FormattedDifferentThreadList:
     def __init__(self, thread_list: list[ThreadResponse]):
         self.thread_list = thread_list
 
-    def station_to_settlement(self) -> str:
+    @property
+    def different_destination_stations(self) -> str:
         return (
             "⚠️ Обратите внимание, что электрички прибывают на разные станции!\n"
             "В скобках рядом с каждым отправлением указана станция прибытия.\n\n"
-        ) + "\n".join(dep.message_with_destination_station for dep in self.thread_list)
+        )
 
-    def settlement_to_station(self) -> str:
+    @property
+    def different_departure_stations(self) -> str:
         return (
             "⚠️ Обратите внимание, что электрички отправляются с разных станций!\n"
             "В скобках рядом с каждым отправлением указана станция отправления.\n\n"
-        ) + "\n".join(dep.message_with_departure_station for dep in self.thread_list)
+        )
 
-    def settlement_one_to_settlement_diff(self) -> str:
+    @property
+    def same_dep_diff_dest_stations(self) -> str:
         return (
             f"Все электрички отправляются от станции {self.thread_list[0].from_}.\n"
             "⚠️ Однако обратите внимание, что станции прибытия у всех электричек "
             "разные!\nОни указаны в скобках рядом с каждым отправлением.\n\n"
-        ) + "\n".join(dep.message_with_destination_station for dep in self.thread_list)
+        )
 
-    def settlement_diff_to_settlement_one(self) -> str:
+    @property
+    def diff_dep_same_dest_stations(self) -> str:
         return (
             "⚠️ Обратите внимание, что у всех электричек разные станции отправления!\n"
             "Они указаны в скобках рядом с каждым отправлением.\n"
             f"Станция прибытия всех электричек - {self.thread_list[0].to}.\n\n"
-        ) + "\n".join(dep.message_with_departure_station for dep in self.thread_list)
+        )
 
-    def settlement_diff_to_settlement_diff(self) -> str:
+    @property
+    def diff_dep_diff_dest_stations(self) -> str:
         return (
             "⚠️ Обратите внимание, что у всех электричек разные станции отправления "
             "и прибытия!\nОни указаны в скобках рядом с каждым отправлением.\n\n"
-        ) + "\n".join(
+        )
+
+    def station_to_settlement(self) -> str:
+        return self.different_destination_stations + "\n".join(
+            dep.message_with_destination_station for dep in self.thread_list
+        )
+
+    def settlement_to_station(self) -> str:
+        return self.different_departure_stations + "\n".join(
+            dep.message_with_departure_station for dep in self.thread_list
+        )
+
+    def settlement_one_to_settlement_diff(self) -> str:
+        return self.same_dep_diff_dest_stations + "\n".join(
+            dep.message_with_destination_station for dep in self.thread_list
+        )
+
+    def settlement_diff_to_settlement_one(self) -> str:
+        return self.diff_dep_same_dest_stations + "\n".join(
+            dep.message_with_departure_station for dep in self.thread_list
+        )
+
+    def settlement_diff_to_settlement_diff(self) -> str:
+        return self.diff_dep_diff_dest_stations + "\n".join(
             dep.message_with_departure_and_destination for dep in self.thread_list
         )
 
