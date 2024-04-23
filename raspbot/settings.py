@@ -74,11 +74,14 @@ class Settings(BaseSettings):
         )
 
     class Config:
+        """Settings config."""
+
         env_file = ENV_FILE
 
 
 @lru_cache()
 def get_settings():
+    """Get project settings."""
     return Settings()
 
 
