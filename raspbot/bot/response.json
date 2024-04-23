@@ -117,14 +117,14 @@
           "type": "station"
         },
         "thread":
-        { 
+        {
           "uid": "SU-1827A_c26_agent",
           "title": "Симферополь - Москва",
           "number": "SU 1827",
           "short_title": "Симферополь - Москва",
           "thread_method_link": "api.rasp.yandex.net/v3.0/thread/?date=2017-01-02&uid=U6-8_1_c30_5",
           "carrier":
-          { 
+          {
             "code": 196,
             "contacts": "Служба поддержки: </br> для звонков из России: 8-800 2000 000",
             "url": "http://example.com/",
@@ -132,7 +132,7 @@
             "title": "Example Inc.",
             "phone": "",
             "codes":
-            { 
+            {
               "icao": null,
               "sirena": "У6",
               "iata": "U6"
@@ -144,7 +144,7 @@
           "transport_type": "plane",
           "vehicle": "Airbus А321",
           "transport_subtype":
-          { 
+          {
             "color": "#FF7F44",
             "code": "suburban",
             "title": "Пригородный поезд"
@@ -156,7 +156,7 @@
         "stops": "",
         "departure_terminal": null,
         "to":
-        { 
+        {
           "code": "s9600213",
           "title": "Шереметьево",
           "popular_title": "",
@@ -168,14 +168,14 @@
         },
         "has_transfers": false,
         "tickets_info":
-        { 
+        {
           "et_marker": false,
           "places":
           [
-            { 
+            {
               "currency": "RUB",
               "price":
-              { 
+              {
                 "cents": 0,
                 "whole": 4863
               },
