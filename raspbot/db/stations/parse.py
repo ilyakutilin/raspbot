@@ -1,6 +1,7 @@
 import asyncio
 import json
 from pathlib import Path
+from typing import Any
 
 from pydantic import ValidationError
 
@@ -22,7 +23,8 @@ def _save_initial_data_to_file(json_response: dict) -> Path:
     return initial_data_file
 
 
-def structure_initial_data(initial_data: dict | Path) -> World | None:
+def structure_initial_data(initial_data: dict | Path | Any) -> World | None:
+    """Structures the initial data."""
     if isinstance(initial_data, Path):
         try:
             logger.debug("Starting to structure the initial data.")

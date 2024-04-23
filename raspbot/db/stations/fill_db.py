@@ -144,6 +144,7 @@ async def _add_updated_date() -> None:
 
 
 async def populate_db(initial_data: dict | Path) -> None:
+    """Populates the stations DB with the initial data."""
     try:
         world = structure_initial_data(initial_data)
     except exc.DataStructureError as e:
@@ -171,6 +172,7 @@ async def populate_db(initial_data: dict | Path) -> None:
 
 
 async def main() -> None:
+    """Obtains the initial data and populates the stations DB with it."""
     initial_data: dict = await get_response(
         endpoint=settings.STATIONS_LIST_ENDPOINT, headers=settings.headers
     )

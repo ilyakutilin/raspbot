@@ -16,14 +16,19 @@ logger = configure_logging(name="sqlalchemy.engine", level=logging.INFO)
 
 
 class PreBase:
+    """Describes table name and id field that should be present in all models."""
+
     @declared_attr
     def __tablename__(cls):
+        """Returns table name based on the name of the ORM class."""
         return cls.__name__.lower()
 
     id: Mapped[int] = mapped_column(primary_key=True)
 
 
 class Base(AsyncAttrs, DeclarativeBase, PreBase):
+    """Base class for all models. All models shall be inherited from this class."""
+
     pass
 
 
@@ -33,6 +38,7 @@ AsyncSessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
+    """Get the DB session."""
     async_session = async_sessionmaker(engine, expire_on_commit=False)
     async with async_session() as session:
         yield session

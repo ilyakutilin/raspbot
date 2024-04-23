@@ -20,6 +20,7 @@ class CRUDBase(abc.ABC):
         model: DatabaseModel,
         sessionmaker: Generator[AsyncSession, None, None] = get_session,
     ):
+        """Initializes CRUDBase class instance."""
         self._model = model
         self._sessionmaker = contextlib.asynccontextmanager(sessionmaker)
 

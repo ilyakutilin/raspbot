@@ -21,19 +21,26 @@ Float = cast(type[TypeEngine[float]], Float_org)
 
 
 class PointTypeEnum(Enum):
+    """Point type choices."""
+
     station = "station"
     settlement = "settlement"
 
 
 class StationCommonMixin(object):
+    """Common fields and string representation for models."""
+
     title: Mapped[str] = mapped_column(String(100), default="")
     yandex_code: Mapped[str | None] = mapped_column(String(100), default=None)
 
     def __repr__(self):
+        """String representation."""
         return f"{self.__class__.__name__} {self.title}"
 
 
 class Point(Base, StationCommonMixin):
+    """Point model (settlement or station)."""
+
     point_type: Mapped[PointTypeEnum]
     station_type: Mapped[str | None] = mapped_column(String(100), default=None)
     transport_type: Mapped[str | None] = mapped_column(String(100), default=None)
@@ -46,23 +53,34 @@ class Point(Base, StationCommonMixin):
 
 
 class Region(Base, StationCommonMixin):
+    """Region model."""
+
     country_id: Mapped[int] = mapped_column(ForeignKey("country.id"))
     country: Mapped["Country"] = relationship("Country", back_populates="regions")
     points: Mapped[list["Point"]] = relationship("Point", back_populates="region")
 
 
 class Country(Base, StationCommonMixin):
+    """Country model."""
+
     regions: Mapped[list["Region"]] = relationship("Region", back_populates="country")
     points: Mapped[list["Point"]] = relationship("Point", back_populates="country")
 
 
 class UpdateDate(Base):
+    """Update date model registering the datetime when the table was last updated."""
+
     updated: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
 
 async def create_db_schema():
+    """Creates database schema.
+
+    Normally this is handled by alembic migrations (alembic upgrade head).
+    Launch this manually only if there are problems with alembic.
+    """
     try:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)

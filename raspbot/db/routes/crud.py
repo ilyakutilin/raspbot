@@ -11,12 +11,16 @@ from raspbot.db.models import Country, Point, Route
 
 
 class CRUDPoints(CRUDBase):
+    """CRUD for Point related operations."""
+
     def __init__(self, sessionmaker: Generator[AsyncSession, None, None] = get_session):
+        """Initializes CRUDPoints class instance."""
         super().__init__(Point, sessionmaker)
 
     async def get_points_by_title(
         self, title: str, strict_search: bool = False
     ) -> list[Point]:
+        """Gets points by title."""
         search_template = "{title}" if strict_search else "%{title}%"
         async with self._sessionmaker() as session:
             points = await session.execute(
@@ -41,6 +45,7 @@ class CRUDPoints(CRUDBase):
             return points.scalars().unique().all()
 
     async def get_point_by_id(self, id: int) -> Point:
+        """Gets point by ID."""
         async with self._sessionmaker() as session:
             point = await session.execute(
                 select(Point).options(selectinload(Point.region)).where(Point.id == id)
@@ -49,12 +54,16 @@ class CRUDPoints(CRUDBase):
 
 
 class CRUDRoutes(CRUDBase):
+    """CRUD for Route related operations."""
+
     def __init__(self, sessionmaker: Generator[AsyncSession, None, None] = get_session):
+        """Initializes CRUDRoutes class instance."""
         super().__init__(Route, sessionmaker)
 
     async def get_route_by_points(
         self, departure_point_id: int, destination_point_id: int
     ) -> Route:
+        """Gets route by departure and destination point IDs."""
         async with self._sessionmaker() as session:
             route = await session.execute(
                 select(Route).where(
@@ -67,6 +76,7 @@ class CRUDRoutes(CRUDBase):
             return route.scalars().first()
 
     async def get_route_by_id(self, id: int) -> Route:
+        """Gets route by ID."""
         async with self._sessionmaker() as session:
             route = await session.execute(
                 select(Route)

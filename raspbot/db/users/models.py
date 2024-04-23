@@ -12,6 +12,8 @@ from raspbot.settings import settings
 
 
 class User(Base):
+    """User model."""
+
     telegram_id: Mapped[int] = mapped_column(Integer, unique=True)
     is_bot: Mapped[bool] = mapped_column(Boolean, default=False)
     first_name: Mapped[str] = mapped_column(String(100), default="")
@@ -28,12 +30,15 @@ class User(Base):
 
     @hybrid_property
     def full_name(self) -> str:
+        """Full name of the user."""
         if self.last_name:
             return f"{self.first_name} {self.last_name}"
         return self.first_name
 
 
 class Route(Base):
+    """Route model."""
+
     departure_point_id: Mapped[int] = mapped_column(ForeignKey("point.id"))
     departure_point: Mapped["Point"] = relationship(
         "Point", foreign_keys=[departure_point_id]
@@ -58,6 +63,7 @@ class Route(Base):
     )
 
     def __str__(self) -> str:
+        """String representation of the route."""
         return (
             f"{get_short_point_type(self.departure_point.point_type)} "
             f"{self.departure_point.title}{settings.ROUTE_INLINE_DELIMITER}"
@@ -67,12 +73,20 @@ class Route(Base):
 
     @property
     def short(self) -> str:
+        """Shortened route string representation."""
         return shorten_route_description(
             route_descr=self.__str__(), limit=settings.ROUTE_INLINE_LIMIT
         )
 
 
 class Recent(Base):
+    """Model for recent and favorite routes.
+
+    Recent and favorite is the same model.
+    Favorite is implemented by a 'favorite' boolean field.
+    A route needs to be in the recents to be added to favorites.
+    """
+
     user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
     route_id: Mapped[int] = mapped_column(ForeignKey("route.id"))
     added_on: Mapped[datetime] = mapped_column(
