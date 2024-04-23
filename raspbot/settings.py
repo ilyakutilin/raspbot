@@ -56,6 +56,9 @@ class Settings(BaseSettings):
     LOG_FILE_SIZE: int = 10 * 2**20
     LOG_FILES_TO_KEEP: int = 5
 
+    # Other
+    MAX_THREADS_FOR_LONG_FMT: int = 20
+
     @property
     def headers(self) -> dict[str, str | bytes | None]:
         """Get headers for connection to Yandex API."""

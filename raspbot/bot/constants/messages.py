@@ -90,37 +90,70 @@ PRESS_DEPARTURE_BUTTON_OR_TYPE = (
     "отправления в любом формате, например:\n05:25 или 5.25 или 525"
 )
 SAME_DEPARTURE = "Вы выбрали тот же самый рейс"
+CONT_NEXT_MSG = "Продолжение в следующем сообщении."
 ERROR = "Произошла внутренняя ошибка приложения, приносим свои извинения."
 
 
-class FormattedUnifiedThreadList:
-    def __init__(self, thread_list: list[ThreadResponse]):
+class FormattedThreadList:
+    def __init__(
+        self,
+        thread_list: list[ThreadResponse],
+        max_length: int = settings.MAX_TG_MSG_LENGTH,
+    ):
         self.thread_list = thread_list
-        self.simple_threads = "\n".join([dep.message_with_route for dep in thread_list])
+        self.max_length = max_length
+
+    def __len__(self):
+        return len(self.thread_list)
+
+    def _split_threads(self, basic_msg: str, threads: list[str]) -> tuple[str]:
+        split_at = self.max_length - len(basic_msg)
+        split_thread_lists: list[list[str]] = split_string_list(
+            string_list=threads, limit=split_at
+        )
+        for tl in split_thread_lists:
+            split_thread_lists[split_thread_lists.index(tl)] = "\n".join(
+                dep for dep in tl
+            )
+        return tuple(split_thread_lists)
+
+
+class FormattedUnifiedThreadList(FormattedThreadList):
+
+    @property
+    def simple_threads(self) -> str:
+        return "\n".join([dep.message_with_route for dep in self.thread_list])
 
     def station_to_settlement(self) -> str:
-        return (
-            f"Все электрички прибывают на станцию {self.thread_list[0].to}."
-            f"\n{ROUTE_IN_BRACKETS}\n\n{self.simple_threads}"
+        return self._split_threads(
+            basic_msg=(
+                f"Все электрички прибывают на станцию {self.thread_list[0].to}."
+                f"\n{ROUTE_IN_BRACKETS}\n\n"
+            ),
+            threads=self.simple_threads,
         )
 
     def settlement_to_station(self) -> str:
-        return (
-            f"Все электрички отправляются от станции {self.thread_list[0].from_}."
-            f"\n{ROUTE_IN_BRACKETS}\n\n{self.simple_threads}"
+        return self._split_threads(
+            basic_msg=(
+                f"Все электрички отправляются от станции {self.thread_list[0].from_}."
+                f"\n{ROUTE_IN_BRACKETS}\n\n"
+            ),
+            threads=self.simple_threads,
         )
 
     def settlement_to_settlement(self) -> str:
-        return (
-            f"Все электрички отправляются от станции {self.thread_list[0].from_} "
-            f"и прибывают на станцию {self.thread_list[0].to}."
-            f"\n{ROUTE_IN_BRACKETS}\n\n{self.simple_threads}"
+        return self._split_threads(
+            basic_msg=(
+                f"Все электрички отправляются от станции {self.thread_list[0].from_} "
+                f"и прибывают на станцию {self.thread_list[0].to}."
+                f"\n{ROUTE_IN_BRACKETS}\n\n"
+            ),
+            threads=self.simple_threads,
         )
 
 
-class FormattedDifferentThreadList:
-    def __init__(self, thread_list: list[ThreadResponse]):
-        self.thread_list = thread_list
+class FormattedDifferentThreadList(FormattedThreadList):
 
     @property
     def different_destination_stations(self) -> str:
@@ -158,52 +191,6 @@ class FormattedDifferentThreadList:
             "⚠️ Обратите внимание, что у всех электричек разные станции отправления "
             "и прибытия!\nОни указаны в скобках рядом с каждым отправлением.\n\n"
         )
-
-    def station_to_settlement(self) -> str:
-        return self.different_destination_stations + "\n".join(
-            dep.message_with_destination_station for dep in self.thread_list
-        )
-
-    def settlement_to_station(self) -> str:
-        return self.different_departure_stations + "\n".join(
-            dep.message_with_departure_station for dep in self.thread_list
-        )
-
-    def settlement_one_to_settlement_diff(self) -> str:
-        return self.same_dep_diff_dest_stations + "\n".join(
-            dep.message_with_destination_station for dep in self.thread_list
-        )
-
-    def settlement_diff_to_settlement_one(self) -> str:
-        return self.diff_dep_same_dest_stations + "\n".join(
-            dep.message_with_departure_station for dep in self.thread_list
-        )
-
-    def settlement_diff_to_settlement_diff(self) -> str:
-        return self.diff_dep_diff_dest_stations + "\n".join(
-            dep.message_with_departure_and_destination for dep in self.thread_list
-        )
-
-
-class FormattedDifferentThreadListSplit(FormattedDifferentThreadList):
-    def __init__(
-        self,
-        thread_list: list[ThreadResponse],
-        max_length: int = settings.MAX_TG_MSG_LENGTH,
-    ):
-        super().__init__(thread_list=thread_list)
-        self.max_length = max_length
-
-    def _split_threads(self, basic_msg: str, threads: list[str]) -> tuple[str]:
-        split_at = self.max_length - len(basic_msg)
-        split_thread_lists: list[list[str]] = split_string_list(
-            string_list=threads, limit=split_at
-        )
-        for tl in split_thread_lists:
-            split_thread_lists[split_thread_lists.index(tl)] = "\n".join(
-                dep for dep in tl
-            )
-        return tuple(split_thread_lists)
 
     def station_to_settlement(self) -> tuple[str]:
         return self._split_threads(

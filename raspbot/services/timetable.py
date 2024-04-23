@@ -208,67 +208,50 @@ class Timetable:
         self,
         thread_list: list[ThreadResponse],
         max_length: int = settings.MAX_TG_MSG_LENGTH,
-    ) -> str:
-        simple_threads_short = "\n".join(
-            [dep.str_time_with_express_type for dep in thread_list]
+        max_threads_for_long_fmt: int = settings.MAX_THREADS_FOR_LONG_FMT,
+    ) -> tuple[str]:
+        simple_threads_short = (
+            "\n".join([dep.str_time_with_express_type for dep in thread_list]),
         )
-        formatted_unified_split = msg.FormattedDifferentThreadListSplit(
+        simple_threads = ("\n".join([dep.message_with_route for dep in thread_list]),)
+        formatted_unified = msg.FormattedUnifiedThreadList(
             thread_list=thread_list, max_length=max_length
         )
-        formatted_different_split = msg.FormattedDifferentThreadListSplit(
+        formatted_different = msg.FormattedDifferentThreadList(
             thread_list=thread_list, max_length=max_length
         )
-        simple_threads = "\n".join([dep.message_with_route for dep in thread_list])
-        formatted_unified = msg.FormattedUnifiedThreadList(thread_list=thread_list)
-        formatted_different = msg.FormattedDifferentThreadList(thread_list=thread_list)
         one_from_station: bool = all(
             dep.from_ == thread_list[0].from_ for dep in thread_list
         )
         one_to_station: bool = all(dep.to == thread_list[0].to for dep in thread_list)
-
-        def either(option_one: str, option_two: str | tuple[str]) -> str | tuple[str]:
-            if len(option_one) > max_length:
-                return option_two
-            return option_one
 
         match (
             self.route.departure_point.point_type,
             self.route.destination_point.point_type,
         ):
             case PointTypeEnum.station, PointTypeEnum.station:
-                return either(simple_threads, simple_threads_short)
+                return (
+                    simple_threads
+                    if len(thread_list) <= max_threads_for_long_fmt
+                    else simple_threads_short
+                )
             case PointTypeEnum.station, PointTypeEnum.settlement:
-                if one_to_station:
-                    formatted = either(formatted_unified, formatted_unified_split)
-                else:
-                    formatted = either(formatted_different, formatted_different_split)
+                formatted = formatted_unified if one_to_station else formatted_different
                 return formatted.station_to_settlement()
             case PointTypeEnum.settlement, PointTypeEnum.station:
-                if one_from_station:
-                    formatted = either(formatted_unified, formatted_unified_split)
-                else:
-                    formatted = either(formatted_different, formatted_different_split)
+                formatted = (
+                    formatted_unified if one_from_station else formatted_different
+                )
                 return formatted.settlement_to_station()
             case PointTypeEnum.settlement, PointTypeEnum.settlement:
                 if one_from_station and one_to_station:
-                    formatted = either(formatted_unified, formatted_unified_split)
-                    return formatted.settlement_to_settlement()
+                    return formatted_unified.settlement_to_settlement()
                 if one_from_station and not one_to_station:
-                    formatted = either(formatted_different, formatted_different_split)
-                    return formatted.settlement_one_to_settlement_diff()
+                    return formatted_different.settlement_one_to_settlement_diff()
                 if one_to_station and not one_from_station:
-                    formatted = either(formatted_different, formatted_different_split)
-                    return formatted.settlement_diff_to_settlement_one()
-                formatted = either(formatted_different, formatted_different_split)
-                return formatted.settlement_diff_to_settlement_diff()
-        return "\n".join([dep.str_time_with_express_type for dep in thread_list])
-
-    async def shorten_thread_list(self) -> str:
-        """Shortens the thread list format if the message is too long.
-
-        Returns the shortened thread list.
-        """
-        pass
+                    return formatted_different.settlement_diff_to_settlement_one()
+                return formatted_different.settlement_diff_to_settlement_diff()
+        return ("\n".join([dep.str_time_with_express_type for dep in thread_list]),)
 
     @async_cached_property
     async def _full_timetable(self) -> list[ThreadResponse]:
@@ -331,13 +314,17 @@ class Timetable:
         return len(timetable)
 
     @async_property
-    async def msg(self) -> str:
+    async def msg(self) -> tuple[str]:
         """
-        Генерирует список ближайших отправлений по указанному маршруту для сообщения.
+        Генерирует кортеж готовых сообщений для Telegram.
 
         Возвращает:
-            - str: Отформатированный текст с отправлениями, готовый к вставке
-            в сообщение Telegram.
+            - Кортеж, состоящий из сообщений с отформатированным текстом
+            с отправлениями, готовыми к отправке.
+            Возвращается именно кортеж, поскольку Telegram не позволяет отправлять
+            сообщения длиннее определенного лимита. Соотвественно, кортеж представляет
+            собой общее отформатированное раписание, разбитое на части с учетом
+            этого лимита.
         """
         route = str(self.route)
         timetable = await self.timetable
@@ -363,20 +350,30 @@ class Timetable:
         pre_thread_msg_length = len(
             f"{add_msg_text}"
             f"{message_part_one.format(route=str(self.route))}\n\n"
-            f"\n\n{message_part_two}"
+            f"\n\n{message_part_two}\n\n{msg.CONT_NEXT_MSG}"
         )
-        thread_list: str | tuple[str] = self.format_thread_list(
+        thread_list: tuple[str] = self.format_thread_list(
             thread_list=timetable,
             max_length=settings.MAX_TG_MSG_LENGTH - pre_thread_msg_length,
         )
-        if isinstance(thread_list, tuple):
-            pass
+        if len(thread_list) > 1:
+            messages = []
+            for i, msg_part in enumerate(thread_list):
+                cont_next_msg = (
+                    f"\n\n{msg.CONT_NEXT_MSG}" if i != len(thread_list) - 1 else ""
+                )
+                messages.append(
+                    f"{add_msg_text}"
+                    f"{message_part_one.format(route=str(self.route))}\n\n{msg_part}"
+                    f"\n\n{message_part_two}{cont_next_msg}"
+                )
+            return tuple(messages)
         message = (
             f"{add_msg_text}"
             f"{message_part_one.format(route=str(self.route))}\n\n{thread_list}"
             f"\n\n{message_part_two}"
         )
-        return message
+        return (message,)
 
     def unlimit(self) -> Self:
         # TODO: Complete docstring

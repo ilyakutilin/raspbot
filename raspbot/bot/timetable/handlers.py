@@ -30,15 +30,16 @@ async def process_today_timetable_callback(
     state: FSMContext,
     timetable_obj: Timetable,
 ):
-    timetable_obj_msg = await timetable_obj.msg
-    logger.debug(f"text: {timetable_obj_msg}")
-    await callback.message.answer(
-        text=timetable_obj_msg,
-        reply_markup=await kb.get_today_departures_keyboard(
-            timetable_obj=timetable_obj
-        ),
-        parse_mode="HTML",
-    )
+    timetable_obj_msgs: tuple = await timetable_obj.msg
+    # logger.debug(f"text: {timetable_obj_msg}")
+    for part in timetable_obj_msgs:
+        await callback.message.answer(
+            text=part,
+            reply_markup=await kb.get_today_departures_keyboard(
+                timetable_obj=timetable_obj
+            ),
+            parse_mode="HTML",
+        )
     await callback.answer()
     await state.update_data(timetable_obj=timetable_obj)
     await state.set_state(states.TimetableState.exact_departure_info)
@@ -49,15 +50,16 @@ async def process_date_timetable_callback(
     state: FSMContext,
     timetable_obj: Timetable,
 ):
-    timetable_obj_msg = await timetable_obj.msg
-    await callback.message.answer(
-        text=timetable_obj_msg,
-        reply_markup=await kb.get_date_departures_keyboard(
-            route_id=timetable_obj.route.id
-        ),
-        parse_mode="HTML",
-    )
-    await callback.answer()
+    timetable_obj_msgs = await timetable_obj.msg
+    for part in timetable_obj_msgs:
+        await callback.message.answer(
+            text=part,
+            reply_markup=await kb.get_date_departures_keyboard(
+                route_id=timetable_obj.route.id
+            ),
+            parse_mode="HTML",
+        )
+        await callback.answer()
     await state.set_state(states.TimetableState.other_date)
 
 
