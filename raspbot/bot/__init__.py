@@ -1,7 +1,7 @@
 """
-The bot module.
+The bot package.
 
-This module contains all of the routes and handlers for the bot.
+This package contains all of the routes and handlers for the bot.
 
 The main parts:
   - constants, where all the text found in the buttons and messages is stored, as well
