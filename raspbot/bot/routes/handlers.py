@@ -36,6 +36,7 @@ async def search_command(message: types.Message, state: FSMContext):
 
 @router.callback_query(Text(text=clb.NEW_SEARCH))
 async def new_search_callback(callback: types.CallbackQuery, state: FSMContext):
+    """User: clicks the 'new search' button. Bot: please input the departure point."""
     await callback.message.answer(msg.INPUT_DEPARTURE_POINT)
     await state.set_state(states.RouteState.selecting_departure_point)
     await callback.answer()
@@ -102,6 +103,7 @@ async def more_buttons_handler(
     callback_data: clb.MorePointCunksCallbackFactory,
     state: FSMContext,
 ):
+    """User: clicks the 'more' button. Bot: here's the next set of points."""
     user_data: dict = await state.get_data()
 
     point_chunks: list[list[PointResponse]] = user_data["remaining_point_chunks"]

@@ -16,6 +16,7 @@ async def get_today_departures_keyboard(
     timetable_obj: Timetable,
     buttons_qty_in_row: int = settings.INLINE_DEPARTURES_QTY,
 ) -> types.InlineKeyboardMarkup:
+    """Keyboard with today's departures."""
     builder = InlineKeyboardBuilder()
     timetable = await timetable_obj.timetable
     logger.debug(f"Timetable len: {len(timetable)}")
@@ -55,6 +56,7 @@ async def get_today_departures_keyboard(
 async def get_date_departures_keyboard(
     route_id: int,
 ) -> types.InlineKeyboardMarkup:
+    """Keyboard with departures on a certain date."""
     builder = InlineKeyboardBuilder()
     builder.button(
         text=btn.OTHER_DATE,
@@ -70,6 +72,7 @@ async def get_separate_departure_keyboard(
     this_departure: ThreadResponse,
     buttons_qty_in_row: int = settings.INLINE_DEPARTURES_QTY,
 ) -> types.InlineKeyboardMarkup:
+    """Keyboard with info about a particular departure."""
     markup: types.InlineKeyboardMarkup = await get_today_departures_keyboard(
         timetable_obj=timetable_obj,
         buttons_qty_in_row=buttons_qty_in_row,

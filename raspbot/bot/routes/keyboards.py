@@ -11,6 +11,7 @@ from raspbot.services.shorteners.short_region import get_short_region_title
 def get_point_choice_keyboard(
     points: list[PointResponse], is_departure: bool, last_chunk: bool = True
 ) -> types.InlineKeyboardMarkup:
+    """Keyboard listing potential points matching the search pattern."""
     builder = InlineKeyboardBuilder()
     for point in points:
         point_type = get_short_point_type(point.point_type)
@@ -37,6 +38,7 @@ def get_point_choice_keyboard(
 
 
 def get_single_point_confirmation_keyboard(point: PointResponse, is_departure: bool):
+    """Keyboard for confirming correct matching if only one point is found."""
     builder = InlineKeyboardBuilder()
     builder.button(
         text=btn.CONFIRM_SINGE_POINT,

@@ -30,8 +30,9 @@ async def process_today_timetable_callback(
     state: FSMContext,
     timetable_obj: Timetable,
 ):
+    """Answers the callback based on the provided Timetable object for today."""
     timetable_obj_msgs: tuple = await timetable_obj.msg
-    # logger.debug(f"text: {timetable_obj_msg}")
+    logger.debug(f"text: {timetable_obj_msgs}")
     for part in timetable_obj_msgs:
         await callback.message.answer(
             text=part,
@@ -50,6 +51,7 @@ async def process_date_timetable_callback(
     state: FSMContext,
     timetable_obj: Timetable,
 ):
+    """Answers the callback based on the provided Timetable object for certain date."""
     timetable_obj_msgs = await timetable_obj.msg
     for part in timetable_obj_msgs:
         await callback.message.answer(
@@ -85,6 +87,7 @@ async def get_timetable_object_from_state(state: FSMContext) -> Timetable | None
         state: current FSMContext
 
     Returns:
+        Timetable object or None
 
     """
     user_data: dict = await state.get_data()
@@ -102,6 +105,7 @@ async def get_timetable_object_from_state(state: FSMContext) -> Timetable | None
 async def show_dep_info(
     timetable_obj: Timetable, uid: str, message: types.Message
 ) -> None:
+    """Answers the message with the departure info."""
     timetable = await timetable_obj.timetable
     try:
         dep_info: ThreadResponse = next(dep for dep in timetable if dep.uid == uid)
@@ -125,6 +129,7 @@ async def show_departure_callback(
     callback_data: clb.DepartureUIDCallbackFactory,
     state: FSMContext,
 ):
+    """User: clicks on departure time. Bot: here's the departure info."""
     timetable_obj: Timetable = await get_timetable_object_from_state(state=state)
     uid: str = callback_data.uid
     await show_dep_info(timetable_obj=timetable_obj, uid=uid, message=callback.message)
@@ -133,6 +138,7 @@ async def show_departure_callback(
 
 @router.callback_query(Text(clb.SAME_DEPARTURE))
 async def same_departure_callback(callback: types.CallbackQuery, state: FSMContext):
+    """User: clicks on the same departure. Bot: here's an error message."""
     await callback.answer(text=msg.SAME_DEPARTURE, show_alert=True)
 
 
@@ -142,6 +148,7 @@ async def show_till_the_end_of_the_day_callback(
     callback_data: clb.EndOfTheDayTimetableCallbackFactory,
     state: FSMContext,
 ):
+    """User: clicks on the button to see full timetable for today. Bot: here you go."""
     route_id: int = callback_data.route_id
     timetable_obj: Timetable = await get_timetable_object_from_state(state=state)
     timetable_obj = timetable_obj.unlimit()
@@ -160,6 +167,7 @@ async def show_till_the_end_of_the_day_callback(
 
 @router.message(states.TimetableState.exact_departure_info)
 async def select_departure_info_by_text(message: types.Message, state: FSMContext):
+    # FIXME: No action when the dep time is typed in.
     """User: types departure time. Bot: here's the departure info.
 
     Args:
@@ -185,6 +193,7 @@ async def show_tomorrow_timetable_callback(
     callback_data: clb.TomorrowTimetableCallbackFactory,
     state: FSMContext,
 ):
+    """User: clicks on the button to see timetable for tomorrow. Bot: here you go."""
     route_id: int = callback_data.route_id
     route: Route = await route_retriever.get_route_from_db(route_id=route_id)
     tomorrow = dt.date.today() + dt.timedelta(days=1)

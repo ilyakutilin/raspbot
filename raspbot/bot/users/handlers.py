@@ -28,7 +28,7 @@ route_retriever = RouteRetriever()
 
 @router.message(Command("recent"))
 async def recent_command(message: types.Message):
-    "Команда /recent."
+    """Команда /recent."""
     user = await get_user_from_db(telegram_id=message.from_user.id)
     if not user:
         user = await create_user(tg_user=message.from_user)
@@ -78,6 +78,7 @@ async def fav_command(message: types.Message):
 async def add_recent_to_fav_callback(
     callback: types.CallbackQuery, callback_data: clb.RecentToFavCallbackFactory
 ):
+    """User: clicks on the 'add to fav' button. Bot: added to favorites."""
     recent = await add_recent_to_fav(recent_id=callback_data.recent_id)
     route: Route = await route_retriever.get_route_by_recent(recent_id=recent.id)
     await callback.message.answer(text=msg.ROUTE_ADDED_TO_FAV.format(route=route))
@@ -88,6 +89,7 @@ async def add_recent_to_fav_callback(
 async def add_all_recent_to_fav_callback(
     callback: types.CallbackQuery, callback_data: clb.AllRecentToFavCallbackFactory
 ):
+    """User: clicks on the 'add all to fav' button. Bot: added to favorites."""
     recent_ids = callback_data.recent_ids.split(sep="_")
     for recent_id in recent_ids:
         await add_recent_to_fav(recent_id=int(recent_id))

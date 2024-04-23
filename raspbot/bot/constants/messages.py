@@ -1,4 +1,5 @@
 import time
+from abc import ABC, abstractmethod
 
 from raspbot.db.models import PointTypeEnum
 from raspbot.db.routes.schema import PointResponse, ThreadResponse
@@ -23,13 +24,17 @@ GREETING_EXISTING_USER = (
 
 
 class SinglePointFound:
+    """Message displayed when a single point was found while searching."""
+
     def __init__(self, point: PointResponse, is_departure: bool):
+        """Initializes the SinglePointFound class instance."""
         self.is_departure: bool = is_departure
         self.point_type: PointTypeEnum = point.point_type
         self.title: str = point.title
         self.region_title: str = point.region_title
 
     def __str__(self):
+        """Returns the string representation of the class instance."""
         dep_or_dest = "отправления" if self.is_departure else "назначения"
         type_ = get_short_point_type(self.point_type)
         title = self.title
@@ -94,16 +99,20 @@ CONT_NEXT_MSG = "Продолжение в следующем сообщении
 ERROR = "Произошла внутренняя ошибка приложения, приносим свои извинения."
 
 
-class FormattedThreadList:
+class FormattedThreadList(ABC):
+    """Base abstract class for formatting a list of threads."""
+
     def __init__(
         self,
         thread_list: list[ThreadResponse],
         max_length: int = settings.MAX_TG_MSG_LENGTH,
     ):
+        """Initializes the FormattedThreadList class instance."""
         self.thread_list = thread_list
         self.max_length = max_length
 
     def __len__(self):
+        """Returns the length of the list which is the number of timetable threads."""
         return len(self.thread_list)
 
     def _split_threads(self, basic_msg: str, threads: list[str]) -> tuple[str]:
@@ -117,60 +126,99 @@ class FormattedThreadList:
             )
         return tuple(split_thread_lists)
 
+    @abstractmethod
+    def station_to_settlement(self) -> str:
+        """Abstract method for the station-to-settlement case."""
+        raise NotImplementedError("Please implement station_to_settlement.")
+
+    @abstractmethod
+    def settlement_to_station(self) -> str:
+        """Abstract method for the settlement_to_station case."""
+        raise NotImplementedError("Please implement settlement_to_station.")
+
 
 class FormattedUnifiedThreadList(FormattedThreadList):
+    """Class for formatting threads with the same departure and the same destination."""
 
     @property
-    def simple_threads(self) -> str:
+    def _simple_threads(self) -> str:
         return "\n".join([dep.message_with_route for dep in self.thread_list])
 
     def station_to_settlement(self) -> str:
+        """Returns the formatted message(s) for the station-to-settlement case.
+
+        Departure point is a station, but the destination point is a settlement,
+        thus a destination station shall be clearly defined in a message.
+
+        The message is split into multiple ones if they are too long.
+        The return format is a tuple. If a message length is below the max limit
+        of the Telegram API, then the tuple contains a single string.
+        """
         return self._split_threads(
             basic_msg=(
                 f"Все электрички прибывают на станцию {self.thread_list[0].to}."
                 f"\n{ROUTE_IN_BRACKETS}\n\n"
             ),
-            threads=self.simple_threads,
+            threads=self._simple_threads,
         )
 
     def settlement_to_station(self) -> str:
+        """Returns the formatted message(s) for the settlement_to_station case.
+
+        Departure point is a settlement, but the destination point is a station,
+        thus a departure station shall be clearly defined in a message.
+
+        The message is split into multiple ones if they are too long.
+        The return format is a tuple. If a message length is below the max limit
+        of the Telegram API, then the tuple contains a single string.
+        """
         return self._split_threads(
             basic_msg=(
                 f"Все электрички отправляются от станции {self.thread_list[0].from_}."
                 f"\n{ROUTE_IN_BRACKETS}\n\n"
             ),
-            threads=self.simple_threads,
+            threads=self._simple_threads,
         )
 
     def settlement_to_settlement(self) -> str:
+        """Returns the formatted message(s) for the settlement_to_settlement case.
+
+        Both the departure and the destination points are settlements, thus both the
+        departure and the destination stations shall be clearly defined in a message.
+
+        The message is split into multiple ones if they are too long.
+        The return format is a tuple. If a message length is below the max limit
+        of the Telegram API, then the tuple contains a single string.
+        """
         return self._split_threads(
             basic_msg=(
                 f"Все электрички отправляются от станции {self.thread_list[0].from_} "
                 f"и прибывают на станцию {self.thread_list[0].to}."
                 f"\n{ROUTE_IN_BRACKETS}\n\n"
             ),
-            threads=self.simple_threads,
+            threads=self._simple_threads,
         )
 
 
 class FormattedDifferentThreadList(FormattedThreadList):
+    """Class for formatting threads with different departures and/or destinations."""
 
     @property
-    def different_destination_stations(self) -> str:
+    def _different_destination_stations(self) -> str:
         return (
             "⚠️ Обратите внимание, что электрички прибывают на разные станции!\n"
             "В скобках рядом с каждым отправлением указана станция прибытия.\n\n"
         )
 
     @property
-    def different_departure_stations(self) -> str:
+    def _different_departure_stations(self) -> str:
         return (
             "⚠️ Обратите внимание, что электрички отправляются с разных станций!\n"
             "В скобках рядом с каждым отправлением указана станция отправления.\n\n"
         )
 
     @property
-    def same_dep_diff_dest_stations(self) -> str:
+    def _same_dep_diff_dest_stations(self) -> str:
         return (
             f"Все электрички отправляются от станции {self.thread_list[0].from_}.\n"
             "⚠️ Однако обратите внимание, что станции прибытия у всех электричек "
@@ -178,7 +226,7 @@ class FormattedDifferentThreadList(FormattedThreadList):
         )
 
     @property
-    def diff_dep_same_dest_stations(self) -> str:
+    def _diff_dep_same_dest_stations(self) -> str:
         return (
             "⚠️ Обратите внимание, что у всех электричек разные станции отправления!\n"
             "Они указаны в скобках рядом с каждым отправлением.\n"
@@ -186,39 +234,78 @@ class FormattedDifferentThreadList(FormattedThreadList):
         )
 
     @property
-    def diff_dep_diff_dest_stations(self) -> str:
+    def _diff_dep_diff_dest_stations(self) -> str:
         return (
             "⚠️ Обратите внимание, что у всех электричек разные станции отправления "
             "и прибытия!\nОни указаны в скобках рядом с каждым отправлением.\n\n"
         )
 
     def station_to_settlement(self) -> tuple[str]:
+        """Returns the formatted message(s) for the station-to-settlement case.
+
+        The message is split into multiple ones if they are too long.
+        The return format is a tuple. If a message length is below the max limit
+        of the Telegram API, then the tuple contains a single string.
+        """
         return self._split_threads(
-            basic_msg=self.different_destination_stations,
+            basic_msg=self._different_destination_stations,
             threads=[dep.message_with_destination_station for dep in self.thread_list],
         )
 
     def settlement_to_station(self) -> tuple[str]:
+        """Returns the formatted message(s) for the settlement_to_station case.
+
+        The message is split into multiple ones if they are too long.
+        The return format is a tuple. If a message length is below the max limit
+        of the Telegram API, then the tuple contains a single string.
+        """
         return self._split_threads(
-            basic_msg=self.different_departure_stations,
+            basic_msg=self._different_departure_stations,
             threads=[dep.message_with_departure_station for dep in self.thread_list],
         )
 
     def settlement_one_to_settlement_diff(self) -> tuple[str]:
+        """Returns the formatted message(s) for settlement_one_to_settlement_diff case.
+
+        The same departure station within a given settlement, but different
+        destination stations.
+
+        The message is split into multiple ones if they are too long.
+        The return format is a tuple. If a message length is below the max limit
+        of the Telegram API, then the tuple contains a single string.
+        """
         return self._split_threads(
-            basic_msg=self.same_dep_diff_dest_stations,
+            basic_msg=self._same_dep_diff_dest_stations,
             threads=[dep.message_with_destination_station for dep in self.thread_list],
         )
 
     def settlement_diff_to_settlement_one(self) -> tuple[str]:
+        """Returns the formatted message(s) for settlement_diff_to_settlement_one case.
+
+        Different departure stations within a given settlement, but the same
+        destination station.
+
+        The message is split into multiple ones if they are too long.
+        The return format is a tuple. If a message length is below the max limit
+        of the Telegram API, then the tuple contains a single string.
+        """
         return self._split_threads(
-            basic_msg=self.diff_dep_same_dest_stations,
+            basic_msg=self._diff_dep_same_dest_stations,
             threads=[dep.message_with_departure_station for dep in self.thread_list],
         )
 
     def settlement_diff_to_settlement_diff(self) -> tuple[str]:
+        """Returns the formatted message(s) for settlement_diff_to_settlement_diff case.
+
+        Different departure stations within a given settlement, as well as different
+        destination stations.
+
+        The message is split into multiple ones if they are too long.
+        The return format is a tuple. If a message length is below the max limit
+        of the Telegram API, then the tuple contains a single string.
+        """
         return self._split_threads(
-            basic_msg=self.diff_dep_diff_dest_stations,
+            basic_msg=self._diff_dep_diff_dest_stations,
             threads=[
                 dep.message_with_departure_and_destination for dep in self.thread_list
             ],
@@ -226,10 +313,14 @@ class FormattedDifferentThreadList(FormattedThreadList):
 
 
 class ThreadInfo:
+    """Information about a particular timetable thread."""
+
     def __init__(self, thread: ThreadResponse):
+        """Initialize the ThreadInfo class instance."""
         self.thread = thread
 
     def __str__(self):
+        """Returns the string representation of the class instance."""
         express = ", " + self.thread.express_type if self.thread.express_type else ""
         dep_platform = (
             ", " + self.thread.departure_platform
@@ -298,7 +389,10 @@ ROUTE_ADDED_TO_FAV = "Маршрут {route} добавлен в избранн�
 
 
 class MultipleToFav:
+    """Class for multiple routes to be added to the favourite list."""
+
     def __init__(self, amount: int):
+        """Initializes the MultipleToFav class instance."""
         self.amount: int = amount
 
     def _words_with_endings(self):
@@ -310,6 +404,7 @@ class MultipleToFav:
         return f"{x} маршрутов было добавлено"
 
     def __str__(self):
+        """Returns the string representation of the class instance."""
         return f"{self._words_with_endings()} в избранное 👍"
 
 

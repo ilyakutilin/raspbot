@@ -13,6 +13,7 @@ logger = configure_logging(name=__name__)
 def get_fav_or_recent_keyboard(
     fav_or_recent_list: list[Recent],
 ) -> types.InlineKeyboardMarkup:
+    """Keyboard for favorite or recent routes."""
     builder = InlineKeyboardBuilder()
     for element in fav_or_recent_list:
         builder.button(
@@ -26,6 +27,7 @@ def get_fav_or_recent_keyboard(
 
 @log(logger)
 def add_recent_to_fav_keyboard(user_recent: list[Recent]) -> types.InlineKeyboardMarkup:
+    """Keyboard for adding recent routes to favorite."""
     builder = InlineKeyboardBuilder()
     for recent in user_recent:
         builder.button(

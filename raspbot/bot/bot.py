@@ -10,6 +10,7 @@ logger = configure_logging(name=__name__)
 
 
 async def start_bot():
+    """Starts the bot."""
     bot = Bot(token=settings.TELEGRAM_TOKEN)
     dp = Dispatcher()
 
