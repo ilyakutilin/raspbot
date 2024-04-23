@@ -17,22 +17,31 @@ logger = configure_logging(name=__name__)
 
 
 class Args(Enum):
+    """Arguments for the main function search_between_stations."""
+
     @classmethod
     def list(cls):
+        """Returns the list of arguments."""
         return list(map(lambda c: c.value, cls))
 
 
 class Format(Args):
+    """Format choices."""
+
     JSON = "json"
     XML = "xml"
 
 
 class Lang(Args):
+    """Language choices."""
+
     RU = "ru_RU"
     UA = "uk_UA"
 
 
 class TransportTypes(Args):
+    """Transport types choices."""
+
     PLANE = "plane"
     TRAIN = "train"
     SUBURBAN = "suburban"
