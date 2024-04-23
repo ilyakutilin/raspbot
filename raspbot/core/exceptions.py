@@ -21,11 +21,11 @@ class APIConnectionError(APIError):
 
 
 class GetDataError(Exception):
-    "Base class for initial data related exceptions."
+    """Base class for initial data related exceptions."""
 
 
 class DataStructureError(GetDataError):
-    "Raised if there is an error in structuring the initial data."
+    """Raised if there is an error in structuring the initial data."""
 
 
 # SQL

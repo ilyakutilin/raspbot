@@ -32,6 +32,7 @@ def configure_logging(name: str, level: int = logging.DEBUG) -> logging.Logger:
 
 
 def log(logger: logging.Logger = None):
+    """Decorator for logging function calls, returns and raises."""
     if logger is None:
         logger = logging.get_logger(__name__)
 
