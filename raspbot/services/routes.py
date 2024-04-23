@@ -13,7 +13,10 @@ crud_routes = CRUDRoutes()
 
 
 class PointSelector:
+    """Point selection process."""
+
     def __init__(self):
+        """Initializes PointSelector class instance."""
         self.choices: list[PointResponse] = []
 
     def _prettify(self, raw_user_input: str) -> str:
@@ -69,10 +72,11 @@ class PointSelector:
     def _split_choice_list(
         self, choice_list: list[PointResponse], chunk_size: int = 10
     ) -> list[list[PointResponse]]:
-        return list(
-            choice_list[i : i + chunk_size]  # noqa
-            for i in range(0, len(choice_list), chunk_size)
-        )
+        resulting_list = []
+        for i in range(0, len(choice_list), chunk_size):
+            slice_stop = i + chunk_size
+            resulting_list.append(choice_list[i:slice_stop])
+        return resulting_list
 
     def _add_point_to_choices(self, points_from_db: list[Point]) -> None:
         for point_from_db in points_from_db:
@@ -97,6 +101,7 @@ class PointSelector:
     async def select_points(
         self, raw_user_input: str
     ) -> list[list[PointResponse]] | None:
+        """Selects points."""
         pretty_user_input: str = self._prettify(raw_user_input=raw_user_input)
         points_from_db = await self._get_points_from_db(
             pretty_user_input=pretty_user_input,
@@ -112,10 +117,13 @@ class PointSelector:
 
 
 class PointRetriever:
+    """Point retrieval process."""
+
     async def _get_point_from_db(self, point_id: int) -> Point | None:
         return await crud_points.get_point_by_id(id=point_id)
 
     async def get_point(self, point_id: int) -> PointResponse:
+        """Get point from db by id."""
         point_from_db: Point = await self._get_point_from_db(point_id=point_id)
         point = PointResponse(
             id=point_from_db.id,
@@ -128,12 +136,15 @@ class PointRetriever:
 
 
 class RouteFinder:
+    """Route finding process."""
+
     async def get_or_create_route(
         self,
         departure_point: PointResponse,
         destination_point: PointResponse,
         user: User,
     ) -> RouteResponse:
+        """Gets route by departure and destination points or creates a new one."""
         route_from_db: Route = await crud_routes.get_route_by_points(
             departure_point_id=departure_point.id,
             destination_point_id=destination_point.id,
@@ -169,9 +180,13 @@ class RouteFinder:
 
 
 class RouteRetriever:
+    """Route retrieval process."""
+
     async def get_route_from_db(self, route_id: int) -> Route | None:
+        """Get route from db by id."""
         return await crud_routes.get_route_by_id(id=route_id)
 
     async def get_route_by_recent(self, recent_id: int) -> Route | None:
+        """Get route from db by recent id."""
         route: Route = await crud_routes.get_or_none(_id=recent_id)
         return await crud_routes.get_route_by_id(id=route.id)

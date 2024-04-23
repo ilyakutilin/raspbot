@@ -17,6 +17,8 @@ logger = configure_logging(name=__name__)
 
 
 class Timetable:
+    """A class representing a timetable."""
+
     def __init__(
         self,
         route: Route | RouteResponse,
@@ -24,6 +26,7 @@ class Timetable:
         limit: int | None = None,
         add_msg_text: str | None = None,
     ):
+        """Initializes a Timetable class instance."""
         self.route = route
         self.date = date
         self.limit = limit
@@ -141,15 +144,15 @@ class Timetable:
         departure_time: dt.datetime | None = None,
     ) -> ThreadResponse:
         # TODO: Complete docstring
-        """
-        _summary_
+        # """
+        # _summary_
 
-        Args:
-            segment (dict): _description_
+        # Args:
+        #     segment (dict): _description_
 
-        Returns:
-            ThreadResponse: _description_
-        """
+        # Returns:
+        #     ThreadResponse: _description_
+        # """
         try:
             if not departure_time:
                 departure: dt.datetime = self._validate_time(
@@ -210,6 +213,7 @@ class Timetable:
         max_length: int = settings.MAX_TG_MSG_LENGTH,
         max_threads_for_long_fmt: int = settings.MAX_THREADS_FOR_LONG_FMT,
     ) -> tuple[str]:
+        """Formats the thread list."""
         simple_threads_short = (
             "\n".join([dep.str_time_with_express_type for dep in thread_list]),
         )
@@ -256,11 +260,11 @@ class Timetable:
     @async_cached_property
     async def _full_timetable(self) -> list[ThreadResponse]:
         # TODO: Complete docstring
-        """_summary_
+        # """_summary_
 
-        Returns:
-            list[ThreadResponse]: _description_
-        """
+        # Returns:
+        #     list[ThreadResponse]: _description_
+        # """
         timetable_dict: dict = await self._get_timetable_dict(
             departure_code=self.route.departure_point.yandex_code,
             destination_code=self.route.destination_point.yandex_code,
@@ -303,6 +307,7 @@ class Timetable:
 
     @async_property
     async def timetable(self) -> list[ThreadResponse]:
+        """Gets the timetable in the form of a list of ThreadResponse objects."""
         if self.limit:
             timetable = await self._full_timetable
             return timetable[: self.limit]
@@ -310,6 +315,7 @@ class Timetable:
 
     @async_cached_property
     async def length(self) -> int:
+        """Length of the timetable as the number of ThreadResponse objects."""
         timetable = await self._full_timetable
         return len(timetable)
 
@@ -376,11 +382,6 @@ class Timetable:
         return (message,)
 
     def unlimit(self) -> Self:
-        # TODO: Complete docstring
-        """_summary_
-
-        Returns:
-            Timetable: _description_
-        """
+        """Removes the closest departure limit from the timetable object."""
         self.limit = None
         return self

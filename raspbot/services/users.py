@@ -60,16 +60,19 @@ async def create_user(tg_user: TgUser) -> User:
 
 @log(logger)
 async def get_user_recent(user: User) -> list[Recent] | None:
+    """Get user recent routes."""
     return await crud_recents.get_recent_or_fav_by_user_id(user_id=user.id, fav=False)
 
 
 @log(logger)
 async def get_user_fav(user: User) -> list[Recent] | None:
+    """Get user favorite routes."""
     return await crud_recents.get_recent_or_fav_by_user_id(user_id=user.id, fav=True)
 
 
 @log(logger)
 async def update_recent(recent_id: int) -> Recent:
+    """Update recent count and update date."""
     recent = await crud_recents.get_or_none(_id=recent_id)
     update_date_before = recent.updated_on
     logger.info(
@@ -92,6 +95,7 @@ async def update_recent(recent_id: int) -> Recent:
 
 @log(logger)
 async def add_or_update_recent(user_id: int, route_id: int):
+    """Add or update user recent route."""
     route_added: Recent | None = await crud_recents.route_in_recent(
         user_id=user_id, route_id=route_id
     )
@@ -104,4 +108,5 @@ async def add_or_update_recent(user_id: int, route_id: int):
 
 @log(logger)
 async def add_recent_to_fav(recent_id: int) -> Recent:
+    """Add recent to user favorite routes."""
     return await crud_recents.add_recent_to_fav(recent_id=recent_id)

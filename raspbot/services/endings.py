@@ -1,4 +1,5 @@
 def get_ending(num: int) -> str:
+    """Get the ending for a Russian numeral."""
     if num % 100 in {11, 12, 13, 14}:
         return "ов"
     if num % 10 in {0, 5, 6, 7, 8, 9}:
