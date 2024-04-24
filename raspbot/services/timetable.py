@@ -336,7 +336,7 @@ class Timetable:
 
     def _get_message_part_two(self, length: int) -> str:
         """Returns the second part of the message."""
-        if self.limit or length <= settings.INLINE_DEPARTURES_QTY:
+        if self.limit or length <= settings.CLOSEST_DEP_LIMIT:
             return msg.PRESS_DEPARTURE_BUTTON
         if self.date != dt.date.today():
             return msg.TYPE_DEPARTURE
