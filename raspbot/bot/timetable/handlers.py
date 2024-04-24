@@ -25,6 +25,7 @@ router = Router()
 route_retriever = RouteRetriever()
 
 
+# TODO: the two functions below can be merged
 async def process_today_timetable_callback(
     callback: types.CallbackQuery,
     state: FSMContext,
@@ -115,6 +116,7 @@ async def show_dep_info(
     msg_obj = msg.ThreadInfo(thread=dep_info)
     await message.answer(
         text=str(msg_obj),
+        # FIXME: When viewing dep after text message we don't need the keyboard
         reply_markup=await kb.get_separate_departure_keyboard(
             timetable_obj=timetable_obj,
             this_departure=dep_info,
@@ -167,17 +169,12 @@ async def show_till_the_end_of_the_day_callback(
 
 @router.message(states.TimetableState.exact_departure_info)
 async def select_departure_info_by_text(message: types.Message, state: FSMContext):
-    # FIXME: No action when the dep time is typed in.
     """User: types departure time. Bot: here's the departure info.
 
     Args:
         message: user input
         state: the current FSM state
     """
-    logger.debug(
-        "I am in the select_departure_info_by_text, "
-        f"and the message is {message.text}"
-    )
     timetable_obj: Timetable = await get_timetable_object_from_state(state=state)
     timetable = await timetable_obj.timetable
     logger.debug(f"timetable_obj has {len(timetable)} elements.")

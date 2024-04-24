@@ -73,6 +73,7 @@ async def get_separate_departure_keyboard(
     buttons_qty_in_row: int = settings.INLINE_DEPARTURES_QTY,
 ) -> types.InlineKeyboardMarkup:
     """Keyboard with info about a particular departure."""
+    # FIXME: When viewing dep after text message we don't need the keyboard
     markup: types.InlineKeyboardMarkup = await get_today_departures_keyboard(
         timetable_obj=timetable_obj,
         buttons_qty_in_row=buttons_qty_in_row,
