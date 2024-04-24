@@ -30,7 +30,7 @@ class Timetable:
         self.route = route
         self.date = date
         self.limit = limit
-        self.add_msg_text = add_msg_text
+        self.add_msg_text = (add_msg_text + "\n" * 2) if add_msg_text else ""
 
     async def _get_timetable_dict(
         self,
@@ -214,6 +214,7 @@ class Timetable:
         max_threads_for_long_fmt: int = settings.MAX_THREADS_FOR_LONG_FMT,
     ) -> tuple[str]:
         """Formats the thread list."""
+        # FIXME: simple_threads_short view looks ugly, needs changing
         simple_threads_short = (
             "\n".join([dep.str_time_with_express_type for dep in thread_list]),
         )
@@ -319,6 +320,28 @@ class Timetable:
         timetable = await self._full_timetable
         return len(timetable)
 
+    def _get_message_part_one(self, length: int, route: str) -> str:
+        """Returns the first part of the message."""
+        if self.date == dt.date.today():
+            message_part_one = (
+                msg.CLOSEST_DEPARTURES
+                if self.limit and length > self.limit
+                else msg.TODAY_DEPARTURES.format(route=route)
+            )
+        else:
+            message_part_one = msg.DATE_DEPARTURES.format(
+                route=route, date=prettify_day(date=self.date)
+            )
+        return message_part_one
+
+    def _get_message_part_two(self, length: int) -> str:
+        """Returns the second part of the message."""
+        if self.limit or length <= settings.INLINE_DEPARTURES_QTY:
+            return msg.PRESS_DEPARTURE_BUTTON
+        if self.date != dt.date.today():
+            return msg.TYPE_DEPARTURE
+        return msg.PRESS_DEPARTURE_BUTTON_OR_TYPE
+
     @async_property
     async def msg(self) -> tuple[str]:
         """
@@ -337,24 +360,10 @@ class Timetable:
         if not self.timetable:
             return msg.NO_TODAY_DEPARTURES.format(route=route)
         length = await self.length
-        if self.date == dt.date.today():
-            message_part_one = (
-                msg.CLOSEST_DEPARTURES
-                if self.limit and length > self.limit
-                else msg.TODAY_DEPARTURES.format(route=route)
-            )
-        else:
-            message_part_one = msg.DATE_DEPARTURES.format(
-                route=route, date=prettify_day(date=self.date)
-            )
-        message_part_two = (
-            msg.PRESS_DEPARTURE_BUTTON
-            if self.limit or length <= settings.INLINE_DEPARTURES_QTY
-            else msg.PRESS_DEPARTURE_BUTTON_OR_TYPE
-        )
-        add_msg_text = (self.add_msg_text + "\n" * 2) if self.add_msg_text else ""
+        message_part_one = self._get_message_part_one(length=length, route=route)
+        message_part_two = self._get_message_part_two(length=length)
         pre_thread_msg_length = len(
-            f"{add_msg_text}"
+            f"{self.add_msg_text}"
             f"{message_part_one.format(route=str(self.route))}\n\n"
             f"\n\n{message_part_two}\n\n{msg.CONT_NEXT_MSG}"
         )
@@ -369,7 +378,7 @@ class Timetable:
                 f"\n\n{msg.CONT_NEXT_MSG}" if i != len(thread_list) - 1 else ""
             )
             messages.append(
-                f"{add_msg_text}"
+                f"{self.add_msg_text}"
                 f"{message_part_one.format(route=str(self.route))}\n\n{msg_part}"
                 f"\n\n{message_part_two}{cont_next_msg}"
             )
