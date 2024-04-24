@@ -73,7 +73,6 @@ async def get_separate_departure_keyboard(
     buttons_qty_in_row: int = settings.INLINE_DEPARTURES_QTY,
 ) -> types.InlineKeyboardMarkup:
     """Keyboard with info about a particular departure."""
-    # FIXME: When viewing dep after text message we don't need the keyboard
     markup: types.InlineKeyboardMarkup = await get_today_departures_keyboard(
         timetable_obj=timetable_obj,
         buttons_qty_in_row=buttons_qty_in_row,
@@ -88,3 +87,15 @@ async def get_separate_departure_keyboard(
                 button.callback_data = clb.SAME_DEPARTURE
                 return markup
     return markup
+
+
+@log(logger)
+def get_other_date_keyboard(route_id: int) -> types.InlineKeyboardMarkup:
+    """Keyboard for choosing other date."""
+    builder = InlineKeyboardBuilder()
+    builder.button(
+        text=btn.OTHER_DATE,
+        callback_data=clb.OtherDateTimetableCallbackFactory(route_id=route_id),
+    )
+    builder.adjust(1)
+    return builder.as_markup()

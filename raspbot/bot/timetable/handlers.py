@@ -104,9 +104,14 @@ async def get_timetable_object_from_state(state: FSMContext) -> Timetable | None
 
 
 async def show_dep_info(
-    timetable_obj: Timetable, uid: str, message: types.Message
+    timetable_obj: Timetable, uid: str, message: types.Message, full_kb: bool = True
 ) -> None:
-    """Answers the message with the departure info."""
+    """Answers the message with the departure info.
+
+    :full_kb: if True, the keyboard that is added to the message contains buttons
+              for the upcoming departures and 'Tomorrow' button. If False, the keyboard
+              contains only one button for the other date.
+    """
     timetable = await timetable_obj.timetable
     try:
         dep_info: ThreadResponse = next(dep for dep in timetable if dep.uid == uid)
@@ -114,13 +119,16 @@ async def show_dep_info(
         # TODO: Complete error handling
         logger.error("StopIteration error")
     msg_obj = msg.ThreadInfo(thread=dep_info)
+    if full_kb:
+        reply_markup = await kb.get_separate_departure_keyboard(
+            this_departure=dep_info,
+            timetable_obj=timetable_obj,
+        )
+    else:
+        reply_markup = kb.get_other_date_keyboard(route_id=timetable_obj.route.id)
     await message.answer(
         text=str(msg_obj),
-        # FIXME: When viewing dep after text message we don't need the keyboard
-        reply_markup=await kb.get_separate_departure_keyboard(
-            timetable_obj=timetable_obj,
-            this_departure=dep_info,
-        ),
+        reply_markup=reply_markup,
         parse_mode="HTML",
     )
 
@@ -183,7 +191,9 @@ async def select_departure_info_by_text(message: types.Message, state: FSMContex
             user_raw_time_input=message.text, timetable_obj=timetable_obj
         )
         logger.debug(f"uid is {uid}")
-        await show_dep_info(timetable_obj=timetable_obj, uid=uid, message=message)
+        await show_dep_info(
+            timetable_obj=timetable_obj, uid=uid, message=message, full_kb=False
+        )
     except exc.InvalidDataError as e:
         await message.answer(text=str(e))
 
