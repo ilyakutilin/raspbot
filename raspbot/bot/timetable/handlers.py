@@ -32,7 +32,6 @@ async def process_today_timetable_callback(
 ):
     """Answers the callback based on the provided Timetable object for today."""
     timetable_obj_msgs: tuple = await timetable_obj.msg
-    logger.debug(f"text: {timetable_obj_msgs}")
     for part in timetable_obj_msgs:
         await callback.message.answer(
             text=part,
@@ -61,8 +60,9 @@ async def process_date_timetable_callback(
             ),
             parse_mode="HTML",
         )
-        await callback.answer()
-    await state.set_state(states.TimetableState.other_date)
+    await callback.answer()
+    await state.update_data(timetable_obj=timetable_obj)
+    await state.set_state(states.TimetableState.exact_departure_info)
 
 
 @router.callback_query(clb.GetTimetableCallbackFactory.filter())
@@ -174,6 +174,10 @@ async def select_departure_info_by_text(message: types.Message, state: FSMContex
         message: user input
         state: the current FSM state
     """
+    logger.debug(
+        "I am in the select_departure_info_by_text, "
+        f"and the message is {message.text}"
+    )
     timetable_obj: Timetable = await get_timetable_object_from_state(state=state)
     timetable = await timetable_obj.timetable
     logger.debug(f"timetable_obj has {len(timetable)} elements.")
