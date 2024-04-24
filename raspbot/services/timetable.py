@@ -362,24 +362,18 @@ class Timetable:
             thread_list=timetable,
             max_length=settings.MAX_TG_MSG_LENGTH - pre_thread_msg_length,
         )
-        if len(thread_list) > 1:
-            messages = []
-            for i, msg_part in enumerate(thread_list):
-                cont_next_msg = (
-                    f"\n\n{msg.CONT_NEXT_MSG}" if i != len(thread_list) - 1 else ""
-                )
-                messages.append(
-                    f"{add_msg_text}"
-                    f"{message_part_one.format(route=str(self.route))}\n\n{msg_part}"
-                    f"\n\n{message_part_two}{cont_next_msg}"
-                )
-            return tuple(messages)
-        message = (
-            f"{add_msg_text}"
-            f"{message_part_one.format(route=str(self.route))}\n\n{thread_list}"
-            f"\n\n{message_part_two}"
-        )
-        return (message,)
+
+        messages = []
+        for i, msg_part in enumerate(thread_list):
+            cont_next_msg = (
+                f"\n\n{msg.CONT_NEXT_MSG}" if i != len(thread_list) - 1 else ""
+            )
+            messages.append(
+                f"{add_msg_text}"
+                f"{message_part_one.format(route=str(self.route))}\n\n{msg_part}"
+                f"\n\n{message_part_two}{cont_next_msg}"
+            )
+        return tuple(messages)
 
     def unlimit(self) -> Self:
         """Removes the closest departure limit from the timetable object."""
