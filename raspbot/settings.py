@@ -1,7 +1,6 @@
 from pathlib import Path
 
-from pydantic import BaseSettings
-from pydantic.tools import lru_cache
+from pydantic_settings import BaseSettings
 
 BASE_DIR = Path(__file__).resolve().parent
 ENV_FILE = None
@@ -32,6 +31,8 @@ class Settings(BaseSettings):
     POSTGRES_PASSWORD: str
     DB_HOST: str
     DB_PORT: str
+    LC_COLLATE: str = "ru_RU.UTF-8"
+    LC_CTYPE: str = "ru_RU.UTF-8"
 
     # Telegram API
     MAX_TG_MSG_LENGTH: int = 4096
@@ -79,7 +80,6 @@ class Settings(BaseSettings):
         env_file = ENV_FILE
 
 
-@lru_cache()
 def get_settings():
     """Get project settings."""
     return Settings()
