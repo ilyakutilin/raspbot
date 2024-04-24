@@ -1,7 +1,6 @@
 import datetime as dt
 
-from aiogram import Router, types
-from aiogram.filters import Text
+from aiogram import F, Router, types
 from aiogram.fsm.context import FSMContext
 
 from raspbot.bot.constants import callback as clb
@@ -146,7 +145,7 @@ async def show_departure_callback(
     await callback.answer()
 
 
-@router.callback_query(Text(clb.SAME_DEPARTURE))
+@router.callback_query(F.data == clb.SAME_DEPARTURE)
 async def same_departure_callback(callback: types.CallbackQuery, state: FSMContext):
     """User: clicks on the same departure. Bot: here's an error message."""
     await callback.answer(text=msg.SAME_DEPARTURE, show_alert=True)
