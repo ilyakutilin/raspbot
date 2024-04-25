@@ -28,7 +28,9 @@ def structure_initial_data(initial_data: dict | Path | Any) -> World | None:
     if isinstance(initial_data, Path):
         try:
             logger.debug("Starting to structure the initial data.")
-            structured_data = World.parse_file(path=initial_data)
+            with open(file=initial_data, mode="r", encoding="UTF-8") as file:
+                json_data = json.load(file)
+            structured_data = World.model_validate(obj=json_data)
         except ValidationError as e:
             raise exc.DataStructureError(
                 f"Pydantic data validation for the initial data failed: {e}."
@@ -39,7 +41,7 @@ def structure_initial_data(initial_data: dict | Path | Any) -> World | None:
     if isinstance(initial_data, dict):
         try:
             logger.debug("Starting to structure the initial data.")
-            structured_data = World.parse_obj(obj=initial_data)
+            structured_data = World.model_validate(obj=initial_data)
         except ValidationError as e:
             raise exc.DataStructureError(
                 f"Pydantic data validation for the initial data failed: {e}."
@@ -52,5 +54,8 @@ def structure_initial_data(initial_data: dict | Path | Any) -> World | None:
 
 
 if __name__ == "__main__":
-    initial_data: dict = asyncio.run(get_response())
+    initial_data: dict = asyncio.run(
+        get_response(endpoint=settings.STATIONS_LIST_ENDPOINT, headers=settings.headers)
+    )
     _save_initial_data_to_file(initial_data)
+    structure_initial_data(initial_data=initial_data_file)
