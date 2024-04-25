@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     YANDEX_KEY: str
     TELEGRAM_TOKEN: str
     TELEGRAM_CHAT_ID: str
+    TELEGRAM_TESTENV_TOKEN: str = ""
+    TELEGRAM_TESTENV_CHAT_ID: str = ""
 
     # Endpoints and Headers
     SEARCH_ENDPOINT: str = "https://api.rasp.yandex.net/v3.0/search/"
