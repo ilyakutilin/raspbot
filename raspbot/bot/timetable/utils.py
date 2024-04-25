@@ -96,7 +96,7 @@ async def show_dep_info(
             timetable_obj=timetable_obj,
         )
     else:
-        reply_markup = kb.get_other_date_keyboard(route_id=timetable_obj.route.id)
+        reply_markup = kb.get_date_departures_keyboard(route_id=timetable_obj.route.id)
     await message.answer(
         text=str(msg_obj),
         reply_markup=reply_markup,

@@ -87,15 +87,3 @@ async def get_separate_departure_keyboard(
                 button.callback_data = clb.SAME_DEPARTURE
                 return markup
     return markup
-
-
-@log(logger)
-def get_other_date_keyboard(route_id: int) -> types.InlineKeyboardMarkup:
-    """Keyboard for choosing other date."""
-    builder = InlineKeyboardBuilder()
-    builder.button(
-        text=btn.OTHER_DATE,
-        callback_data=clb.OtherDateTimetableCallbackFactory(route_id=route_id),
-    )
-    builder.adjust(1)
-    return builder.as_markup()
