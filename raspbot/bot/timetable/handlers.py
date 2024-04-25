@@ -211,3 +211,21 @@ async def show_tomorrow_timetable_callback(
     await process_date_timetable_callback(
         callback=callback, state=state, timetable_obj=timetable_obj
     )
+
+
+@router.callback_query(clb.OtherDateTimetableCallbackFactory.filter())
+async def show_other_date_timetable_callback(
+    callback: types.CallbackQuery,
+    callback_data: clb.OtherDateTimetableCallbackFactory,
+    state: FSMContext,
+):
+    """User: clicks on button to see timetable for another date. Bot: here you go."""
+    pass
+    # route_id: int = callback_data.route_id
+    # route: Route = await route_retriever.get_route_from_db(route_id=route_id)
+    # await utils.process_date_timetable_callback(
+    #     callback=callback, state=state, timetable_obj=timetable_obj
+    # )
+    # await callback.answer()
+    # await state.update_data(timetable_obj=timetable_obj)
+    # await state.set_state(states.TimetableState.exact_departure_info)
