@@ -70,6 +70,10 @@ class InvalidTimeUserInputError(InvalidDataError):
     """Raised if user inputs the dep time in unreadable format."""
 
 
+class InvalidDateUserInputError(InvalidDataError):
+    """Raised if user inputs the date in unreadable format."""
+
+
 class TimeNotFoundError(InvalidDataError):
     """Raised if the dep time cannot be found."""
 
