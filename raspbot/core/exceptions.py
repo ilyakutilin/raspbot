@@ -58,7 +58,7 @@ class UserInputTooShortError(InvalidDataError):
     """Raised if the user input is too short."""
 
 
-class InvalidDateError(InvalidDataError):
+class DateInThePastError(InvalidDataError):
     """Raised if the search date is set in the past."""
 
 

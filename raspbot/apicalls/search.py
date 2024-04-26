@@ -6,8 +6,8 @@ from typing import Mapping
 
 from raspbot.apicalls.base import get_response
 from raspbot.core.exceptions import (
+    DateInThePastError,
     InvalidDataError,
-    InvalidDateError,
     InvalidValueError,
 )
 from raspbot.core.logging import configure_logging
@@ -70,7 +70,7 @@ def _validate_arg(
     enums = {"format": Format, "lang": Lang, "transport_types": TransportTypes}
     if key == "date":
         if value < datetime.date.today():
-            raise InvalidDateError("Дата поиска не может быть в прошлом.")
+            raise DateInThePastError("Дата поиска не может быть в прошлом.")
     if key in enums.keys() and not isinstance(value, Enum):
         allowed_values = enums[key].list()
         if value not in allowed_values:
