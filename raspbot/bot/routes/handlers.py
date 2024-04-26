@@ -9,7 +9,7 @@ from raspbot.bot.routes.keyboards import (
     get_point_choice_keyboard,
     get_single_point_confirmation_keyboard,
 )
-from raspbot.bot.timetable.handlers import process_today_timetable_callback
+from raspbot.bot.timetable.utils import process_timetable_callback
 from raspbot.core import exceptions as exc
 from raspbot.core.logging import configure_logging
 from raspbot.db.models import User
@@ -185,7 +185,7 @@ async def choose_destination_from_multiple_callback(
         route=route, limit=settings.CLOSEST_DEP_LIMIT, add_msg_text=str(msg_text)
     )
     logger.debug(f"Creating timetable_obj: {timetable_obj.__dict__}")
-    await process_today_timetable_callback(
+    await process_timetable_callback(
         callback=callback,
         state=state,
         timetable_obj=timetable_obj,

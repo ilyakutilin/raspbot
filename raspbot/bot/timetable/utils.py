@@ -1,3 +1,5 @@
+import datetime as dt
+
 from aiogram import types
 from aiogram.fsm.context import FSMContext
 
@@ -11,40 +13,25 @@ from raspbot.services.timetable import Timetable
 logger = configure_logging(name=__name__)
 
 
-# TODO: the two functions below can be merged
-async def process_today_timetable_callback(
+async def process_timetable_callback(
     callback: types.CallbackQuery,
     state: FSMContext,
     timetable_obj: Timetable,
 ):
-    """Answers the callback based on the provided Timetable object for today."""
-    timetable_obj_msgs: tuple = await timetable_obj.msg
-    for part in timetable_obj_msgs:
-        await callback.message.answer(
-            text=part,
-            reply_markup=await kb.get_today_departures_keyboard(
-                timetable_obj=timetable_obj
-            ),
-            parse_mode="HTML",
+    """Answers the callback based on the provided Timetable object."""
+    timetable_obj_msgs: tuple[str] = await timetable_obj.msg
+    if timetable_obj.date == dt.date.today():
+        reply_markup = await kb.get_today_departures_keyboard(
+            timetable_obj=timetable_obj
         )
-    await callback.answer()
-    await state.update_data(timetable_obj=timetable_obj)
-    await state.set_state(states.TimetableState.exact_departure_info)
-
-
-async def process_date_timetable_callback(
-    callback: types.CallbackQuery,
-    state: FSMContext,
-    timetable_obj: Timetable,
-):
-    """Answers the callback based on the provided Timetable object for certain date."""
-    timetable_obj_msgs = await timetable_obj.msg
+    else:
+        reply_markup = await kb.get_date_departures_keyboard(
+            route_id=timetable_obj.route.id
+        )
     for part in timetable_obj_msgs:
         await callback.message.answer(
             text=part,
-            reply_markup=await kb.get_date_departures_keyboard(
-                route_id=timetable_obj.route.id
-            ),
+            reply_markup=reply_markup,
             parse_mode="HTML",
         )
     await callback.answer()
