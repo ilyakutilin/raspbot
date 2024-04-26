@@ -29,11 +29,14 @@ async def show_closest_departures_callback(
     callback_data: clb.GetTimetableCallbackFactory,
     state: FSMContext,
 ):
-    """User: selects the route from the list. Bot: here's the timetable."""
+    """User: selects the route from the list. Bot: here's the timetable.
+
+    Current state: TimetableState:exact_departure_info
+    """
     recent: Recent = await update_recent(recent_id=callback_data.recent_id)
     route: Route = await route_retriever.get_route_from_db(route_id=recent.route_id)
     timetable_obj = Timetable(route=route, limit=settings.CLOSEST_DEP_LIMIT)
-    await utils.process_today_timetable_callback(
+    await utils.process_timetable_callback(
         callback=callback, state=state, timetable_obj=timetable_obj
     )
 
@@ -44,7 +47,10 @@ async def show_departure_callback(
     callback_data: clb.DepartureUIDCallbackFactory,
     state: FSMContext,
 ):
-    """User: clicks on departure time. Bot: here's the departure info."""
+    """User: clicks on departure time. Bot: here's the departure info.
+
+    Current state: TimetableState:exact_departure_info
+    """
     timetable_obj: Timetable = await utils.get_timetable_object_from_state(state=state)
     uid: str = callback_data.uid
     await utils.show_dep_info(
@@ -55,7 +61,10 @@ async def show_departure_callback(
 
 @router.callback_query(F.data == clb.SAME_DEPARTURE)
 async def same_departure_callback(callback: types.CallbackQuery, state: FSMContext):
-    """User: clicks on the same departure. Bot: here's an error message."""
+    """User: clicks on the same departure. Bot: here's an error message.
+
+    Current state: TimetableState:exact_departure_info
+    """
     await callback.answer(text=msg.SAME_DEPARTURE, show_alert=True)
 
 
@@ -65,7 +74,10 @@ async def show_till_the_end_of_the_day_callback(
     callback_data: clb.EndOfTheDayTimetableCallbackFactory,
     state: FSMContext,
 ):
-    """User: clicks on the button to see full timetable for today. Bot: here you go."""
+    """User: clicks on the button to see full timetable for today. Bot: here you go.
+
+    Current state: TimetableState:exact_departure_info
+    """
     route_id: int = callback_data.route_id
     timetable_obj: Timetable = await utils.get_timetable_object_from_state(state=state)
     timetable_obj = timetable_obj.unlimit()
@@ -77,7 +89,7 @@ async def show_till_the_end_of_the_day_callback(
         "This is what I pass to the process_timetable_callback function after "
         f"unlimiting: {len(timetable)}, last departure: {timetable[-1]}"
     )
-    await utils.process_today_timetable_callback(
+    await utils.process_timetable_callback(
         callback=callback, state=state, timetable_obj=timetable_obj
     )
 
@@ -89,6 +101,8 @@ async def select_departure_info_by_text(message: types.Message, state: FSMContex
     Args:
         message: user input
         state: the current FSM state
+
+    Current state: TimetableState:exact_departure_info
     """
     timetable_obj: Timetable = await utils.get_timetable_object_from_state(state=state)
     timetable = await timetable_obj.timetable
@@ -111,12 +125,15 @@ async def show_tomorrow_timetable_callback(
     callback_data: clb.TomorrowTimetableCallbackFactory,
     state: FSMContext,
 ):
-    """User: clicks on the button to see timetable for tomorrow. Bot: here you go."""
+    """User: clicks on the button to see timetable for tomorrow. Bot: here you go.
+
+    Current state: TimetableState:exact_departure_info
+    """
     route_id: int = callback_data.route_id
     route: Route = await route_retriever.get_route_from_db(route_id=route_id)
     tomorrow = dt.date.today() + dt.timedelta(days=1)
     timetable_obj = Timetable(route=route, date=tomorrow)
-    await utils.process_date_timetable_callback(
+    await utils.process_timetable_callback(
         callback=callback, state=state, timetable_obj=timetable_obj
     )
 
@@ -127,13 +144,26 @@ async def show_other_date_timetable_callback(
     callback_data: clb.OtherDateTimetableCallbackFactory,
     state: FSMContext,
 ):
-    """User: clicks on button to see timetable for another date. Bot: here you go."""
-    pass
-    # route_id: int = callback_data.route_id
-    # route: Route = await route_retriever.get_route_from_db(route_id=route_id)
-    # await utils.process_date_timetable_callback(
-    #     callback=callback, state=state, timetable_obj=timetable_obj
-    # )
-    # await callback.answer()
-    # await state.update_data(timetable_obj=timetable_obj)
-    # await state.set_state(states.TimetableState.exact_departure_info)
+    """User: clicks on button to see timetable for another date. Bot: here you go.
+
+    Current state: TimetableState:exact_departure_info
+    """
+    await callback.message.answer(text=msg.TYPE_ARBITRARY_DATE, parse_mode="HTML")
+    await callback.answer()
+    await state.set_state(states.TimetableState.other_date)
+
+
+@router.message(states.TimetableState.other_date)
+async def select_date_timetable_by_text(message: types.Message, state: FSMContext):
+    """User: types an arbitrary date. Bot: here's the timetable for this date.
+
+    Current state: TimetableState:other_date
+    """
+    timetable_obj: Timetable = await utils.get_timetable_object_from_state(state=state)
+    timetable = await timetable_obj.timetable
+    logger.debug(f"timetable_obj has {len(timetable)} elements.")
+    try:
+        # Here goes the logic for parsing user input
+        pass
+    except exc.InvalidDataError as e:
+        await message.answer(text=str(e))
