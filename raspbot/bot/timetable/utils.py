@@ -13,12 +13,10 @@ from raspbot.services.timetable import Timetable
 logger = configure_logging(name=__name__)
 
 
-async def process_timetable_callback(
-    callback: types.CallbackQuery,
-    state: FSMContext,
-    timetable_obj: Timetable,
-):
-    """Answers the callback based on the provided Timetable object."""
+async def _answer_with_timetable(
+    timetable_obj: Timetable, message: types.Message
+) -> None:
+    """Answers the message with the provided Timetable object."""
     timetable_obj_msgs: tuple[str] = await timetable_obj.msg
     if timetable_obj.date == dt.date.today():
         reply_markup = await kb.get_today_departures_keyboard(
@@ -29,14 +27,34 @@ async def process_timetable_callback(
             route_id=timetable_obj.route.id
         )
     for part in timetable_obj_msgs:
-        await callback.message.answer(
+        await message.answer(
             text=part,
             reply_markup=reply_markup,
             parse_mode="HTML",
         )
+
+
+async def process_timetable_callback(
+    callback: types.CallbackQuery,
+    state: FSMContext,
+    timetable_obj: Timetable,
+):
+    """Answers the callback based on the provided Timetable object."""
+    await _answer_with_timetable(timetable_obj, callback.message)
     await callback.answer()
-    await state.update_data(timetable_obj=timetable_obj)
     await state.set_state(states.TimetableState.exact_departure_info)
+    await state.update_data(timetable_obj=timetable_obj)
+
+
+async def process_timetable_message(
+    message: types.Message,
+    state: FSMContext,
+    timetable_obj: Timetable,
+):
+    """Answers the message based on the provided Timetable object."""
+    await _answer_with_timetable(timetable_obj, message)
+    await state.set_state(states.TimetableState.exact_departure_info)
+    await state.update_data(timetable_obj=timetable_obj)
 
 
 async def get_timetable_object_from_state(state: FSMContext) -> Timetable | None:
@@ -83,7 +101,9 @@ async def show_dep_info(
             timetable_obj=timetable_obj,
         )
     else:
-        reply_markup = kb.get_date_departures_keyboard(route_id=timetable_obj.route.id)
+        reply_markup = await kb.get_date_departures_keyboard(
+            route_id=timetable_obj.route.id
+        )
     await message.answer(
         text=str(msg_obj),
         reply_markup=reply_markup,

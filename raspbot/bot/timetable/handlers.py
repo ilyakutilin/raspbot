@@ -11,6 +11,7 @@ from raspbot.core import exceptions as exc
 from raspbot.core.logging import configure_logging
 from raspbot.db.models import Recent, Route
 from raspbot.services.deptime import get_uid_by_time
+from raspbot.services.other_date import get_timetable_by_date
 from raspbot.services.routes import RouteRetriever
 from raspbot.services.timetable import Timetable
 from raspbot.services.users import update_recent
@@ -105,6 +106,7 @@ async def select_departure_info_by_text(message: types.Message, state: FSMContex
     Current state: TimetableState:exact_departure_info
     """
     timetable_obj: Timetable = await utils.get_timetable_object_from_state(state=state)
+    timetable_obj = timetable_obj.unlimit()
     timetable = await timetable_obj.timetable
     logger.debug(f"timetable_obj has {len(timetable)} elements.")
     try:
@@ -148,9 +150,12 @@ async def show_other_date_timetable_callback(
 
     Current state: TimetableState:exact_departure_info
     """
+    route_id: int = callback_data.route_id
+    route: Route = await route_retriever.get_route_from_db(route_id=route_id)
     await callback.message.answer(text=msg.TYPE_ARBITRARY_DATE, parse_mode="HTML")
     await callback.answer()
     await state.set_state(states.TimetableState.other_date)
+    await state.update_data(route=route)
 
 
 @router.message(states.TimetableState.other_date)
@@ -159,11 +164,14 @@ async def select_date_timetable_by_text(message: types.Message, state: FSMContex
 
     Current state: TimetableState:other_date
     """
-    timetable_obj: Timetable = await utils.get_timetable_object_from_state(state=state)
-    timetable = await timetable_obj.timetable
-    logger.debug(f"timetable_obj has {len(timetable)} elements.")
+    user_data: dict = await state.get_data()
+    route: Route = user_data.get("route")
     try:
-        # Here goes the logic for parsing user input
-        pass
+        timetable_obj = get_timetable_by_date(
+            route=route, user_raw_date_input=message.text
+        )
+        await utils.process_timetable_message(message, state, timetable_obj)
     except exc.InvalidDataError as e:
-        await message.answer(text=str(e))
+        await message.answer(text=str(e), parse_mode="HTML")
+    except exc.InternalError:
+        await message.answer(msg.ERROR)
