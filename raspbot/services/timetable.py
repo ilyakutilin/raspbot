@@ -8,7 +8,7 @@ from raspbot.apicalls.search import TransportTypes, search_between_stations
 from raspbot.bot.constants import messages as msg
 from raspbot.core.exceptions import InvalidTimeFormatError
 from raspbot.core.logging import configure_logging, log
-from raspbot.db.models import PointTypeEnum, Route
+from raspbot.db.models import PointTypeEnum, RouteORM
 from raspbot.db.routes.schema import RouteResponse, ThreadResponse
 from raspbot.services.pretty_day import prettify_day
 from raspbot.settings import settings
@@ -21,7 +21,7 @@ class Timetable:
 
     def __init__(
         self,
-        route: Route | RouteResponse,
+        route: RouteORM | RouteResponse,
         date: dt.date = dt.date.today(),
         limit: int | None = None,
         add_msg_text: str | None = None,

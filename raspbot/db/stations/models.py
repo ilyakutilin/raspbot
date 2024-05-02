@@ -12,7 +12,7 @@ from sqlalchemy.sql import func
 from sqlalchemy.sql.type_api import TypeEngine
 
 from raspbot.core import exceptions as exc
-from raspbot.db.base import Base, engine
+from raspbot.db.base import BaseORM, engine
 
 # sqlalchemy.Float is treated as decimal.Decimal, not float.
 # So this is a workaround to stop mypy from complaining.
@@ -38,36 +38,39 @@ class StationCommonMixin(object):
         return f"{self.__class__.__name__} {self.title}"
 
 
-class Point(Base, StationCommonMixin):
+class PointORM(BaseORM, StationCommonMixin):
     """Point model (settlement or station)."""
 
     point_type: Mapped[PointTypeEnum]
     station_type: Mapped[str | None] = mapped_column(String(100), default=None)
     transport_type: Mapped[str | None] = mapped_column(String(100), default=None)
+    # FIXME: Pylance complains.
     latitude: Mapped[Float | None] = mapped_column(Float, default=None)
     longitude: Mapped[Float | None] = mapped_column(Float, default=None)
     region_id: Mapped[int] = mapped_column(ForeignKey("region.id"))
-    region: Mapped["Region"] = relationship("Region", back_populates="points")
+    region: Mapped["RegionORM"] = relationship("Region", back_populates="points")
     country_id: Mapped[int] = mapped_column(ForeignKey("country.id"))
-    country: Mapped["Country"] = relationship("Country", back_populates="points")
+    country: Mapped["CountryORM"] = relationship("Country", back_populates="points")
 
 
-class Region(Base, StationCommonMixin):
+class RegionORM(BaseORM, StationCommonMixin):
     """Region model."""
 
     country_id: Mapped[int] = mapped_column(ForeignKey("country.id"))
-    country: Mapped["Country"] = relationship("Country", back_populates="regions")
-    points: Mapped[list["Point"]] = relationship("Point", back_populates="region")
+    country: Mapped["CountryORM"] = relationship("Country", back_populates="regions")
+    points: Mapped[list["PointORM"]] = relationship("Point", back_populates="region")
 
 
-class Country(Base, StationCommonMixin):
+class CountryORM(BaseORM, StationCommonMixin):
     """Country model."""
 
-    regions: Mapped[list["Region"]] = relationship("Region", back_populates="country")
-    points: Mapped[list["Point"]] = relationship("Point", back_populates="country")
+    regions: Mapped[list["RegionORM"]] = relationship(
+        "Region", back_populates="country"
+    )
+    points: Mapped[list["PointORM"]] = relationship("Point", back_populates="country")
 
 
-class UpdateDate(Base):
+class UpdateDateORM(BaseORM):
     """Update date model registering the datetime when the table was last updated."""
 
     updated: Mapped[datetime] = mapped_column(
@@ -83,7 +86,7 @@ async def create_db_schema():
     """
     try:
         async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
+            await conn.run_sync(BaseORM.metadata.create_all)
     except SQLAlchemyError as e:
         raise exc.CreateSchemaError(f"{type(e).__name__}: {e}")
 

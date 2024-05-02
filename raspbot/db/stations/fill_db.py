@@ -37,7 +37,7 @@ async def _get_regions(world: schema.World) -> list[schema.RegionsByCountry]:
     regions_by_country = []
     async with AsyncSessionLocal() as session:
         for country in world.countries:
-            sql_obj = models.Country(
+            sql_obj = models.CountryORM(
                 title=country.title,
                 yandex_code=country.codes.yandex_code,
             )
@@ -61,7 +61,7 @@ async def _get_points(
     async with AsyncSessionLocal() as session:
         for item in regions_by_country:
             for region in item.regions:
-                sql_obj = models.Region(
+                sql_obj = models.RegionORM(
                     title=region.title,
                     yandex_code=region.codes.yandex_code,
                     country=item.country,
@@ -95,7 +95,7 @@ async def _add_points_to_db(
                         "no yandex_code"
                     )
                     continue
-                sql_obj = models.Point(
+                sql_obj = models.PointORM(
                     point_type=models.PointTypeEnum.settlement,
                     title=settlement.title,
                     yandex_code=settlement.codes.yandex_code,
@@ -118,7 +118,7 @@ async def _add_points_to_db(
                 longitude = (
                     station.longitude if isinstance(station.longitude, float) else None
                 )
-                sql_obj = models.Point(
+                sql_obj = models.PointORM(
                     point_type=models.PointTypeEnum.station,
                     title=station.title,
                     yandex_code=station.codes.yandex_code,
@@ -138,7 +138,7 @@ async def _add_points_to_db(
 async def _add_updated_date() -> None:
     """Adds the date and time when the stations DB was last updated."""
     async with AsyncSessionLocal() as session:
-        sql_obj = models.UpdateDate()
+        sql_obj = models.UpdateDateORM()
         session.add(sql_obj)
         await session.commit()
 

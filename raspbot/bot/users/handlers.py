@@ -9,7 +9,7 @@ from raspbot.bot.users.keyboards import (
     get_fav_or_recent_keyboard,
 )
 from raspbot.core.logging import configure_logging
-from raspbot.db.models import Route
+from raspbot.db.models import RouteORM
 from raspbot.services.routes import RouteRetriever
 from raspbot.services.users import (
     add_recent_to_fav,
@@ -80,7 +80,7 @@ async def add_recent_to_fav_callback(
 ):
     """User: clicks on the 'add to fav' button. Bot: added to favorites."""
     recent = await add_recent_to_fav(recent_id=callback_data.recent_id)
-    route: Route = await route_retriever.get_route_by_recent(recent_id=recent.id)
+    route: RouteORM = await route_retriever.get_route_by_recent(recent_id=recent.id)
     await callback.message.answer(text=msg.ROUTE_ADDED_TO_FAV.format(route=route))
     await callback.answer()
 

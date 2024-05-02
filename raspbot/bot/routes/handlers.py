@@ -12,7 +12,7 @@ from raspbot.bot.routes.keyboards import (
 from raspbot.bot.timetable.utils import process_timetable_callback
 from raspbot.core import exceptions as exc
 from raspbot.core.logging import configure_logging
-from raspbot.db.models import User
+from raspbot.db.models import UserORM
 from raspbot.db.routes.schema import PointResponse, RouteResponse
 from raspbot.services.routes import PointRetriever, PointSelector, RouteFinder
 from raspbot.services.timetable import Timetable
@@ -177,7 +177,7 @@ async def choose_destination_from_multiple_callback(
     except ValueError as e:
         logger.error(f"Departure point is not found in the state data: {e}")
         callback.message.answer(text=msg.ERROR)
-    user: User = await get_user_from_db(telegram_id=callback.from_user.id)
+    user: UserORM = await get_user_from_db(telegram_id=callback.from_user.id)
     route: RouteResponse = await route_finder.get_or_create_route(
         departure_point=departure_point, destination_point=selected_point, user=user
     )

@@ -13,13 +13,13 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
-from raspbot.db.base import Base
-from raspbot.db.stations.models import Point
+from raspbot.db.base import BaseORM
+from raspbot.db.stations.models import PointORM
 from raspbot.services.shorteners import get_short_point_type, shorten_route_description
 from raspbot.settings import settings
 
 
-class User(Base):
+class UserORM(BaseORM):
     """User model."""
 
     telegram_id: Mapped[int] = mapped_column(BigInteger, unique=True)
@@ -34,7 +34,7 @@ class User(Base):
     updated_on: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
-    recents: Mapped[list["Recent"]] = relationship("Recent", back_populates="user")
+    recents: Mapped[list["RecentORM"]] = relationship("Recent", back_populates="user")
 
     @hybrid_property
     def full_name(self) -> str:
@@ -64,21 +64,21 @@ class RouteStrMixin:
         )
 
 
-class Route(Base, RouteStrMixin):
+class RouteORM(BaseORM, RouteStrMixin):
     """Route model."""
 
     departure_point_id: Mapped[int] = mapped_column(ForeignKey("point.id"))
-    departure_point: Mapped["Point"] = relationship(
+    departure_point: Mapped["PointORM"] = relationship(
         "Point", foreign_keys=[departure_point_id]
     )
     destination_point_id: Mapped[int] = mapped_column(ForeignKey("point.id"))
-    destination_point: Mapped["Point"] = relationship(
+    destination_point: Mapped["PointORM"] = relationship(
         "Point", foreign_keys=[destination_point_id]
     )
     added_on: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
-    recents_list: Mapped[list["Recent"]] = relationship(
+    recents_list: Mapped[list["RecentORM"]] = relationship(
         "Recent", back_populates="route"
     )
 
@@ -91,7 +91,7 @@ class Route(Base, RouteStrMixin):
     )
 
 
-class Recent(Base):
+class RecentORM(BaseORM):
     """Model for recent and favorite routes.
 
     Recent and favorite is the same model.
@@ -109,7 +109,7 @@ class Recent(Base):
     )
     count: Mapped[int] = mapped_column(Integer(), default=0)
     favorite: Mapped[bool] = mapped_column(Boolean, default=False)
-    user: Mapped["User"] = relationship("User", back_populates="recents")
-    route: Mapped["Route"] = relationship("Route", back_populates="recents_list")
+    user: Mapped["UserORM"] = relationship("User", back_populates="recents")
+    route: Mapped["RouteORM"] = relationship("Route", back_populates="recents_list")
 
     __table_args__ = (UniqueConstraint("user_id", "route_id", name="uq_user_recent"),)

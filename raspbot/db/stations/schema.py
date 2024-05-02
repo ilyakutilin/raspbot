@@ -67,7 +67,7 @@ class EntitiesByEntity(BaseModel):
 class RegionsByCountry(EntitiesByEntity):
     """Pydantic model for relationships between countries and regions."""
 
-    country: models.Country
+    country: models.CountryORM
     regions: list[Region]
 
     def __repr__(self) -> str:
@@ -78,7 +78,7 @@ class RegionsByCountry(EntitiesByEntity):
 class PointsByRegion(EntitiesByEntity):
     """Pydantic model for relationships between regions and points."""
 
-    region: models.Region
+    region: models.RegionORM
     settlements: list[Settlement]
     stations: list[Station]
 
