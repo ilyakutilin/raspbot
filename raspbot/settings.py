@@ -46,6 +46,9 @@ class Settings(BaseSettings):
     ROUTE_INLINE_LIMIT: int = 38
     RECENT_FAV_LIST_LENGTH: int = 8
     INLINE_DEPARTURES_QTY: int = 4
+    MAX_THREADS_FOR_LONG_FMT: int = 20
+    MAX_DAYS_INTO_PAST: int = 0
+    MAX_MONTHS_INTO_FUTURE: int = 11
 
     # Logging
     LOG_FORMAT: str = (
@@ -58,9 +61,6 @@ class Settings(BaseSettings):
     LOG_FILE: str | Path = LOG_DIR / "raspbot.log"
     LOG_FILE_SIZE: int = 10 * 2**20
     LOG_FILES_TO_KEEP: int = 5
-
-    # Other
-    MAX_THREADS_FOR_LONG_FMT: int = 20
 
     @property
     def headers(self) -> dict[str, str | bytes | None]:
