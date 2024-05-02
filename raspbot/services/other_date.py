@@ -10,7 +10,7 @@ from raspbot.bot.constants import messages as msg
 from raspbot.core import exceptions as exc
 from raspbot.core.logging import configure_logging, log
 from raspbot.db.models import RouteORM
-from raspbot.db.routes.schema import RouteResponse
+from raspbot.db.routes.schema import RouteResponsePD
 from raspbot.services.endings import days_with_ending
 from raspbot.services.timetable import Timetable
 from raspbot.settings import settings
@@ -251,7 +251,7 @@ def _parse_date(date_string: str) -> dt.date | None:
 
 @log(logger)
 def get_timetable_by_date(
-    route: RouteORM | RouteResponse, user_raw_date_input: str
+    route: RouteORM | RouteResponsePD, user_raw_date_input: str
 ) -> Timetable:
     """Gets the timetable formatted message based on the user inputted date.
 

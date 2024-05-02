@@ -32,7 +32,7 @@ def _log_object_creation(obj: object) -> None:
         raise exc.SQLObjectError(f"FAILURE: object {obj} has NOT been created.")
 
 
-async def _get_regions(world: schema.World) -> list[schema.RegionsByCountry]:
+async def _get_regions(world: schema.WorldPD) -> list[schema.RegionsByCountryPD]:
     """Receives the list of countries and returns the regions by countries."""
     regions_by_country = []
     async with AsyncSessionLocal() as session:
@@ -43,7 +43,7 @@ async def _get_regions(world: schema.World) -> list[schema.RegionsByCountry]:
             )
             _log_object_creation(sql_obj)
             session.add(sql_obj)
-            regions = schema.RegionsByCountry(
+            regions = schema.RegionsByCountryPD(
                 country=sql_obj,
                 regions=country.regions,
             )
@@ -54,8 +54,8 @@ async def _get_regions(world: schema.World) -> list[schema.RegionsByCountry]:
 
 
 async def _get_points(
-    regions_by_country: Iterable[schema.RegionsByCountry],
-) -> list[schema.PointsByRegion]:
+    regions_by_country: Iterable[schema.RegionsByCountryPD],
+) -> list[schema.PointsByRegionPD]:
     """Receives the list of regions and returns the settlements by regions."""
     points_by_region = []
     async with AsyncSessionLocal() as session:
@@ -73,7 +73,7 @@ async def _get_points(
                         [settlement.stations for settlement in region.settlements]
                     )
                 )
-                points = schema.PointsByRegion(
+                points = schema.PointsByRegionPD(
                     region=sql_obj, settlements=region.settlements, stations=stations
                 )
                 _log_object_creation(points)
@@ -83,7 +83,7 @@ async def _get_points(
 
 
 async def _add_points_to_db(
-    points_by_region: Iterable[schema.PointsByRegion],
+    points_by_region: Iterable[schema.PointsByRegionPD],
 ) -> None:
     """Receives the list of stations and adds them to the database."""
     async with AsyncSessionLocal() as session:

@@ -1,19 +1,19 @@
-from pydantic import BaseModel
+from pydantic import BaseModel as BaseModelPD
 
 from raspbot.db.stations import models
 
 
-class Code(BaseModel):
-    """Base pydantic model with fields used by all models."""
+class CodePD(BaseModelPD):
+    """Code pydantic model."""
 
     yandex_code: str | None = None
     esr_code: str | None = None
 
 
-class Entity(BaseModel):
+class EntityPD(BaseModelPD):
     """Entity pydantic model."""
 
-    codes: Code
+    codes: CodePD
     title: str
 
     def __repr__(self):
@@ -21,7 +21,7 @@ class Entity(BaseModel):
         return f"{self.__class__.__name__} {self.title}"
 
 
-class Station(Entity):
+class StationPD(EntityPD):
     """Station pydantic model."""
 
     direction: str
@@ -31,56 +31,56 @@ class Station(Entity):
     latitude: float | str
 
 
-class Settlement(Entity):
+class SettlementPD(EntityPD):
     """Settlement pydantic model."""
 
-    stations: list[Station]
+    stations: list[StationPD]
 
 
-class Region(Entity):
+class RegionPD(EntityPD):
     """Region pydantic model."""
 
-    settlements: list[Settlement]
+    settlements: list[SettlementPD]
 
 
-class Country(Entity):
+class CountryPD(EntityPD):
     """Country pydantic model."""
 
-    regions: list[Region]
+    regions: list[RegionPD]
 
 
-class World(BaseModel):
+class WorldPD(BaseModelPD):
     """World pydantic model."""
 
-    countries: list[Country]
+    countries: list[CountryPD]
 
 
-class EntitiesByEntity(BaseModel):
+class EntitiesByEntityPD(BaseModelPD):
     """Base pydantic model for relationships between entities."""
 
     class Config:
-        """Config for the EntitiesByEntity pydantic model."""
+        """Config for the EntitiesByEntityPD pydantic model."""
 
         arbitrary_types_allowed = True
 
 
-class RegionsByCountry(EntitiesByEntity):
+class RegionsByCountryPD(EntitiesByEntityPD):
     """Pydantic model for relationships between countries and regions."""
 
     country: models.CountryORM
-    regions: list[Region]
+    regions: list[RegionPD]
 
     def __repr__(self) -> str:
         """String representation of the RegionsByCountry relationship."""
         return f"{self.__class__.__name__} {self.country.title}"
 
 
-class PointsByRegion(EntitiesByEntity):
+class PointsByRegionPD(EntitiesByEntityPD):
     """Pydantic model for relationships between regions and points."""
 
     region: models.RegionORM
-    settlements: list[Settlement]
-    stations: list[Station]
+    settlements: list[SettlementPD]
+    stations: list[StationPD]
 
     def __repr__(self) -> str:
         """String representation of the PointsByRegion relationship."""

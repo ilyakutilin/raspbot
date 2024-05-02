@@ -13,7 +13,7 @@ from raspbot.bot.timetable.utils import process_timetable_callback
 from raspbot.core import exceptions as exc
 from raspbot.core.logging import configure_logging
 from raspbot.db.models import UserORM
-from raspbot.db.routes.schema import PointResponse, RouteResponse
+from raspbot.db.routes.schema import PointResponsePD, RouteResponsePD
 from raspbot.services.routes import PointRetriever, PointSelector, RouteFinder
 from raspbot.services.timetable import Timetable
 from raspbot.services.users import get_user_from_db
@@ -46,7 +46,7 @@ async def select_point(is_departure: bool, message: types.Message, state: FSMCon
     """Base function for the departure / destination point selection."""
     point_selector = PointSelector()
     try:
-        point_chunks: list[list[PointResponse]] = await point_selector.select_points(
+        point_chunks: list[list[PointResponsePD]] = await point_selector.select_points(
             raw_user_input=message.text
         )
     except exc.UserInputTooShortError as e:
@@ -106,7 +106,7 @@ async def more_buttons_handler(
     """User: clicks the 'more' button. Bot: here's the next set of points."""
     user_data: dict = await state.get_data()
 
-    point_chunks: list[list[PointResponse]] = user_data["remaining_point_chunks"]
+    point_chunks: list[list[PointResponsePD]] = user_data["remaining_point_chunks"]
     points: list = point_chunks.pop(0)
     await callback.message.answer(
         msg.MORE_POINT_CHOICES,
@@ -144,7 +144,7 @@ async def choose_departure_from_multiple_callback(
     state: FSMContext,
 ):
     """User: selects the departure from the list. Bot: input the destination point."""
-    selected_departure: PointResponse = await point_retriever.get_point(
+    selected_departure: PointResponsePD = await point_retriever.get_point(
         point_id=callback_data.point_id
     )
     msg_text: str = msg.SinglePointFound(
@@ -165,7 +165,7 @@ async def choose_destination_from_multiple_callback(
     state: FSMContext,
 ):
     """User: selects the destination from the list. Bot: here's the timetable."""
-    selected_point: PointResponse = await point_retriever.get_point(
+    selected_point: PointResponsePD = await point_retriever.get_point(
         point_id=callback_data.point_id
     )
     msg_text = msg.SinglePointFound(
@@ -173,12 +173,12 @@ async def choose_destination_from_multiple_callback(
     )
     user_data: dict = await state.get_data()
     try:
-        departure_point: PointResponse = user_data["departure_point"]
+        departure_point: PointResponsePD = user_data["departure_point"]
     except ValueError as e:
         logger.error(f"Departure point is not found in the state data: {e}")
         callback.message.answer(text=msg.ERROR)
     user: UserORM = await get_user_from_db(telegram_id=callback.from_user.id)
-    route: RouteResponse = await route_finder.get_or_create_route(
+    route: RouteResponsePD = await route_finder.get_or_create_route(
         departure_point=departure_point, destination_point=selected_point, user=user
     )
     timetable_obj = Timetable(

@@ -7,7 +7,7 @@ from raspbot.bot.constants import messages as msg
 from raspbot.bot.constants import states
 from raspbot.bot.timetable import keyboards as kb
 from raspbot.core.logging import configure_logging
-from raspbot.db.routes.schema import ThreadResponse
+from raspbot.db.routes.schema import ThreadResponsePD
 from raspbot.services.timetable import Timetable
 
 logger = configure_logging(name=__name__)
@@ -90,7 +90,7 @@ async def show_dep_info(
     """
     timetable = await timetable_obj.timetable
     try:
-        dep_info: ThreadResponse = next(dep for dep in timetable if dep.uid == uid)
+        dep_info: ThreadResponsePD = next(dep for dep in timetable if dep.uid == uid)
     except StopIteration:
         # TODO: Complete error handling
         logger.error("StopIteration error")

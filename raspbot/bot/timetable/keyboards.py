@@ -4,7 +4,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from raspbot.bot.constants import buttons as btn
 from raspbot.bot.constants import callback as clb
 from raspbot.core.logging import configure_logging, log
-from raspbot.db.routes.schema import ThreadResponse
+from raspbot.db.routes.schema import ThreadResponsePD
 from raspbot.services.timetable import Timetable
 from raspbot.settings import settings
 
@@ -69,7 +69,7 @@ async def get_date_departures_keyboard(
 @log(logger)
 async def get_separate_departure_keyboard(
     timetable_obj: Timetable,
-    this_departure: ThreadResponse,
+    this_departure: ThreadResponsePD,
     buttons_qty_in_row: int = settings.INLINE_DEPARTURES_QTY,
 ) -> types.InlineKeyboardMarkup:
     """Keyboard with info about a particular departure."""
