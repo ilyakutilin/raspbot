@@ -1,3 +1,4 @@
+import argparse
 import asyncio
 import os
 import sys
@@ -11,4 +12,13 @@ if parent_dir not in sys.path:
 from raspbot.bot.bot import start_bot  # noqa
 
 if __name__ == "__main__":
-    asyncio.run(start_bot())
+    parser = argparse.ArgumentParser(description="Telegram Raspbot")
+    parser.add_argument(
+        "-t", "--test", action="store_true", help="Run in test environment"
+    )
+    args = parser.parse_args()
+
+    if args.test:
+        asyncio.run(start_bot(test=True))
+    else:
+        asyncio.run(start_bot())
