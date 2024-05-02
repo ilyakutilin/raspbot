@@ -91,3 +91,10 @@ class NotFoundError(DBError):
 
 class AlreadyExistsError(DBError):
     """Raised if the object already exists."""
+
+
+# Internal
+
+
+class InternalError(Exception):
+    """Base class for internal exceptions."""
