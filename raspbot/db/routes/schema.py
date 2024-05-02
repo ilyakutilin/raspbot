@@ -2,8 +2,7 @@ import datetime as dt
 
 from pydantic import BaseModel
 
-from raspbot.db.models import PointTypeEnum
-from raspbot.services.shorteners import get_short_point_type, shorten_route_description
+from raspbot.db.models import PointTypeEnum, RouteStrMixin
 from raspbot.settings import settings
 
 
@@ -17,28 +16,12 @@ class PointResponse(BaseModel):
     region_title: str
 
 
-class RouteResponse(BaseModel):
+class RouteResponse(BaseModel, RouteStrMixin):
     """Pydantic model for routes."""
 
     id: int
     departure_point: PointResponse
     destination_point: PointResponse
-
-    def __str__(self) -> str:
-        """Route string representation."""
-        return (
-            f"{get_short_point_type(self.departure_point.point_type)} "
-            f"{self.departure_point.title}{settings.ROUTE_INLINE_DELIMITER}"
-            f"{get_short_point_type(self.destination_point.point_type)} "
-            f"{self.destination_point.title}"
-        )
-
-    @property
-    def short(self) -> str:
-        """Shortened route string representation."""
-        return shorten_route_description(
-            route_descr=self.__str__(), limit=settings.ROUTE_INLINE_LIMIT
-        )
 
 
 class ThreadResponse(BaseModel):

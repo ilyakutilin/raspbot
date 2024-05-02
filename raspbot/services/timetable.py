@@ -388,3 +388,14 @@ class Timetable:
         """Removes the closest departure limit from the timetable object."""
         self.limit = None
         return self
+
+    def __repr__(self) -> str:
+        """Returns the string representation of the Timetable object."""
+        limit = f", limit={self.limit}" if self.limit else ""
+        add_msg_text = (
+            f", add_msg_text='{self.add_msg_text}'" if self.add_msg_text else ""
+        )
+        return (
+            f"<{self.__class__.__name__} (date={self.date.strftime('%d.%m.%Y')}, "
+            f"route={self.route}{limit}{add_msg_text})>"
+        )

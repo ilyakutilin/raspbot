@@ -44,7 +44,27 @@ class User(Base):
         return self.first_name
 
 
-class Route(Base):
+class RouteStrMixin:
+    """Mixin for Route string representation."""
+
+    def __str__(self) -> str:
+        """String representation."""
+        return (
+            f"{get_short_point_type(self.departure_point.point_type)} "
+            f"{self.departure_point.title}{settings.ROUTE_INLINE_DELIMITER}"
+            f"{get_short_point_type(self.destination_point.point_type)} "
+            f"{self.destination_point.title}"
+        )
+
+    @property
+    def short(self) -> str:
+        """Shortened route string representation."""
+        return shorten_route_description(
+            route_descr=self.__str__(), limit=settings.ROUTE_INLINE_LIMIT
+        )
+
+
+class Route(Base, RouteStrMixin):
     """Route model."""
 
     departure_point_id: Mapped[int] = mapped_column(ForeignKey("point.id"))
@@ -69,22 +89,6 @@ class Route(Base):
             name="uq_departure_destination",
         ),
     )
-
-    def __str__(self) -> str:
-        """String representation of the route."""
-        return (
-            f"{get_short_point_type(self.departure_point.point_type)} "
-            f"{self.departure_point.title}{settings.ROUTE_INLINE_DELIMITER}"
-            f"{get_short_point_type(self.destination_point.point_type)} "
-            f"{self.destination_point.title}"
-        )
-
-    @property
-    def short(self) -> str:
-        """Shortened route string representation."""
-        return shorten_route_description(
-            route_descr=self.__str__(), limit=settings.ROUTE_INLINE_LIMIT
-        )
 
 
 class Recent(Base):
