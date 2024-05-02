@@ -45,8 +45,8 @@ class PointORM(BaseORM, StationCommonMixin):
     station_type: Mapped[str | None] = mapped_column(String(100), default=None)
     transport_type: Mapped[str | None] = mapped_column(String(100), default=None)
     # FIXME: Pylance complains.
-    latitude: Mapped[Float | None] = mapped_column(Float, default=None)
-    longitude: Mapped[Float | None] = mapped_column(Float, default=None)
+    latitude: Mapped[Float | None] = mapped_column(Float, default=None)  # type: ignore
+    longitude: Mapped[Float | None] = mapped_column(Float, default=None)  # type: ignore
     region_id: Mapped[int] = mapped_column(ForeignKey("region.id"))
     region: Mapped["RegionORM"] = relationship("Region", back_populates="points")
     country_id: Mapped[int] = mapped_column(ForeignKey("country.id"))

@@ -16,7 +16,7 @@ from typing import Iterable
 from raspbot.apicalls.base import get_response
 from raspbot.core import exceptions as exc
 from raspbot.core.logging import configure_logging
-from raspbot.db.base import AsyncSessionLocal
+from raspbot.db.base import async_session_factory
 from raspbot.db.stations import models, schema
 from raspbot.db.stations.parse import structure_initial_data
 from raspbot.settings import settings
@@ -35,7 +35,7 @@ def _log_object_creation(obj: object) -> None:
 async def _get_regions(world: schema.WorldPD) -> list[schema.RegionsByCountryPD]:
     """Receives the list of countries and returns the regions by countries."""
     regions_by_country = []
-    async with AsyncSessionLocal() as session:
+    async with async_session_factory() as session:
         for country in world.countries:
             sql_obj = models.CountryORM(
                 title=country.title,
@@ -58,7 +58,7 @@ async def _get_points(
 ) -> list[schema.PointsByRegionPD]:
     """Receives the list of regions and returns the settlements by regions."""
     points_by_region = []
-    async with AsyncSessionLocal() as session:
+    async with async_session_factory() as session:
         for item in regions_by_country:
             for region in item.regions:
                 sql_obj = models.RegionORM(
@@ -86,7 +86,7 @@ async def _add_points_to_db(
     points_by_region: Iterable[schema.PointsByRegionPD],
 ) -> None:
     """Receives the list of stations and adds them to the database."""
-    async with AsyncSessionLocal() as session:
+    async with async_session_factory() as session:
         for item in points_by_region:
             for settlement in item.settlements:
                 if not settlement.codes.yandex_code:
@@ -137,7 +137,7 @@ async def _add_points_to_db(
 
 async def _add_updated_date() -> None:
     """Adds the date and time when the stations DB was last updated."""
-    async with AsyncSessionLocal() as session:
+    async with async_session_factory() as session:
         sql_obj = models.UpdateDateORM()
         session.add(sql_obj)
         await session.commit()

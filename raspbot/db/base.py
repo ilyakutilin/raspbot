@@ -34,7 +34,7 @@ class BaseORM(AsyncAttrs, DeclarativeBase, PreBaseORM):
 
 engine = create_async_engine(settings.database_url)
 
-AsyncSessionLocal = async_sessionmaker(engine, expire_on_commit=False)
+async_session_factory = async_sessionmaker(engine, expire_on_commit=False)
 
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
