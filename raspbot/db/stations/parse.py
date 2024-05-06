@@ -64,7 +64,7 @@ def _get_initial_data_dict(initial_data: Path | Any) -> dict | None:
     return None
 
 
-async def yield_regions(
+async def _yield_regions_pd(
     initial_data: dict | Path | Any,
 ) -> AsyncGenerator[RegionPD, None]:
     """Structures the initial data."""
@@ -94,7 +94,7 @@ async def yield_regions(
                     yield region_pd
 
 
-async def _create_regions_orm_and_yield(
+async def _yield_regions_orm_and_add_to_db(
     region_generator: AsyncGenerator[schema.RegionPD, None], session: AsyncSession
 ) -> AsyncGenerator[tuple[int, schema.RegionPD], None]:
     """A generator that receives the regions and gets their DB IDs.
@@ -119,7 +119,7 @@ async def _create_regions_orm_and_yield(
         yield tuple((sql_obj.id, region))
 
 
-async def _get_points(
+async def _yield_points_by_region_pd(
     regions_orm_generator: AsyncGenerator[tuple[int, schema.RegionPD], None],
     session: AsyncSession,
 ) -> AsyncGenerator[schema.PointsByRegionPD, None]:
@@ -218,16 +218,18 @@ async def populate_db(initial_data: dict | Path) -> None:
     logger.debug("Ready for the DB population.")
 
     try:
-        regions_generator = yield_regions(initial_data)
+        regions_generator = _yield_regions_pd(initial_data)
     except exc.DataStructureError as e:
         logger.exception(f"Data structure error: {e}", exc_info=True)
 
     async with async_session_factory() as session:
         try:
-            regions_orm_generator = _create_regions_orm_and_yield(
+            regions_orm_generator = _yield_regions_orm_and_add_to_db(
                 regions_generator, session
             )
-            points_by_region_generator = _get_points(regions_orm_generator, session)
+            points_by_region_generator = _yield_points_by_region_pd(
+                regions_orm_generator, session
+            )
             await _add_points_to_db(points_by_region_generator, session)
         except exc.SQLError as e:
             logger.exception(f"Adding stations to DB failed: {e}", exc_info=True)
@@ -250,7 +252,6 @@ async def populate_db(initial_data: dict | Path) -> None:
             )
 
         logger.debug("DB is now populated.")
-        await send_telegram_message_to_admin(message="Station DB is now populated.")
 
 
 async def main() -> None:
@@ -280,7 +281,13 @@ if __name__ == "__main__":
     start_time = datetime.now()
     asyncio.run(main())
     finish_time = datetime.now()
-    logger.info(
+    it_took = (
         f"It took {(finish_time - start_time).total_seconds()} seconds "
         "to fill the Stations DB with the data from Yandex."
+    )
+    logger.info(it_took)
+    asyncio.run(
+        send_telegram_message_to_admin(
+            message=(f"Station DB has been populated. {it_took}")
+        )
     )
