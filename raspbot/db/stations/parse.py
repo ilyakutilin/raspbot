@@ -9,13 +9,13 @@ a unit of the Yandex station data structure.
 
 import asyncio
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from itertools import chain
 from pathlib import Path
 from typing import Any, AsyncGenerator, Type
 
 from pydantic import ValidationError
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.declarative import DeclarativeMeta
 
@@ -262,19 +262,6 @@ async def main() -> None:
 
     logger.debug("Starting to populate the Stations DB.")
     await populate_db(initial_data)
-
-
-async def check_last_station_db_update() -> None:
-    """Checks when the stations DB was last updated."""
-    async with async_session_factory() as session:
-        query = await session.execute(select(func.max(models.LastUpdatedORM.updated)))
-        last_updated = query.scalar()
-        if not last_updated:
-            await main()
-        max_time_diff = timedelta(days=14)
-        current_time_diff = datetime.now(tz=timezone.utc) - last_updated
-        if current_time_diff > max_time_diff:
-            await main()
 
 
 if __name__ == "__main__":
