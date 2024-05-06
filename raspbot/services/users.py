@@ -78,7 +78,7 @@ async def update_recent(recent_id: int) -> RecentORM:
     logger.info(
         "Здесь должна происходить магия обновления даты. До обновления: "
         f"ID пользователя {recent.user_id}, ID маршрута {recent.route_id}"
-        f", дата создания {recent.added_on}, "
+        f", дата создания {recent.created_at}, "
         f"дата обновления {update_date_before}."
     )
 
