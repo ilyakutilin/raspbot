@@ -43,34 +43,19 @@ class PointORM(BaseORM, StationCommonMixin):
 
     point_type: Mapped[PointTypeEnum]
     station_type: Mapped[str | None] = mapped_column(String(100), default=None)
-    transport_type: Mapped[str | None] = mapped_column(String(100), default=None)
-    # FIXME: Pylance complains.
-    latitude: Mapped[Float | None] = mapped_column(Float, default=None)  # type: ignore
-    longitude: Mapped[Float | None] = mapped_column(Float, default=None)  # type: ignore
-    region_id: Mapped[int] = mapped_column(ForeignKey("region.id"))
-    region: Mapped["RegionORM"] = relationship("Region", back_populates="points")
-    country_id: Mapped[int] = mapped_column(ForeignKey("country.id"))
-    country: Mapped["CountryORM"] = relationship("Country", back_populates="points")
+    latitude: Mapped[Float | None] = mapped_column(Float, default=None)
+    longitude: Mapped[Float | None] = mapped_column(Float, default=None)
+    region_id: Mapped[int] = mapped_column(ForeignKey("regions.id"))
+    region: Mapped["RegionORM"] = relationship("RegionORM", back_populates="points")
 
 
 class RegionORM(BaseORM, StationCommonMixin):
     """Region model."""
 
-    country_id: Mapped[int] = mapped_column(ForeignKey("country.id"))
-    country: Mapped["CountryORM"] = relationship("Country", back_populates="regions")
-    points: Mapped[list["PointORM"]] = relationship("Point", back_populates="region")
+    points: Mapped[list["PointORM"]] = relationship("PointORM", back_populates="region")
 
 
-class CountryORM(BaseORM, StationCommonMixin):
-    """Country model."""
-
-    regions: Mapped[list["RegionORM"]] = relationship(
-        "Region", back_populates="country"
-    )
-    points: Mapped[list["PointORM"]] = relationship("Point", back_populates="country")
-
-
-class UpdateDateORM(BaseORM):
+class LastUpdatedORM(BaseORM):
     """Update date model registering the datetime when the table was last updated."""
 
     updated: Mapped[datetime] = mapped_column(
