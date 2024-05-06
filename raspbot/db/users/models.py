@@ -19,7 +19,17 @@ from raspbot.services.shorteners import get_short_point_type, shorten_route_desc
 from raspbot.settings import settings
 
 
-class UserORM(BaseORM):
+class BaseUserRouteORM(BaseORM):
+    """Base class for all user route models."""
+
+    __abstract__ = True
+
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+class UserORM(BaseUserRouteORM):
     """User model."""
 
     telegram_id: Mapped[int] = mapped_column(BigInteger, unique=True)
@@ -60,7 +70,7 @@ class RouteStrMixin:
         )
 
 
-class RouteORM(BaseORM, RouteStrMixin):
+class RouteORM(BaseUserRouteORM, RouteStrMixin):
     """Route model."""
 
     departure_point_id: Mapped[int] = mapped_column(ForeignKey("points.id"))
@@ -84,7 +94,7 @@ class RouteORM(BaseORM, RouteStrMixin):
     )
 
 
-class RecentORM(BaseORM):
+class RecentORM(BaseUserRouteORM):
     """Model for recent and favorite routes.
 
     Recent and favorite is the same model.

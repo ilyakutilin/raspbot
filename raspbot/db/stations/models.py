@@ -1,23 +1,22 @@
 import asyncio
-from datetime import datetime
 from enum import Enum
-from typing import cast
 
-from sqlalchemy import DateTime
-from sqlalchemy import Float as Float_org
-from sqlalchemy import ForeignKey, String
+from sqlalchemy import Float, ForeignKey, String
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.sql import func
-from sqlalchemy.sql.type_api import TypeEngine
 
 from raspbot.core import exceptions as exc
 from raspbot.db.base import BaseORM, engine
+from raspbot.settings import settings
 
-# sqlalchemy.Float is treated as decimal.Decimal, not float.
-# So this is a workaround to stop mypy from complaining.
-# https://github.com/dropbox/sqlalchemy-stubs/issues/178
-Float = cast(type[TypeEngine[float]], Float_org)
+# # sqlalchemy.Float is treated as decimal.Decimal, not float.
+# # So this is a workaround to stop mypy from complaining.
+# # https://github.com/dropbox/sqlalchemy-stubs/issues/178
+
+# from typing import cast
+# from sqlalchemy.sql.type_api import TypeEngine
+
+# Float = cast(type[TypeEngine[float]], Float_org)
 
 
 class PointTypeEnum(Enum):
@@ -58,9 +57,14 @@ class RegionORM(BaseORM, StationCommonMixin):
 class LastUpdatedORM(BaseORM):
     """Update date model registering the datetime when the table was last updated."""
 
-    updated: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
-    )
+    __tablename__ = "last_updated"
+
+    def __repr__(self):
+        """String representation of an ORM Model."""
+        return (
+            f"<{self.__class__.__name__} "
+            f"({self.created_at.strftime(settings.LOG_DT_FMT)})>"
+        )
 
 
 async def create_db_schema():
