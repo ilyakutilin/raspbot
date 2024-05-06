@@ -20,6 +20,7 @@ async-property = "^0.2.2"
 pre-commit = "^3.7.0"
 pydantic-settings = "^2.2.1"
 python-dateutil = "^2.9.0.post0"
+apscheduler = "^3.10.4"
 
 [tool.poetry.group.dev.dependencies]
 flake8 = "^6.0.0"
