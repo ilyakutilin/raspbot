@@ -1,6 +1,18 @@
-from pydantic import BaseModel as BaseModelPD
+from pydantic import BaseModel
 
 from raspbot.db.stations import models
+
+
+class BaseModelPD(BaseModel):
+    """Base pydantic model."""
+
+    def __repr__(self):
+        """String representation of a pydantic model."""
+        cols = []
+        for col in self.model_fields.keys():
+            cols.append(f"{col}={getattr(self, col)}")
+
+        return f"<{self.__class__.__name__} ({', '.join(cols)})>"
 
 
 class CodePD(BaseModelPD):
@@ -16,7 +28,7 @@ class EntityPD(BaseModelPD):
     codes: CodePD
     title: str
 
-    def __repr__(self):
+    def __str__(self):
         """String representation of the Entity pydantic model."""
         return f"{self.__class__.__name__} {self.title}"
 
@@ -43,45 +55,18 @@ class RegionPD(EntityPD):
     settlements: list[SettlementPD]
 
 
-class CountryPD(EntityPD):
-    """Country pydantic model."""
+class PointsByRegionPD(BaseModelPD):
+    """Pydantic model for relationships between regions and points."""
 
-    regions: list[RegionPD]
-
-
-class WorldPD(BaseModelPD):
-    """World pydantic model."""
-
-    countries: list[CountryPD]
-
-
-class EntitiesByEntityPD(BaseModelPD):
-    """Base pydantic model for relationships between entities."""
+    region_orm: models.RegionORM
+    settlements: list[SettlementPD]
+    stations: list[StationPD]
 
     class Config:
         """Config for the EntitiesByEntityPD pydantic model."""
 
         arbitrary_types_allowed = True
 
-
-class RegionsByCountryPD(EntitiesByEntityPD):
-    """Pydantic model for relationships between countries and regions."""
-
-    country: models.CountryORM
-    regions: list[RegionPD]
-
-    def __repr__(self) -> str:
-        """String representation of the RegionsByCountry relationship."""
-        return f"{self.__class__.__name__} {self.country.title}"
-
-
-class PointsByRegionPD(EntitiesByEntityPD):
-    """Pydantic model for relationships between regions and points."""
-
-    region: models.RegionORM
-    settlements: list[SettlementPD]
-    stations: list[StationPD]
-
     def __repr__(self) -> str:
         """String representation of the PointsByRegion relationship."""
-        return f"{self.__class__.__name__} {self.region.title}"
+        return f"{self.__class__.__name__} {self.region_orm.title}"
