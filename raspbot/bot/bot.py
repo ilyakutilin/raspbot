@@ -6,7 +6,7 @@ from aiogram.client.telegram import TEST
 
 from raspbot.bot import routes_router, start_router, timetable_router, users_router
 from raspbot.core.logging import configure_logging
-from raspbot.db.stations.fill_db import check_last_station_db_update
+from raspbot.db.stations.parse import check_last_station_db_update
 from raspbot.settings import settings
 
 logger = configure_logging(name=__name__)
