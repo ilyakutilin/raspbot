@@ -214,9 +214,8 @@ class Timetable:
         max_threads_for_long_fmt: int = settings.MAX_THREADS_FOR_LONG_FMT,
     ) -> tuple[str]:
         """Formats the thread list."""
-        # FIXME: simple_threads_short view looks ugly, needs changing
         simple_threads_short = (
-            "\n".join([dep.bold_str_time_with_express_type for dep in thread_list]),
+            ", ".join([dep.str_time_with_express_type for dep in thread_list]),
         )
         simple_threads = ("\n".join([dep.message_with_route for dep in thread_list]),)
         formatted_unified = msg.FormattedUnifiedThreadList(
@@ -256,9 +255,7 @@ class Timetable:
                 if one_to_station and not one_from_station:
                     return formatted_different.settlement_diff_to_settlement_one()
                 return formatted_different.settlement_diff_to_settlement_diff()
-        return (
-            "\n".join([dep.bold_str_time_with_express_type for dep in thread_list]),
-        )
+        return ("\n".join([dep.str_time_with_express_type for dep in thread_list]),)
 
     @async_cached_property
     async def _full_timetable(self) -> list[ThreadResponsePD]:

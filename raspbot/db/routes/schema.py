@@ -53,6 +53,11 @@ class ThreadResponsePD(BaseModelPD):
         return self.departure.strftime(settings.DEP_FORMAT)
 
     @property
+    def str_time_with_express_type(self) -> str:
+        """String representation of the departure time with express type."""
+        return f"{self.str_time}{'э' if self.express_type else ''}"
+
+    @property
     def bold_str_time_with_express_type(self) -> str:
         """String representation of the departure time with express type."""
         return f"<b>{self.str_time}{'э' if self.express_type else ''}</b>"
