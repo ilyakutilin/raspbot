@@ -53,28 +53,29 @@ class ThreadResponsePD(BaseModelPD):
         return self.departure.strftime(settings.DEP_FORMAT)
 
     @property
-    def str_time_with_express_type(self) -> str:
+    def bold_str_time_with_express_type(self) -> str:
         """String representation of the departure time with express type."""
         return f"<b>{self.str_time}{'э' if self.express_type else ''}</b>"
 
     @property
     def message_with_route(self) -> str:
         """String representation of the departure time with express and route."""
-        return f"{self.str_time_with_express_type} ({self.title})"
+        return f"{self.bold_str_time_with_express_type} ({self.title})"
 
     @property
     def message_with_departure_station(self) -> str:
         """String representation of the departure time with departure station."""
-        return f"{self.str_time_with_express_type}, от ст. {self.from_}"
+        return f"{self.bold_str_time_with_express_type}, от ст. {self.from_}"
 
     @property
     def message_with_destination_station(self) -> str:
         """String representation of the departure time with destination station."""
-        return f"{self.str_time_with_express_type}, до ст. {self.to}"
+        return f"{self.bold_str_time_with_express_type}, до ст. {self.to}"
 
     @property
     def message_with_departure_and_destination(self) -> str:
         """String representation of the dep time with dep and dest stations."""
         return (
-            f"{self.str_time_with_express_type}, от ст. {self.from_} до ст. {self.to}"
+            f"{self.bold_str_time_with_express_type}, от ст. {self.from_} "
+            f"до ст. {self.to}"
         )
