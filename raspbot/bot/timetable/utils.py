@@ -26,10 +26,10 @@ async def _answer_with_timetable(
         reply_markup = await kb.get_date_departures_keyboard(
             route_id=timetable_obj.route.id
         )
-    for part in timetable_obj_msgs:
+    for i, part in enumerate(timetable_obj_msgs):
         await message.answer(
             text=part,
-            reply_markup=reply_markup,
+            reply_markup=reply_markup if i == len(timetable_obj_msgs) - 1 else None,
             parse_mode="HTML",
         )
 
