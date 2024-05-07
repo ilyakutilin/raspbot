@@ -175,9 +175,14 @@ async def _add_points_to_db(
                     "no yandex_code"
                 )
                 continue
-            if station.transport_type != TransportTypes.SUBURBAN.value:
+            if station.transport_type not in (
+                TransportTypes.TRAIN.value,
+                TransportTypes.SUBURBAN.value,
+                "",
+                None,
+            ):
                 logger.info(
-                    f"Skipping non-suburban transport type: {station.transport_type} "
+                    f"Skipping non-train transport type: {station.transport_type} "
                     f"for station {station.title}"
                 )
                 continue
