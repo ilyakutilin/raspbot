@@ -59,7 +59,7 @@ class CRUDRecents(CRUDBase):
                 selection = selection.where(RecentORM.favorite == True)  # noqa
             result = await session.execute(
                 selection.order_by(
-                    desc(RecentORM.count), desc(RecentORM.updated_on)
+                    desc(RecentORM.count), desc(RecentORM.updated_at)
                 ).limit(settings.RECENT_FAV_LIST_LENGTH)
             )
             return result.scalars().unique().all()
@@ -75,7 +75,7 @@ class CRUDRecents(CRUDBase):
             return query.scalars().first()
 
     async def update_recent(self, recent_id: RecentORM) -> RecentORM:
-        """Updates recent 'count' and 'updated_on'."""
+        """Updates recent 'count' and 'updated_at'."""
         async with self._session as session:
             stmt = (
                 update(RecentORM)
