@@ -1,14 +1,8 @@
 import logging
 from datetime import datetime
-from typing import AsyncGenerator
 
 from sqlalchemy import DateTime, func
-from sqlalchemy.ext.asyncio import (
-    AsyncAttrs,
-    AsyncSession,
-    async_sessionmaker,
-    create_async_engine,
-)
+from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column
 
 from raspbot.core.logging import configure_logging
@@ -57,10 +51,3 @@ class BaseORM(AsyncAttrs, DeclarativeBase, PreBaseORM):
 engine = create_async_engine(settings.database_url)
 
 async_session_factory = async_sessionmaker(engine, expire_on_commit=False)
-
-
-async def get_session() -> AsyncGenerator[AsyncSession, None]:
-    """Get the DB session."""
-    async_session = async_sessionmaker(engine, expire_on_commit=False)
-    async with async_session() as session:
-        yield session

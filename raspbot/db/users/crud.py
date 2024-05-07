@@ -1,11 +1,9 @@
-from typing import Generator
-
 from sqlalchemy import and_, desc, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
 from raspbot.core.logging import configure_logging
-from raspbot.db.base import get_session
+from raspbot.db.base import async_session_factory
 from raspbot.db.crud import CRUDBase
 from raspbot.db.models import RecentORM, RouteORM, UserORM
 from raspbot.settings import settings
@@ -16,13 +14,13 @@ logger = configure_logging(name=__name__)
 class CRUDUsers(CRUDBase):
     """CRUD for user related operations."""
 
-    def __init__(self, sessionmaker: Generator[AsyncSession, None, None] = get_session):
+    def __init__(self, session: AsyncSession = async_session_factory()):
         """Initializes CRUDUsers class instance."""
-        super().__init__(UserORM, sessionmaker)
+        super().__init__(UserORM, session)
 
     async def get_user_by_telegram_id(self, telegram_id: int) -> UserORM | None:
         """Gets user by Telegram ID."""
-        async with self._sessionmaker() as session:
+        async with self._session as session:
             user = await session.execute(
                 select(UserORM).where(UserORM.telegram_id == telegram_id)
             )
@@ -37,15 +35,15 @@ class CRUDRecents(CRUDBase):
     A route needs to be in the recents to be added to favorites.
     """
 
-    def __init__(self, sessionmaker: Generator[AsyncSession, None, None] = get_session):
+    def __init__(self, session: AsyncSession = async_session_factory()):
         """Initializes CRUDRecents class instance."""
-        super().__init__(RecentORM, sessionmaker)
+        super().__init__(RecentORM, session)
 
     async def get_recent_or_fav_by_user_id(
         self, user_id: int, fav: bool = False
     ) -> list[RecentORM]:
         """Gets recent or favorite by user ID."""
-        async with self._sessionmaker() as session:
+        async with self._session as session:
             selection = (
                 select(RecentORM)
                 .where(RecentORM.user_id == user_id)
@@ -68,7 +66,7 @@ class CRUDRecents(CRUDBase):
 
     async def route_in_recent(self, user_id: int, route_id: int) -> RecentORM | None:
         """Checks if a route is in the recents of a user."""
-        async with self._sessionmaker() as session:
+        async with self._session as session:
             query = await session.execute(
                 select(RecentORM).where(
                     and_(RecentORM.user_id == user_id, RecentORM.route_id == route_id)
@@ -78,7 +76,7 @@ class CRUDRecents(CRUDBase):
 
     async def update_recent(self, recent_id: RecentORM) -> RecentORM:
         """Updates recent 'count' and 'updated_on'."""
-        async with self._sessionmaker() as session:
+        async with self._session as session:
             stmt = (
                 update(RecentORM)
                 .where(RecentORM.id == recent_id)
@@ -91,7 +89,7 @@ class CRUDRecents(CRUDBase):
 
     async def add_recent_to_fav(self, recent_id: int) -> RecentORM:
         """Adds a recent to favorites."""
-        async with self._sessionmaker() as session:
+        async with self._session as session:
             stmt = (
                 update(RecentORM).where(RecentORM.id == recent_id).values(favorite=True)
             )
