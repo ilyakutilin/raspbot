@@ -64,7 +64,7 @@ class CRUDPoints(CRUDBase):
 
     async def get_point_by_id(self, id: int) -> PointORM:
         """Gets point by ID."""
-        async with self._sessionmaker() as session:
+        async with self._session as session:
             point = await session.execute(
                 select(PointORM)
                 .options(joinedload(PointORM.region))
