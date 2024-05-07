@@ -16,7 +16,7 @@ from raspbot.db.models import UserORM
 from raspbot.db.routes.schema import PointResponsePD, RouteResponsePD
 from raspbot.services.routes import PointRetriever, PointSelector, RouteFinder
 from raspbot.services.timetable import Timetable
-from raspbot.services.users import get_user_from_db
+from raspbot.services.users import create_user, get_user_from_db
 from raspbot.settings import settings
 
 logger = configure_logging(name=__name__)
@@ -30,6 +30,9 @@ route_finder = RouteFinder()
 @router.message(Command("search"))
 async def search_command(message: types.Message, state: FSMContext):
     """User: issues /search command. Bot: please input the departure point."""
+    user = await get_user_from_db(telegram_id=message.from_user.id)
+    if not user:
+        user = await create_user(tg_user=message.from_user)
     await message.answer(msg.INPUT_DEPARTURE_POINT)
     await state.set_state(states.RouteState.selecting_departure_point)
 

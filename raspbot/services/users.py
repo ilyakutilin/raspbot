@@ -21,7 +21,7 @@ async def get_user_from_db(telegram_id: int) -> UserORM | None:
     Возвращает:
         Объект пользователя (User) или None.
     """
-    user_from_db: UserORM = await crud_users.get_user_by_telegram_id(
+    user_from_db: UserORM | None = await crud_users.get_user_by_telegram_id(
         telegram_id=telegram_id
     )
     if not user_from_db:
