@@ -21,7 +21,7 @@ async def get_user_from_db(telegram_id: int) -> UserORM | None:
     Возвращает:
         Объект пользователя (User) или None.
     """
-    user_from_db: UserORM = await crud_users.get_user_by_telegram_id(
+    user_from_db: UserORM | None = await crud_users.get_user_by_telegram_id(
         telegram_id=telegram_id
     )
     if not user_from_db:
@@ -74,7 +74,7 @@ async def get_user_fav(user: UserORM) -> list[RecentORM] | None:
 async def update_recent(recent_id: int) -> RecentORM:
     """Update recent count and update date."""
     recent = await crud_recents.get_or_none(_id=recent_id)
-    update_date_before = recent.updated_on
+    update_date_before = recent.updated_at
     logger.info(
         "Здесь должна происходить магия обновления даты. До обновления: "
         f"ID пользователя {recent.user_id}, ID маршрута {recent.route_id}"
@@ -83,13 +83,13 @@ async def update_recent(recent_id: int) -> RecentORM:
     )
 
     updated_element = await crud_recents.update_recent(recent_id=recent_id)
-    if updated_element.updated_on == update_date_before:
+    if updated_element.updated_at == update_date_before:
         logger.warning(
             "Обновление даты не получилось: дата по-прежнему "
-            f"{updated_element.updated_on}."
+            f"{updated_element.updated_at}."
         )
     else:
-        logger.info(f"Дата обновлена: новая дата {updated_element.updated_on}")
+        logger.info(f"Дата обновлена: новая дата {updated_element.updated_at}")
     return updated_element
 
 

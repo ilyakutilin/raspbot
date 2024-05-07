@@ -16,7 +16,7 @@ class PointResponsePD(BaseModelPD):
     region_title: str
 
 
-class RouteResponsePD(BaseModelPD, RouteStrMixin):
+class RouteResponsePD(RouteStrMixin, BaseModelPD):
     """Pydantic model for routes."""
 
     id: int

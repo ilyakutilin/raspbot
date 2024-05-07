@@ -70,7 +70,7 @@ class RouteStrMixin:
         )
 
 
-class RouteORM(BaseUserRouteORM, RouteStrMixin):
+class RouteORM(RouteStrMixin, BaseUserRouteORM):
     """Route model."""
 
     departure_point_id: Mapped[int] = mapped_column(ForeignKey("points.id"))
