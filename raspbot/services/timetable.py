@@ -214,9 +214,8 @@ class Timetable:
         max_threads_for_long_fmt: int = settings.MAX_THREADS_FOR_LONG_FMT,
     ) -> tuple[str]:
         """Formats the thread list."""
-        # FIXME: simple_threads_short view looks ugly, needs changing
         simple_threads_short = (
-            "\n".join([dep.str_time_with_express_type for dep in thread_list]),
+            ", ".join([dep.str_time_with_express_type for dep in thread_list]),
         )
         simple_threads = ("\n".join([dep.message_with_route for dep in thread_list]),)
         formatted_unified = msg.FormattedUnifiedThreadList(
