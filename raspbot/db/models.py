@@ -1,2 +1,2 @@
-from .stations.models import Country, Point, PointTypeEnum, Region  # noqa
-from .users.models import Recent, Route, RouteStrMixin, User  # noqa
+from .stations.models import PointORM, PointTypeEnum, RegionORM  # noqa
+from .users.models import RecentORM, RouteORM, RouteStrMixin, UserORM  # noqa

@@ -49,6 +49,7 @@ class Settings(BaseSettings):
     MAX_THREADS_FOR_LONG_FMT: int = 20
     MAX_DAYS_INTO_PAST: int = 0
     MAX_MONTHS_INTO_FUTURE: int = 11
+    DAYS_BETWEEN_STATIONS_DB_UPDATE: int = 14
 
     # Logging
     LOG_FORMAT: str = (

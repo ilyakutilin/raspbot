@@ -1,8 +1,8 @@
 from raspbot.core.exceptions import UserInputTooShortError
 from raspbot.core.logging import configure_logging
-from raspbot.db.models import Point, PointTypeEnum, Route, User
+from raspbot.db.models import PointORM, PointTypeEnum, RouteORM, UserORM
 from raspbot.db.routes.crud import CRUDPoints, CRUDRoutes
-from raspbot.db.routes.schema import PointResponse, RouteResponse
+from raspbot.db.routes.schema import PointResponsePD, RouteResponsePD
 from raspbot.services.shorteners import get_short_point_type
 from raspbot.services.users import add_or_update_recent
 
@@ -17,7 +17,7 @@ class PointSelector:
 
     def __init__(self):
         """Initializes PointSelector class instance."""
-        self.choices: list[PointResponse] = []
+        self.choices: list[PointResponsePD] = []
 
     def _prettify(self, raw_user_input: str) -> str:
         return " ".join(raw_user_input.split()).lower()
@@ -34,7 +34,7 @@ class PointSelector:
     def _normalize_choice_title(self, choice_title: str) -> str:
         return choice_title.replace("Ё", "Е").replace("ё", "е").lower()
 
-    def _sort_choices(self, pretty_user_input: str) -> list[PointResponse]:
+    def _sort_choices(self, pretty_user_input: str) -> list[PointResponsePD]:
         exact = []
         startwith = []
         contain = []
@@ -62,7 +62,7 @@ class PointSelector:
 
         for choice_list in (exact, startwith, contain):
 
-            def custom_sort_key(point: PointResponse):
+            def custom_sort_key(point: PointResponsePD):
                 return point.point_type == PointTypeEnum.settlement
 
             choice_list.sort(key=custom_sort_key)
@@ -70,17 +70,17 @@ class PointSelector:
         return (exact + startwith + contain)[:50]
 
     def _split_choice_list(
-        self, choice_list: list[PointResponse], chunk_size: int = 10
-    ) -> list[list[PointResponse]]:
+        self, choice_list: list[PointResponsePD], chunk_size: int = 10
+    ) -> list[list[PointResponsePD]]:
         resulting_list = []
         for i in range(0, len(choice_list), chunk_size):
             slice_stop = i + chunk_size
             resulting_list.append(choice_list[i:slice_stop])
         return resulting_list
 
-    def _add_point_to_choices(self, points_from_db: list[Point]) -> None:
+    def _add_point_to_choices(self, points_from_db: list[PointORM]) -> None:
         for point_from_db in points_from_db:
-            point = PointResponse(
+            point = PointResponsePD(
                 id=point_from_db.id,
                 point_type=point_from_db.point_type,
                 title=point_from_db.title,
@@ -89,18 +89,18 @@ class PointSelector:
             )
             self.choices.append(point)
 
-    async def _get_points_from_db(self, pretty_user_input: str) -> list[Point]:
+    async def _get_points_from_db(self, pretty_user_input: str) -> list[PointORM]:
         strict_search: bool = self._validate_user_input(
             pretty_user_input=pretty_user_input
         )
-        points_from_db: list[Point] = await crud_points.get_points_by_title(
+        points_from_db: list[PointORM] = await crud_points.get_points_by_title(
             title=pretty_user_input, strict_search=strict_search
         )
         return points_from_db
 
     async def select_points(
         self, raw_user_input: str
-    ) -> list[list[PointResponse]] | None:
+    ) -> list[list[PointResponsePD]] | None:
         """Selects points."""
         pretty_user_input: str = self._prettify(raw_user_input=raw_user_input)
         points_from_db = await self._get_points_from_db(
@@ -110,7 +110,7 @@ class PointSelector:
             return None
         self._add_point_to_choices(points_from_db=points_from_db)
         logger.info(f"Кол-во пунктов: {len(self.choices)}")
-        sorted_choices: list[PointResponse] = self._sort_choices(
+        sorted_choices: list[PointResponsePD] = self._sort_choices(
             pretty_user_input=pretty_user_input
         )
         return self._split_choice_list(choice_list=sorted_choices)
@@ -119,13 +119,13 @@ class PointSelector:
 class PointRetriever:
     """Point retrieval process."""
 
-    async def _get_point_from_db(self, point_id: int) -> Point | None:
+    async def _get_point_from_db(self, point_id: int) -> PointORM | None:
         return await crud_points.get_point_by_id(id=point_id)
 
-    async def get_point(self, point_id: int) -> PointResponse:
+    async def get_point(self, point_id: int) -> PointResponsePD:
         """Get point from db by id."""
-        point_from_db: Point = await self._get_point_from_db(point_id=point_id)
-        point = PointResponse(
+        point_from_db: PointORM = await self._get_point_from_db(point_id=point_id)
+        point = PointResponsePD(
             id=point_from_db.id,
             point_type=point_from_db.point_type,
             title=point_from_db.title,
@@ -140,12 +140,12 @@ class RouteFinder:
 
     async def get_or_create_route(
         self,
-        departure_point: PointResponse,
-        destination_point: PointResponse,
-        user: User,
-    ) -> RouteResponse:
+        departure_point: PointResponsePD,
+        destination_point: PointResponsePD,
+        user: UserORM,
+    ) -> RouteResponsePD:
         """Gets route by departure and destination points or creates a new one."""
-        route_from_db: Route = await crud_routes.get_route_by_points(
+        route_from_db: RouteORM = await crud_routes.get_route_by_points(
             departure_point_id=departure_point.id,
             destination_point_id=destination_point.id,
         )
@@ -162,16 +162,16 @@ class RouteFinder:
                 f"{dest_st_or_stl} {destination_point.title} еще не существует."
                 "Создаём новый маршрут."
             )
-            instance = Route(
+            instance = RouteORM(
                 departure_point_id=departure_point.id,
                 destination_point_id=destination_point.id,
             )
-            route_from_db: Route = await crud_routes.create(instance=instance)
+            route_from_db: RouteORM = await crud_routes.create(instance=instance)
 
         # Добавляем маршрут в последние у пользователя (либо обновляем дату)
         await add_or_update_recent(user_id=user.id, route_id=route_from_db.id)
 
-        route = RouteResponse(
+        route = RouteResponsePD(
             id=route_from_db.id,
             departure_point=departure_point,
             destination_point=destination_point,
@@ -182,11 +182,11 @@ class RouteFinder:
 class RouteRetriever:
     """Route retrieval process."""
 
-    async def get_route_from_db(self, route_id: int) -> Route | None:
+    async def get_route_from_db(self, route_id: int) -> RouteORM | None:
         """Get route from db by id."""
         return await crud_routes.get_route_by_id(id=route_id)
 
-    async def get_route_by_recent(self, recent_id: int) -> Route | None:
+    async def get_route_by_recent(self, recent_id: int) -> RouteORM | None:
         """Get route from db by recent id."""
-        route: Route = await crud_routes.get_or_none(_id=recent_id)
+        route: RouteORM = await crud_routes.get_or_none(_id=recent_id)
         return await crud_routes.get_route_by_id(id=route.id)

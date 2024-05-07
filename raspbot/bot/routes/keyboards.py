@@ -3,13 +3,13 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from raspbot.bot.constants import buttons as btn
 from raspbot.bot.constants import callback as clb
-from raspbot.db.routes.schema import PointResponse
+from raspbot.db.routes.schema import PointResponsePD
 from raspbot.services.shorteners.short_point import get_short_point_type
 from raspbot.services.shorteners.short_region import get_short_region_title
 
 
 def get_point_choice_keyboard(
-    points: list[PointResponse], is_departure: bool, last_chunk: bool = True
+    points: list[PointResponsePD], is_departure: bool, last_chunk: bool = True
 ) -> types.InlineKeyboardMarkup:
     """Keyboard listing potential points matching the search pattern."""
     builder = InlineKeyboardBuilder()
@@ -37,7 +37,7 @@ def get_point_choice_keyboard(
     return builder.as_markup()
 
 
-def get_single_point_confirmation_keyboard(point: PointResponse, is_departure: bool):
+def get_single_point_confirmation_keyboard(point: PointResponsePD, is_departure: bool):
     """Keyboard for confirming correct matching if only one point is found."""
     builder = InlineKeyboardBuilder()
     builder.button(

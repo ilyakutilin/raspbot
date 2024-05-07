@@ -1,54 +1,74 @@
-from typing import Generator
-
-from sqlalchemy import and_, func, or_, select
+from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import joinedload
 
-from raspbot.apicalls.search import TransportTypes
-from raspbot.db.base import get_session
+from raspbot.db.base import async_session_factory
 from raspbot.db.crud import CRUDBase
-from raspbot.db.models import Country, Point, Route
+from raspbot.db.models import PointORM, RouteORM
 
 
 class CRUDPoints(CRUDBase):
     """CRUD for Point related operations."""
 
-    def __init__(self, sessionmaker: Generator[AsyncSession, None, None] = get_session):
+    def __init__(self, session: AsyncSession = async_session_factory()):
         """Initializes CRUDPoints class instance."""
-        super().__init__(Point, sessionmaker)
+        super().__init__(PointORM, session)
 
     async def get_points_by_title(
         self, title: str, strict_search: bool = False
-    ) -> list[Point]:
+    ) -> list[PointORM]:
         """Gets points by title."""
         search_template = "{title}" if strict_search else "%{title}%"
-        async with self._sessionmaker() as session:
-            points = await session.execute(
-                select(Point)
-                .options(selectinload(Point.region))
-                .join(Country)
+
+        async with self._session as session:
+            fields_defining_uniqueness = [
+                PointORM.title,
+                PointORM.yandex_code,
+                PointORM.point_type,
+            ]
+            # Define a subquery to find the maximum created_at
+            # for each combination of title, yandex_code and point_type
+            subquery = (
+                select(
+                    *fields_defining_uniqueness,
+                    func.max(PointORM.created_at).label("max_created_at"),
+                )
                 .where(
-                    func.unaccent(Point.title).ilike(
+                    func.unaccent(PointORM.title).ilike(
                         search_template.format(title=title)
                     )
                 )
-                .where(Country.title == "Россия")
-                .where(
-                    or_(
-                        Point.transport_type == TransportTypes.TRAIN.value,
-                        Point.transport_type.is_(None),
-                    )
+                .group_by(*fields_defining_uniqueness)
+                .alias("subq")
+            )
+
+            # Define the main query to select the PointORM instances
+            # with the latest created_at for each group
+            query = (
+                select(PointORM)
+                .join(
+                    subquery,
+                    and_(
+                        PointORM.title == subquery.c.title,
+                        PointORM.yandex_code == subquery.c.yandex_code,
+                        PointORM.point_type == subquery.c.point_type,
+                    ),
                 )
-                .order_by(Point.title)
+                .where(PointORM.created_at == subquery.c.max_created_at)
+                .options(joinedload(PointORM.region))
+                .order_by(PointORM.title)
                 .limit(30)
             )
+            points = await session.execute(query)
             return points.scalars().unique().all()
 
-    async def get_point_by_id(self, id: int) -> Point:
+    async def get_point_by_id(self, id: int) -> PointORM:
         """Gets point by ID."""
         async with self._sessionmaker() as session:
             point = await session.execute(
-                select(Point).options(selectinload(Point.region)).where(Point.id == id)
+                select(PointORM)
+                .options(joinedload(PointORM.region))
+                .where(PointORM.id == id)
             )
             return point.scalars().first()
 
@@ -56,34 +76,34 @@ class CRUDPoints(CRUDBase):
 class CRUDRoutes(CRUDBase):
     """CRUD for Route related operations."""
 
-    def __init__(self, sessionmaker: Generator[AsyncSession, None, None] = get_session):
+    def __init__(self, session: AsyncSession = async_session_factory()):
         """Initializes CRUDRoutes class instance."""
-        super().__init__(Route, sessionmaker)
+        super().__init__(RouteORM, session)
 
     async def get_route_by_points(
         self, departure_point_id: int, destination_point_id: int
-    ) -> Route:
+    ) -> RouteORM:
         """Gets route by departure and destination point IDs."""
-        async with self._sessionmaker() as session:
+        async with self._session as session:
             route = await session.execute(
-                select(Route).where(
+                select(RouteORM).where(
                     and_(
-                        Route.departure_point_id == departure_point_id,
-                        Route.destination_point_id == destination_point_id,
+                        RouteORM.departure_point_id == departure_point_id,
+                        RouteORM.destination_point_id == destination_point_id,
                     )
                 )
             )
             return route.scalars().first()
 
-    async def get_route_by_id(self, id: int) -> Route:
+    async def get_route_by_id(self, id: int) -> RouteORM:
         """Gets route by ID."""
-        async with self._sessionmaker() as session:
+        async with self._session as session:
             route = await session.execute(
-                select(Route)
+                select(RouteORM)
                 .options(
-                    selectinload(Route.departure_point),
-                    selectinload(Route.destination_point),
+                    joinedload(RouteORM.departure_point),
+                    joinedload(RouteORM.destination_point),
                 )
-                .where(Route.id == id)
+                .where(RouteORM.id == id)
             )
             return route.scalars().first()

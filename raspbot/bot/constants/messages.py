@@ -2,7 +2,7 @@ import time
 from abc import ABC, abstractmethod
 
 from raspbot.db.models import PointTypeEnum
-from raspbot.db.routes.schema import PointResponse, ThreadResponse
+from raspbot.db.routes.schema import PointResponsePD, ThreadResponsePD
 from raspbot.services.shorteners.short_point import get_short_point_type
 from raspbot.services.split import split_string_list
 from raspbot.settings import settings
@@ -26,7 +26,7 @@ GREETING_EXISTING_USER = (
 class SinglePointFound:
     """Message displayed when a single point was found while searching."""
 
-    def __init__(self, point: PointResponse, is_departure: bool):
+    def __init__(self, point: PointResponsePD, is_departure: bool):
         """Initializes the SinglePointFound class instance."""
         self.is_departure: bool = is_departure
         self.point_type: PointTypeEnum = point.point_type
@@ -145,7 +145,7 @@ class FormattedThreadList(ABC):
 
     def __init__(
         self,
-        thread_list: list[ThreadResponse],
+        thread_list: list[ThreadResponsePD],
         max_length: int = settings.MAX_TG_MSG_LENGTH,
     ):
         """Initializes the FormattedThreadList class instance."""
@@ -356,7 +356,7 @@ class FormattedDifferentThreadList(FormattedThreadList):
 class ThreadInfo:
     """Information about a particular timetable thread."""
 
-    def __init__(self, thread: ThreadResponse):
+    def __init__(self, thread: ThreadResponsePD):
         """Initialize the ThreadInfo class instance."""
         self.thread = thread
 

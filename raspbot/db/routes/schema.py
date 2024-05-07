@@ -1,12 +1,12 @@
 import datetime as dt
 
-from pydantic import BaseModel
+from pydantic import BaseModel as BaseModelPD
 
 from raspbot.db.models import PointTypeEnum, RouteStrMixin
 from raspbot.settings import settings
 
 
-class PointResponse(BaseModel):
+class PointResponsePD(BaseModelPD):
     """Pydantic model for route points."""
 
     id: int
@@ -16,15 +16,15 @@ class PointResponse(BaseModel):
     region_title: str
 
 
-class RouteResponse(BaseModel, RouteStrMixin):
+class RouteResponsePD(BaseModelPD, RouteStrMixin):
     """Pydantic model for routes."""
 
     id: int
-    departure_point: PointResponse
-    destination_point: PointResponse
+    departure_point: PointResponsePD
+    destination_point: PointResponsePD
 
 
-class ThreadResponse(BaseModel):
+class ThreadResponsePD(BaseModelPD):
     """Pydantic model for the timetable thread."""
 
     uid: str

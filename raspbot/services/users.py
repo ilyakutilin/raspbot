@@ -1,7 +1,7 @@
 from aiogram.types.user import User as TgUser
 
 from raspbot.core.logging import configure_logging, log
-from raspbot.db.models import Recent, User
+from raspbot.db.models import RecentORM, UserORM
 from raspbot.db.users.crud import CRUDRecents, CRUDUsers
 
 logger = configure_logging(name=__name__)
@@ -11,7 +11,7 @@ crud_recents = CRUDRecents()
 
 
 @log(logger)
-async def get_user_from_db(telegram_id: int) -> User | None:
+async def get_user_from_db(telegram_id: int) -> UserORM | None:
     """
     Получает объект пользователя из БД или None при его отсутствии.
 
@@ -21,7 +21,7 @@ async def get_user_from_db(telegram_id: int) -> User | None:
     Возвращает:
         Объект пользователя (User) или None.
     """
-    user_from_db: User = await crud_users.get_user_by_telegram_id(
+    user_from_db: UserORM = await crud_users.get_user_by_telegram_id(
         telegram_id=telegram_id
     )
     if not user_from_db:
@@ -36,7 +36,7 @@ async def get_user_from_db(telegram_id: int) -> User | None:
 
 
 @log(logger)
-async def create_user(tg_user: TgUser) -> User:
+async def create_user(tg_user: TgUser) -> UserORM:
     """
     Создает пользователя в БД.
 
@@ -46,7 +46,7 @@ async def create_user(tg_user: TgUser) -> User:
     Возвращает:
         User: объект пользователя.
     """
-    instance = User(
+    instance = UserORM(
         telegram_id=tg_user.id,
         is_bot=tg_user.is_bot,
         first_name=tg_user.first_name,
@@ -54,31 +54,31 @@ async def create_user(tg_user: TgUser) -> User:
         username=tg_user.username,
         language_code=tg_user.language_code,
     )
-    user_db: User = await crud_users.create(instance=instance)
+    user_db: UserORM = await crud_users.create(instance=instance)
     return user_db
 
 
 @log(logger)
-async def get_user_recent(user: User) -> list[Recent] | None:
+async def get_user_recent(user: UserORM) -> list[RecentORM] | None:
     """Get user recent routes."""
     return await crud_recents.get_recent_or_fav_by_user_id(user_id=user.id, fav=False)
 
 
 @log(logger)
-async def get_user_fav(user: User) -> list[Recent] | None:
+async def get_user_fav(user: UserORM) -> list[RecentORM] | None:
     """Get user favorite routes."""
     return await crud_recents.get_recent_or_fav_by_user_id(user_id=user.id, fav=True)
 
 
 @log(logger)
-async def update_recent(recent_id: int) -> Recent:
+async def update_recent(recent_id: int) -> RecentORM:
     """Update recent count and update date."""
     recent = await crud_recents.get_or_none(_id=recent_id)
     update_date_before = recent.updated_on
     logger.info(
         "Здесь должна происходить магия обновления даты. До обновления: "
         f"ID пользователя {recent.user_id}, ID маршрута {recent.route_id}"
-        f", дата создания {recent.added_on}, "
+        f", дата создания {recent.created_at}, "
         f"дата обновления {update_date_before}."
     )
 
@@ -96,17 +96,17 @@ async def update_recent(recent_id: int) -> Recent:
 @log(logger)
 async def add_or_update_recent(user_id: int, route_id: int):
     """Add or update user recent route."""
-    route_added: Recent | None = await crud_recents.route_in_recent(
+    route_added: RecentORM | None = await crud_recents.route_in_recent(
         user_id=user_id, route_id=route_id
     )
     if not route_added:
-        instance = Recent(user_id=user_id, route_id=route_id, count=1)
+        instance = RecentORM(user_id=user_id, route_id=route_id, count=1)
         await crud_recents.create(instance=instance)
     else:
         await update_recent(recent_id=route_added.id)
 
 
 @log(logger)
-async def add_recent_to_fav(recent_id: int) -> Recent:
+async def add_recent_to_fav(recent_id: int) -> RecentORM:
     """Add recent to user favorite routes."""
     return await crud_recents.add_recent_to_fav(recent_id=recent_id)

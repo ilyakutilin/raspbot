@@ -9,7 +9,7 @@ from raspbot.bot.constants import states
 from raspbot.bot.timetable import utils
 from raspbot.core import exceptions as exc
 from raspbot.core.logging import configure_logging
-from raspbot.db.models import Recent, Route
+from raspbot.db.models import RecentORM, RouteORM
 from raspbot.services.deptime import get_uid_by_time
 from raspbot.services.other_date import get_timetable_by_date
 from raspbot.services.routes import RouteRetriever
@@ -34,8 +34,8 @@ async def show_closest_departures_callback(
 
     Current state: TimetableState:exact_departure_info
     """
-    recent: Recent = await update_recent(recent_id=callback_data.recent_id)
-    route: Route = await route_retriever.get_route_from_db(route_id=recent.route_id)
+    recent: RecentORM = await update_recent(recent_id=callback_data.recent_id)
+    route: RouteORM = await route_retriever.get_route_from_db(route_id=recent.route_id)
     timetable_obj = Timetable(route=route, limit=settings.CLOSEST_DEP_LIMIT)
     await utils.process_timetable_callback(
         callback=callback, state=state, timetable_obj=timetable_obj
@@ -83,7 +83,7 @@ async def show_till_the_end_of_the_day_callback(
     timetable_obj: Timetable = await utils.get_timetable_object_from_state(state=state)
     timetable_obj = timetable_obj.unlimit()
     if timetable_obj.route.id != route_id:
-        route: Route = await route_retriever.get_route_from_db(route_id=route_id)
+        route: RouteORM = await route_retriever.get_route_from_db(route_id=route_id)
         timetable_obj = Timetable(route=route)
     timetable = await timetable_obj.timetable
     logger.debug(
@@ -132,7 +132,7 @@ async def show_tomorrow_timetable_callback(
     Current state: TimetableState:exact_departure_info
     """
     route_id: int = callback_data.route_id
-    route: Route = await route_retriever.get_route_from_db(route_id=route_id)
+    route: RouteORM = await route_retriever.get_route_from_db(route_id=route_id)
     tomorrow = dt.date.today() + dt.timedelta(days=1)
     timetable_obj = Timetable(route=route, date=tomorrow)
     await utils.process_timetable_callback(
@@ -151,7 +151,7 @@ async def show_other_date_timetable_callback(
     Current state: TimetableState:exact_departure_info
     """
     route_id: int = callback_data.route_id
-    route: Route = await route_retriever.get_route_from_db(route_id=route_id)
+    route: RouteORM = await route_retriever.get_route_from_db(route_id=route_id)
     await callback.message.answer(text=msg.TYPE_ARBITRARY_DATE, parse_mode="HTML")
     await callback.answer()
     await state.set_state(states.TimetableState.other_date)
@@ -165,7 +165,7 @@ async def select_date_timetable_by_text(message: types.Message, state: FSMContex
     Current state: TimetableState:other_date
     """
     user_data: dict = await state.get_data()
-    route: Route = user_data.get("route")
+    route: RouteORM = user_data.get("route")
     try:
         timetable_obj = get_timetable_by_date(
             route=route, user_raw_date_input=message.text

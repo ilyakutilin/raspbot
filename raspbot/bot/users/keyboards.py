@@ -4,14 +4,14 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from raspbot.bot.constants import buttons as btn
 from raspbot.bot.constants import callback as clb
 from raspbot.core.logging import configure_logging, log
-from raspbot.db.models import Recent
+from raspbot.db.models import RecentORM
 
 logger = configure_logging(name=__name__)
 
 
 @log(logger)
 def get_fav_or_recent_keyboard(
-    fav_or_recent_list: list[Recent],
+    fav_or_recent_list: list[RecentORM],
 ) -> types.InlineKeyboardMarkup:
     """Keyboard for favorite or recent routes."""
     builder = InlineKeyboardBuilder()
@@ -26,7 +26,9 @@ def get_fav_or_recent_keyboard(
 
 
 @log(logger)
-def add_recent_to_fav_keyboard(user_recent: list[Recent]) -> types.InlineKeyboardMarkup:
+def add_recent_to_fav_keyboard(
+    user_recent: list[RecentORM],
+) -> types.InlineKeyboardMarkup:
     """Keyboard for adding recent routes to favorite."""
     builder = InlineKeyboardBuilder()
     for recent in user_recent:

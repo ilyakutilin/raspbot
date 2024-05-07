@@ -8,8 +8,8 @@ from raspbot.apicalls.search import TransportTypes, search_between_stations
 from raspbot.bot.constants import messages as msg
 from raspbot.core.exceptions import InvalidTimeFormatError
 from raspbot.core.logging import configure_logging, log
-from raspbot.db.models import PointTypeEnum, Route
-from raspbot.db.routes.schema import RouteResponse, ThreadResponse
+from raspbot.db.models import PointTypeEnum, RouteORM
+from raspbot.db.routes.schema import RouteResponsePD, ThreadResponsePD
 from raspbot.services.pretty_day import prettify_day
 from raspbot.settings import settings
 
@@ -21,7 +21,7 @@ class Timetable:
 
     def __init__(
         self,
-        route: Route | RouteResponse,
+        route: RouteORM | RouteResponsePD,
         date: dt.date = dt.date.today(),
         limit: int | None = None,
         add_msg_text: str | None = None,
@@ -142,7 +142,7 @@ class Timetable:
         self,
         segment: dict,
         departure_time: dt.datetime | None = None,
-    ) -> ThreadResponse:
+    ) -> ThreadResponsePD:
         # TODO: Complete docstring
         # """
         # _summary_
@@ -177,7 +177,7 @@ class Timetable:
                 f"{ticket_price_dict['whole']}.{ticket_price_dict['cents']}"
             )
 
-            threadresponse = ThreadResponse(
+            threadresponse = ThreadResponsePD(
                 uid=thread["uid"],
                 number=thread["number"],
                 title=short_title if short_title else thread["title"],
@@ -209,7 +209,7 @@ class Timetable:
     @log(logger)
     def format_thread_list(
         self,
-        thread_list: list[ThreadResponse],
+        thread_list: list[ThreadResponsePD],
         max_length: int = settings.MAX_TG_MSG_LENGTH,
         max_threads_for_long_fmt: int = settings.MAX_THREADS_FOR_LONG_FMT,
     ) -> tuple[str]:
@@ -259,7 +259,7 @@ class Timetable:
         return ("\n".join([dep.str_time_with_express_type for dep in thread_list]),)
 
     @async_cached_property
-    async def _full_timetable(self) -> list[ThreadResponse]:
+    async def _full_timetable(self) -> list[ThreadResponsePD]:
         # TODO: Complete docstring
         # """_summary_
 
@@ -270,7 +270,7 @@ class Timetable:
             departure_code=self.route.departure_point.yandex_code,
             destination_code=self.route.destination_point.yandex_code,
         )
-        departures: list[ThreadResponse] = []
+        departures: list[ThreadResponsePD] = []
         for segment in timetable_dict["segments"]:
             raw_departure_time: str = segment["departure"]
             try:
@@ -307,7 +307,7 @@ class Timetable:
         return departures
 
     @async_property
-    async def timetable(self) -> list[ThreadResponse]:
+    async def timetable(self) -> list[ThreadResponsePD]:
         """Gets the timetable in the form of a list of ThreadResponse objects."""
         if self.limit:
             timetable = await self._full_timetable

@@ -3,7 +3,7 @@ import datetime as dt
 import raspbot.bot.constants.messages as msg
 import raspbot.core.exceptions as exc
 from raspbot.core.logging import configure_logging, log
-from raspbot.db.routes.schema import ThreadResponse
+from raspbot.db.routes.schema import ThreadResponsePD
 from raspbot.services.timetable import Timetable
 
 logger = configure_logging(name=__name__)
@@ -75,7 +75,7 @@ async def get_uid_by_time(user_raw_time_input: str, timetable_obj: Timetable) ->
     dep_time: dt.time = _convert_to_time(user_raw_time_input=user_raw_time_input)
     logger.debug(f"Looking for: {dep_time}")
     try:
-        departure: ThreadResponse = next(
+        departure: ThreadResponsePD = next(
             dep for dep in timetable if dep.departure.time() == dep_time
         )
     except StopIteration:
