@@ -100,6 +100,7 @@ TYPE_DEPARTURE = (
 )
 SAME_DEPARTURE = "Вы выбрали тот же самый рейс"
 CONT_NEXT_MSG = "Продолжение в следующем сообщении."
+CONTINUATION_MSG = "Продолжение расписания."
 _DATE_EXAMPLES = (
     '"<b>послезавтра</b>"\n"<b>суббота</b>" или "<b>сб</b>"\n'
     '"<b>25</b>" (число текущего месяца, или следующего, если в этом месяце '
@@ -183,7 +184,7 @@ class FormattedUnifiedThreadList(FormattedThreadList):
 
     @property
     def _simple_threads(self) -> str:
-        return "\n".join([dep.message_with_route for dep in self.thread_list])
+        return [dep.message_with_route for dep in self.thread_list]
 
     def station_to_settlement(self) -> str:
         """Returns the formatted message(s) for the station-to-settlement case.

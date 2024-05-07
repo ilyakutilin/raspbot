@@ -373,14 +373,21 @@ class Timetable:
 
         messages = []
         for i, msg_part in enumerate(thread_list):
-            cont_next_msg = (
-                f"\n\n{msg.CONT_NEXT_MSG}" if i != len(thread_list) - 1 else ""
-            )
-            messages.append(
-                f"{self.add_msg_text}"
-                f"{message_part_one.format(route=str(self.route))}\n\n{msg_part}"
-                f"\n\n{message_part_two}{cont_next_msg}"
-            )
+            if i == 0:
+                last_part = (
+                    message_part_two if len(thread_list) == 1 else msg.CONT_NEXT_MSG
+                )
+                messages.append(
+                    f"{self.add_msg_text}"
+                    f"{message_part_one.format(route=str(self.route))}\n\n{msg_part}"
+                    f"\n\n{last_part}"
+                )
+            elif 1 <= i < len(thread_list) - 1:
+                messages.append(f"{msg.CONTINUATION_MSG}\n\n{msg_part}")
+            else:
+                messages.append(
+                    f"{msg.CONTINUATION_MSG}\n\n{msg_part}\n\n{message_part_two}"
+                )
         return tuple(messages)
 
     def unlimit(self) -> Self:
