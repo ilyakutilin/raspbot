@@ -1,5 +1,6 @@
 import asyncio
 
+import asyncpg
 import pytest_asyncio
 from aiodocker import Docker
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
@@ -11,10 +12,21 @@ from raspbot.settings import BASE_DIR, settings
 
 ROOT_DIR = BASE_DIR.parent
 TEST_DB_PORT = 35432
-TEST_DB_URL = (
-    f"postgresql+asyncpg://{settings.POSTGRES_USER}:{settings.POSTGRES_PASSWORD}"
-    f"@{settings.DB_HOST}:{TEST_DB_PORT}/{settings.POSTGRES_DB}"
-)
+
+
+def get_test_db_url(
+    asyncpg: bool = True,
+    user: str = settings.POSTGRES_USER,
+    password: str = settings.POSTGRES_PASSWORD,
+    host: str = settings.DB_HOST,
+    port: int = TEST_DB_PORT,
+    db: str = settings.POSTGRES_DB,
+) -> str:
+    """Get a link for connecting to DB."""
+    return (
+        f"postgresql{'+asyncpg' if asyncpg else ''}://{user}:{password}"
+        f"@{host}:{port}/{db}"
+    )
 
 
 @pytest_asyncio.fixture(scope="session")
@@ -25,38 +37,59 @@ async def docker():
     await docker.close()
 
 
+async def wait_for_db_init():
+    """Waits for the container to start."""
+    while True:
+        try:
+            db_url = get_test_db_url(asyncpg=False)
+            await asyncpg.connect(db_url)
+            return True
+        except ConnectionError:
+            pass
+
+        await asyncio.sleep(1)
+
+
 @pytest_asyncio.fixture(scope="session")
 async def postgres_container(docker):
     """Docker DB container fixture."""
-    container = await docker.containers.create_or_replace(
-        name="postgres",
-        config={
-            "Image": "postgres:16.1-alpine",
-            "Env": [
-                f"POSTGRES_DB={settings.POSTGRES_DB}",
-                f"POSTGRES_USER={settings.POSTGRES_USER}",
-                f"POSTGRES_PASSWORD={settings.POSTGRES_PASSWORD}",
-                f"LC_COLLATE={settings.LC_COLLATE}",
-                f"LC_CTYPE={settings.LC_CTYPE}",
-            ],
-            "HostConfig": {
-                "PortBindings": {"5432/tcp": [{"HostPort": str(TEST_DB_PORT)}]}
+    try:
+        container = await docker.containers.create_or_replace(
+            name="postgres",
+            config={
+                "Image": "postgres:16.1-alpine",
+                "Env": [
+                    f"POSTGRES_DB={settings.POSTGRES_DB}",
+                    f"POSTGRES_USER={settings.POSTGRES_USER}",
+                    f"POSTGRES_PASSWORD={settings.POSTGRES_PASSWORD}",
+                    f"LC_COLLATE={settings.LC_COLLATE}",
+                    f"LC_CTYPE={settings.LC_CTYPE}",
+                ],
+                "HostConfig": {
+                    "PortBindings": {"5432/tcp": [{"HostPort": str(TEST_DB_PORT)}]}
+                },
             },
-        },
-    )
+        )
 
-    await container.start()
-    await asyncio.sleep(5)
-    yield container
-    await container.stop()
-    await container.delete(force=True)
+        # Start the container
+        await container.start()
+
+        # Wait until the connection to the DB can be established
+        await wait_for_db_init()
+
+        # Container is ready, yield it
+        yield container
+
+    finally:
+        await container.stop()
+        await container.delete(force=True)
 
 
 @pytest_asyncio.fixture(scope="session")
 async def engine(postgres_container):
     """DB engine fixture."""
     # https://docs.sqlalchemy.org/en/20/orm/extensions/asyncio.html#using-multiple-asyncio-event-loops  # noqa
-    engine = create_async_engine(TEST_DB_URL, poolclass=NullPool)
+    engine = create_async_engine(get_test_db_url(), poolclass=NullPool)
 
     async with engine.begin() as conn:
         await conn.run_sync(BaseORM.metadata.drop_all)
