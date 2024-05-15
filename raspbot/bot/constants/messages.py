@@ -166,6 +166,7 @@ class FormattedThreadList(ABC):
             split_thread_lists[split_thread_lists.index(tl)] = "\n".join(
                 dep for dep in tl
             )
+        split_thread_lists[0] = f"{basic_msg}{split_thread_lists[0]}"
         return tuple(split_thread_lists)
 
     @abstractmethod
@@ -186,7 +187,7 @@ class FormattedUnifiedThreadList(FormattedThreadList):
     def _simple_threads(self) -> str:
         return [dep.message_with_route for dep in self.thread_list]
 
-    def station_to_settlement(self) -> str:
+    def station_to_settlement(self) -> tuple[str]:
         """Returns the formatted message(s) for the station-to-settlement case.
 
         Departure point is a station, but the destination point is a settlement,
@@ -204,7 +205,7 @@ class FormattedUnifiedThreadList(FormattedThreadList):
             threads=self._simple_threads,
         )
 
-    def settlement_to_station(self) -> str:
+    def settlement_to_station(self) -> tuple[str]:
         """Returns the formatted message(s) for the settlement_to_station case.
 
         Departure point is a settlement, but the destination point is a station,
@@ -222,7 +223,7 @@ class FormattedUnifiedThreadList(FormattedThreadList):
             threads=self._simple_threads,
         )
 
-    def settlement_to_settlement(self) -> str:
+    def settlement_to_settlement(self) -> tuple[str]:
         """Returns the formatted message(s) for the settlement_to_settlement case.
 
         Both the departure and the destination points are settlements, thus both the
