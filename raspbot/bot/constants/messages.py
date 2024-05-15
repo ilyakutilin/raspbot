@@ -362,6 +362,13 @@ class ThreadInfo:
         """Initialize the ThreadInfo class instance."""
         self.thread = thread
 
+    def _format_price(self, price: float | None = None) -> str:
+        if not price:
+            price = self.thread.ticket_price
+        if price.is_integer():
+            return f"{int(price)} ₽"
+        return f"{price:.2f} ₽"
+
     def __str__(self):
         """Returns the string representation of the class instance."""
         express = ", " + self.thread.express_type if self.thread.express_type else ""
@@ -394,8 +401,7 @@ class ThreadInfo:
             f"{dest_platform}{dest_terminal}\n"
             f"<b>Останавливается:</b> {self.thread.stops}\n"
             f"<b>Время в пути:</b> {duration}\n"
-            # TODO: Ticket prices
-            f"<b>Стоимость билета:</b> {self.thread.ticket_price} руб.\n"
+            f"<b>Стоимость билета:</b> {self._format_price()}\n"
         )
 
 

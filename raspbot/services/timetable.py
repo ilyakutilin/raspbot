@@ -171,7 +171,6 @@ class Timetable:
             short_from_title = segment.get("from").get("short_title")
             short_to_title = segment.get("to").get("short_title")
             thread = segment["thread"]
-            # TODO: Ticket prices
             ticket_price_dict = segment["tickets_info"]["places"][0]["price"]
             ticket_price = float(
                 f"{ticket_price_dict['whole']}.{ticket_price_dict['cents']}"

@@ -44,7 +44,6 @@ class ThreadResponsePD(BaseModelPD):
     departure_terminal: str | None
     arrival_terminal: str | None
     duration: float
-    # TODO: Ticket prices
     ticket_price: float
 
     @property
