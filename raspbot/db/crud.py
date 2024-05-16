@@ -6,7 +6,10 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from raspbot.core.exceptions import AlreadyExistsError
+from raspbot.core.logging import configure_logging, log
 from raspbot.db.base import async_session_factory
+
+logger = configure_logging(__name__)
 
 DatabaseModel = TypeVar("DatabaseModel")
 
@@ -23,6 +26,7 @@ class CRUDBase(abc.ABC):
         self._model = model
         self._session = session
 
+    @log(logger)
     async def get_or_none(self, _id: int) -> DatabaseModel | None:
         """Gets the model object from the DB by its ID. Returns None if nonexistent."""
         async with self._session as session:
@@ -31,6 +35,7 @@ class CRUDBase(abc.ABC):
             )
             return db_obj.scalars().first()
 
+    @log(logger)
     async def create(self, instance: DatabaseModel) -> DatabaseModel:
         """Creates the new model object and saves to DB."""
         async with self._session as session:

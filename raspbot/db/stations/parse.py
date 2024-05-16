@@ -23,7 +23,7 @@ from raspbot.apicalls.base import get_response
 from raspbot.apicalls.search import TransportTypes
 from raspbot.bot.send_msg import send_telegram_message_to_admin
 from raspbot.core import exceptions as exc
-from raspbot.core.logging import configure_logging
+from raspbot.core.logging import configure_logging, log
 from raspbot.db.base import async_session_factory
 from raspbot.db.stations import models, schema
 from raspbot.db.stations.schema import RegionPD
@@ -32,6 +32,7 @@ from raspbot.settings import settings
 logger = configure_logging(__name__)
 
 
+@log(logger)
 def _log_object_creation(obj: object) -> None:
     """Logs object creation and raises exceptions."""
     if obj:
@@ -41,6 +42,7 @@ def _log_object_creation(obj: object) -> None:
         raise exc.SQLObjectError(f"FAILURE: object {obj} has NOT been created.")
 
 
+@log(logger)
 async def _instance_exists_in_database(
     session: AsyncSession, model: Type[DeclarativeMeta], **kwargs
 ) -> Type[DeclarativeMeta] | None:
@@ -54,6 +56,7 @@ async def _instance_exists_in_database(
     return existing_instance
 
 
+@log(logger)
 def _get_initial_data_dict(initial_data: Path | Any) -> dict | None:
     """Returns the initial data as a dictionary."""
     if isinstance(initial_data, Path):
@@ -64,6 +67,7 @@ def _get_initial_data_dict(initial_data: Path | Any) -> dict | None:
     return None
 
 
+@log(logger)
 async def _yield_regions_pd(
     initial_data: dict | Path | Any,
 ) -> AsyncGenerator[RegionPD, None]:
@@ -94,6 +98,7 @@ async def _yield_regions_pd(
                     yield region_pd
 
 
+@log(logger)
 async def _yield_regions_orm_and_add_to_db(
     region_generator: AsyncGenerator[schema.RegionPD, None], session: AsyncSession
 ) -> AsyncGenerator[tuple[int, schema.RegionPD], None]:
@@ -113,12 +118,17 @@ async def _yield_regions_orm_and_add_to_db(
         if existing_region:
             continue
         sql_obj = models.RegionORM(**attrs)
-        _log_object_creation(sql_obj)
+        try:
+            _log_object_creation(sql_obj)
+        except exc.SQLObjectError as e:
+            logger.error(e)
+            continue
         session.add(sql_obj)
         await session.flush()
         yield tuple((sql_obj.id, region))
 
 
+@log(logger)
 async def _yield_points_by_region_pd(
     regions_orm_generator: AsyncGenerator[tuple[int, schema.RegionPD], None],
     session: AsyncSession,
@@ -137,11 +147,16 @@ async def _yield_points_by_region_pd(
             settlements=region_pd_obj.settlements,
             stations=stations,
         )
-        _log_object_creation(points)
+        try:
+            _log_object_creation(points)
+        except exc.SQLObjectError as e:
+            logger.error(e)
+            continue
         yield points
 
 
-async def _add_points_to_db(
+@log(logger)
+async def _add_points_to_db(  # noqa: C901
     points_by_region_generator: AsyncGenerator[schema.PointsByRegionPD, None],
     session: AsyncSession,
 ) -> None:
@@ -165,7 +180,11 @@ async def _add_points_to_db(
             if existing_settlement:
                 continue
             sql_obj = models.PointORM(region=item.region_orm, **attrs)
-            _log_object_creation(sql_obj)
+            try:
+                _log_object_creation(sql_obj)
+            except exc.SQLObjectError as e:
+                logger.error(e)
+                continue
             session.add(sql_obj)
 
         for station in item.stations:
@@ -207,17 +226,23 @@ async def _add_points_to_db(
                 region=item.region_orm,
                 **attrs,
             )
-            _log_object_creation(sql_obj)
+            try:
+                _log_object_creation(sql_obj)
+            except exc.SQLObjectError as e:
+                logger.error(e)
+                continue
             session.add(sql_obj)
     await session.flush()
 
 
+@log(logger)
 async def _add_last_updated_time(session: AsyncSession) -> None:
     """Adds the date and time when the stations DB was last updated."""
     sql_obj = models.LastUpdatedORM()
     session.add(sql_obj)
 
 
+@log(logger)
 async def populate_db(initial_data: dict | Path) -> None:
     """Populates the stations DB with the initial data."""
     logger.debug("Ready for the DB population.")
@@ -256,7 +281,7 @@ async def populate_db(initial_data: dict | Path) -> None:
                 message=f"Station DB population failed: {e}"
             )
 
-        logger.debug("DB is now populated.")
+        logger.info("DB is now populated.")
 
 
 async def main() -> None:
@@ -265,7 +290,7 @@ async def main() -> None:
         endpoint=settings.STATIONS_LIST_ENDPOINT, headers=settings.headers
     )
 
-    logger.debug("Starting to populate the Stations DB.")
+    logger.info("Starting to populate the Stations DB.")
     await populate_db(initial_data)
 
 

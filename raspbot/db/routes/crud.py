@@ -2,9 +2,12 @@ from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
+from raspbot.core.logging import configure_logging, log
 from raspbot.db.base import async_session_factory
 from raspbot.db.crud import CRUDBase
 from raspbot.db.models import PointORM, RouteORM
+
+logger = configure_logging(__name__)
 
 
 class CRUDPoints(CRUDBase):
@@ -14,6 +17,7 @@ class CRUDPoints(CRUDBase):
         """Initializes CRUDPoints class instance."""
         super().__init__(PointORM, session)
 
+    @log(logger)
     async def get_points_by_title(
         self, title: str, strict_search: bool = False
     ) -> list[PointORM]:
@@ -62,6 +66,7 @@ class CRUDPoints(CRUDBase):
             points = await session.execute(query)
             return points.scalars().unique().all()
 
+    @log(logger)
     async def get_point_by_id(self, id: int) -> PointORM:
         """Gets point by ID."""
         async with self._session as session:
@@ -80,6 +85,7 @@ class CRUDRoutes(CRUDBase):
         """Initializes CRUDRoutes class instance."""
         super().__init__(RouteORM, session)
 
+    @log(logger)
     async def get_route_by_points(
         self, departure_point_id: int, destination_point_id: int
     ) -> RouteORM:
@@ -95,6 +101,7 @@ class CRUDRoutes(CRUDBase):
             )
             return route.scalars().first()
 
+    @log(logger)
     async def get_route_by_id(self, id: int) -> RouteORM:
         """Gets route by ID."""
         async with self._session as session:
