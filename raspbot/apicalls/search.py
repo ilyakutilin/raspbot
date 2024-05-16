@@ -58,12 +58,13 @@ _exception_log = deque(maxlen=s.API_EXCEPTION_THRESHOLD)
 _last_exception_time = None
 
 
+@log(logger)
 def _check_exception_threshold(
     exception_threshold: int = s.API_EXCEPTION_THRESHOLD,
     exception_window: dt.timedelta = dt.timedelta(
         minutes=s.API_EXCEPTION_WINDOW_MINUTES
     ),
-):
+) -> None:
     """Checks the API exception threshold and notifies admin if it's exceeded."""
     global _last_exception_time
     exception_window_minutes = exception_window.total_seconds() / 60
@@ -101,22 +102,22 @@ def _validate_arg(
     enums = {"format": Format, "lang": Lang, "transport_types": TransportTypes}
     if key == "date":
         if value < dt.date.today():
-            raise DateInThePastError("Дата поиска не может быть в прошлом.")
+            raise DateInThePastError("Search date cannot be in the past.")
     if key in enums.keys() and not isinstance(value, Enum):
         allowed_values = enums[key].list()
         if value not in allowed_values:
             raise InvalidValueError(
-                f"Значение {key} должно быть одним из: {allowed_values}"
+                f"Value for {key} can only be one of the following: {allowed_values}"
             )
-    # В key_str нужно убрать нижнее подчёркивание из поля "from_"
+    # Remove underscore from "from_" in key_str
     key_str = str(key).rstrip("_")
     value_str = str(value)
-    logger.debug(f"key_str = {key_str}, value_str = {value_str}")
+    logger.debug(f"{key_str=}, {value_str=}")
     return key_str, value_str
 
 
 @log(logger)
-async def search_between_stations(
+def _generate_url(
     from_: str,
     to: str,
     date: dt.datetime | None = None,
@@ -128,63 +129,78 @@ async def search_between_stations(
     add_days_mask: bool | None = None,
     result_timezone: str | None = None,
     transfers: bool | None = None,
-) -> Mapping:
-    """
-    Поиск расписания между станциями / городами.
+) -> str:
+    """Generate the URL for the search_between_stations API call.
 
-    Принимает на вход:
-        - from_ (строка): Яндекс-код пункта отправления в виде строки,
-          пример: "s2000006";
-        - to (строка): Яндекс-код пункта назначения в виде строки,
-          пример: "s9600721";
-        - date: дата в формате ISO 8601 (напр. YYYY-MM-DD), по умолчанию -
-          только прямые рейсы на все даты;
-        - format: строка или Enum (класс Format): json или xml;
-        - lang: строка или Enum (класс Lang), код языка по ISO 639: русский "ru_RU"
-          или украинский "uk_UA", по умолчанию - русский;
-        - transport_types: строка или Enum (класс TransportTypes): plane, train,
-          suburban, bus, water, helicopter, по умолчанию - поиск по всем типам;
-        - offset: int, смещение относительно первого результата поиска,
-          по умолчанию 0;
-        - limit: int, максимальное количество результатов поиска в ответе,
-          по умолчанию 100;
-        - add_days_mask: bool, календарь хождения для каждой нитки,
-          по умолчанию False;
-        - result_timezone: строка, часовой пояс, для которого следует указывать даты и
-          времена в ответе. По умолчанию - часовой пояс соответствующей станции;
-        - transfers: bool, признак, разрешающий добавить к результатам поиска маршруты
-          с пересадками. По умолчанию - False.
+    Args:
+        - from_ (str): Code of the departure point E.g. "s2000006".
+        - to (str): Code of the destination point. E.g. "s9600721".
+    Optional args:
+        - date (dt.datetime): The date of the search.
+          If None, API will default this to the general timetable for all dates.
+        - format (str | Format): The format of the response.
+          Can be either "json" or "xml". If None, API will
+          default this to "json".
+        - lang: (str | Lang), language code as per ISO 639: Russian "ru_RU"
+          or Ukraininan "uk_UA". If None, API will default this to Russian.
+        - transport_types: (str | TransportTypes): if None, API will
+          search for all transport types.
+        - offset: int: offset from trhe first search result.
+          If None, API will default this to 0.
+        - limit: int: max amount of results in response.
+          If None, API will default this to 100.
+        - add_days_mask: bool: whether a calendar will be shown for each thread.
+          If None, API will default this to False.
+        - result_timezone: str, timezone of the results. E.g. "Europe/Moscow".
+          See https://en.wikipedia.org/wiki/List_of_tz_database_time_zones#List,
+          column "TZ identifier". If None, API will default this to the timezone
+          of the corresponding point (station or settlement)
+        - transfers: bool: whether to show transfer threads.
+          If None, API will default this to False.
 
-    Возвращает:
-        Словарь с распианием между указанными пунктами в "сыром" виде.
+    Returns the string which is the URL for the search_between_stations API call.
     """
-    # Получаем локальные переменные функции, т.е. на данном этапе все переданные ей
-    # аргументы. Нужно получить их до объявления других переменных.
+    # Get the local function variables, which at this stage are just the args passed
+    # to it. We need to get them before we declare any other variables.
     args = locals().items()
     url_components = [f"{s.SEARCH_ENDPOINT}?"]
+    logger.debug("Starting processing args.")
     for key, value in args:
-        logger.debug(f"Аргумент {key}, значение {value}.")
+        logger.debug(f"Arg {key}, value {value}.")
         if value is not None:
-            logger.debug(
-                f"Поскольку значение {value} не None, приступаем к его валидации."
-            )
+            logger.debug(f"Since value {value} is not None, starting its validation.")
             try:
                 key_str, value_str = _validate_arg(key=key, value=value)
             except InvalidDataError as e:
                 logger.error(
-                    f"Значение '{value}' аргумента {key}, переданное в функцию "
-                    f"search_between_stations, некорректно: {e}"
+                    f"Value '{value}' of arg '{key}' passed to search_between_stations "
+                    f"is incorrect: {e}"
                 )
+                raise e
             logger.debug(
-                f"URL на данном этапе: {''.join([item for item in url_components])}; "
-                f"добавляем к нему это: {key_str}={value_str}&"
+                f"URL at this stage: {''.join([item for item in url_components])}; "
+                f"adding this: {key_str}={value_str}&"
             )
             url_components.append(f"{key_str}={value_str}&")
     url = "".join([item for item in url_components]).rstrip("&")
-    logger.info(f"Сформирован URL для поиска между пунктами: {url}")
+    logger.info(f"URL for search between points has been generated: {url}")
+    return url
 
+
+@log(logger)
+async def _get_raw_timetable(
+    url: str, headers: dict[str, str | bytes | None] = s.headers
+) -> Mapping:
+    """
+    Search for the timetable between two points.
+
+    Returns a dict with the timetable bewteen the points in raw format
+    as received from the API.
+    """
+    # Получаем локальные переменные функции, т.е. на данном этапе все переданные ей
+    # аргументы. Нужно получить их до объявления других переменных.
     try:
-        response = await get_response(endpoint=url, headers=s.headers)
+        response = await get_response(endpoint=url, headers=headers)
     except APIError as e:
         logger.error(f"API Exception: {e}")
         # exception_log is a global variable
@@ -194,11 +210,24 @@ async def search_between_stations(
     return response
 
 
+@log(logger)
+async def search_between_stations(*args, **kwargs) -> Mapping:
+    """
+    Search for the timetable between two points.
+
+    Returns a dict with the timetable bewteen the points in raw format
+    as received from the API.
+    """
+    url = _generate_url(*args, **kwargs)
+    return await _get_raw_timetable(url=url)
+
+
 if __name__ == "__main__":
     tt = asyncio.run(
         search_between_stations(
             from_="s9601728", to="s2000006", date=dt.date.today(), offset=100
         )
     )
-    with open(file="timetable.json", mode="w", encoding="UTF-8") as file:
+    tt_file = s.FILES_DIR / "timetable.json"
+    with open(file=tt_file, mode="w", encoding="UTF-8") as file:
         json.dump(obj=tt, fp=file, ensure_ascii=False, indent=2)
