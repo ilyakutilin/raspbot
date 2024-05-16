@@ -1,4 +1,5 @@
 import functools
+import inspect
 import logging
 from logging.handlers import RotatingFileHandler
 
@@ -31,28 +32,46 @@ def configure_logging(name: str, level: int = logging.DEBUG) -> logging.Logger:
 # Декоратор
 
 
-def log(logger: logging.Logger = None):
+def log(logger: logging.Logger = None):  # noqa: C901
     """Decorator for logging function calls, returns and raises."""
     if logger is None:
-        logger = logging.get_logger(__name__)
+        logger = logging.getLogger(__name__)
 
     def decorator_log(func):
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
+        def _get_signature(args, kwargs):
             args_repr = [repr(a) for a in args]
             kwargs_repr = [f"{k}={v!r}" for k, v in kwargs.items()]
-            signature = ", ".join(args_repr + kwargs_repr)
-            logger.debug(f"Функция {func.__name__} вызвана с аргументами {signature}.")
+            return ", ".join(args_repr + kwargs_repr)
+
+        @functools.wraps(func)
+        async def async_wrapper(*args, **kwargs):
+            signature = _get_signature(args, kwargs)
+            logger.debug(f"Function {func.__name__} is called with args {signature}.")
             try:
-                result = func(*args, **kwargs)
-                logger.debug(f"Результат функции {func.__name__}: {result}")
-                return result
+                result = await func(*args, **kwargs)
+                logger.debug(f"Function {func.__name__} returned {result}")
             except Exception as e:
                 logger.exception(
-                    f"В функции {func.__name__} вызвано исключение: {str(e)}"
+                    f"Exception {str(e)} was raised in function {func.__name__}."
                 )
                 raise e
+            return result
 
-        return wrapper
+        def sync_wrapper(*args, **kwargs):
+            signature = _get_signature(args, kwargs)
+            logger.debug(f"Function {func.__name__} is called with args {signature}.")
+            try:
+                result = func(*args, **kwargs)
+                logger.debug(f"Function {func.__name__} returned {result}")
+            except Exception as e:
+                logger.exception(
+                    f"Exception {str(e)} was raised in function {func.__name__}."
+                )
+                raise e
+            return result
+
+        if inspect.iscoroutinefunction(func):
+            return async_wrapper
+        return sync_wrapper
 
     return decorator_log
