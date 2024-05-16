@@ -1,3 +1,7 @@
+from raspbot.core.logging import configure_logging, log
+
+logger = configure_logging(__name__)
+
 special_cases = {
     "Еврейская автономная область": "ЕАО",
     "Кемеровская область - Кузбасс": "Кемеровская обл.",
@@ -14,6 +18,7 @@ shorteners = {
 }
 
 
+@log(logger)
 def get_short_region_title(region_title: str) -> str:
     """
     Генерирует короткое наименование региона для инлайн-кнопок бота.

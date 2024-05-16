@@ -277,28 +277,28 @@ def shorten_route_description(route_descr: str, limit: int) -> str:
     route_descr = _replace_special_phrases(
         string=route_descr, special_phrases=SPECIAL_PHRASES
     )
-    logger.debug(f"Описание после проверки на базовые паттерны и замены: {route_descr}")
+    logger.debug(
+        "Route description after checking for base patterns and replacements: "
+        f"{route_descr}"
+    )
 
     tokens = _split_string_into_tokens(string=route_descr)
     words, others = _distribute_tokens(tokens=tokens)
     logger.debug(
-        "После разделения токенов на слова и прочие компоненты: слова - "
-        f"{words}, прочее - {others}"
+        "After splitting the tokens into words and other components: "
+        f"{words=}, {others=}"
     )
 
     limit_multiplier = _get_limit_multiplier(
         words=words, others=others, string_limit=limit
     )
-    logger.debug(f"Коэффициент лимита слов: {limit_multiplier}")
+    logger.debug(f"Word limit multiplier: {limit_multiplier}")
 
     words = [(t[0], _shorten_word(t[1], limit_multiplier)) for t in words]
-    logger.debug(
-        f"После сокращения слов получилось следующие токены: слова - {words}, "
-        f"прочее - {others}"
-    )
+    logger.debug(f"Tokens after word shortening: {words=}, {others=}")
 
     short_route_descr = _combine(words=words, others=others)
-    logger.debug(f"Длина сокращенного описания маршрута: {len(short_route_descr)}")
+    logger.debug(f"Length of the shortened route description: {len(short_route_descr)}")
     return short_route_descr
 
 
