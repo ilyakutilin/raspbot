@@ -30,18 +30,39 @@ route_retriever = RouteRetriever()
 async def recent_command(message: types.Message):
     """Команда /recent."""
     user = await get_user_from_db(telegram_id=message.from_user.id)
+
     if not user:
+        logger.info(
+            f"New user detected: {message.from_user.full_name}, "
+            f"telegram id = {message.from_user.id}. Adding to DB."
+        )
         user = await create_user(tg_user=message.from_user)
+
+        logger.info(
+            f"User {user.full_name} TGID {user.telegram_id} issued a /recent command. "
+            "This is a new user, so there is no recent. Replying."
+        )
         await message.answer(
             text=msg.NO_RECENT, reply_markup=start_keyboard, parse_mode="HTML"
         )
         return
+
     user_recent = await get_user_recent(user=user)
+
     if not user_recent:
+        logger.info(
+            f"User {user.full_name} TGID {user.telegram_id} issued a /recent command. "
+            "User has no recent. Replying."
+        )
         await message.answer(
             text=msg.NO_RECENT, reply_markup=start_keyboard, parse_mode="HTML"
         )
+
     else:
+        logger.info(
+            f"User {user.full_name} TGID {user.telegram_id} issued a /recent command. "
+            "Replying."
+        )
         await message.answer(
             text=msg.RECENT_LIST,
             reply_markup=get_fav_or_recent_keyboard(fav_or_recent_list=user_recent),
@@ -52,22 +73,42 @@ async def recent_command(message: types.Message):
 async def fav_command(message: types.Message):
     """Команда /fav."""
     user = await get_user_from_db(telegram_id=message.from_user.id)
+
     if not user:
+        logger.info(
+            f"New user detected: {message.from_user.full_name}, "
+            f"telegram id = {message.from_user.id}. Adding to DB."
+        )
         user = await create_user(tg_user=message.from_user)
     user_recent = await get_user_recent(user=user)
+
     if not user_recent:
+        logger.info(
+            f"User {user.full_name} TGID {user.telegram_id} issued a /fav command. "
+            "User has no recent, therefore no fav. Replying."
+        )
         await message.answer(
             text=msg.NO_FAV_NO_RECENT, reply_markup=start_keyboard, parse_mode="HTML"
         )
         return
     user_fav = await get_user_fav(user=user)
+
     if not user_fav:
+        logger.info(
+            f"User {user.full_name} TGID {user.telegram_id} issued a /fav command. "
+            "User has recent, but no fav. Replying."
+        )
         await message.answer(
             text=msg.NO_FAV_YES_RECENT,
             reply_markup=add_recent_to_fav_keyboard(user_recent=user_recent),
             parse_mode="HTML",
         )
+
     else:
+        logger.info(
+            f"User {user.full_name} TGID {user.telegram_id} issued a /fav command. "
+            "Replying."
+        )
         await message.answer(
             text=msg.FAV_LIST,
             reply_markup=get_fav_or_recent_keyboard(fav_or_recent_list=user_fav),
@@ -81,6 +122,11 @@ async def add_recent_to_fav_callback(
     """User: clicks on the 'add to fav' button. Bot: added to favorites."""
     recent = await add_recent_to_fav(recent_id=callback_data.recent_id)
     route: RouteORM = await route_retriever.get_route_by_recent(recent_id=recent.id)
+
+    logger.info(
+        f"User {callback.from_user.full_name} TGID {callback.from_user.id} "
+        f"added the route '{route}' to favorites."
+    )
     await callback.message.answer(text=msg.ROUTE_ADDED_TO_FAV.format(route=route))
     await callback.answer()
 
@@ -94,5 +140,10 @@ async def add_all_recent_to_fav_callback(
     for recent_id in recent_ids:
         await add_recent_to_fav(recent_id=int(recent_id))
     msg_text = str(msg.MultipleToFav(amount=len(recent_ids)))
+
+    logger.info(
+        f"User {callback.from_user.full_name} TGID {callback.from_user.id} "
+        f"added all their recent routes to favorites."
+    )
     await callback.message.answer(text=msg_text)
     await callback.answer()

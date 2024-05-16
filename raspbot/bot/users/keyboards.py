@@ -22,6 +22,7 @@ def get_fav_or_recent_keyboard(
         )
     builder.button(text=btn.NEW_SEARCH, callback_data=clb.NEW_SEARCH)
     builder.adjust(1)
+    logger.info(f"Keyboard {__name__} contains {len(set(builder.buttons))} buttons.")
     return builder.as_markup()
 
 
@@ -44,4 +45,5 @@ def add_recent_to_fav_keyboard(
     builder.button(text=btn.NEW_SEARCH, callback_data=clb.NEW_SEARCH)
     ones = [1] * len(user_recent)
     builder.adjust(*ones, 2)
+    logger.info(f"Keyboard {__name__} contains {len(set(builder.buttons))} buttons.")
     return builder.as_markup()
