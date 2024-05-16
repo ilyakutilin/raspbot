@@ -1,11 +1,14 @@
 import time
 from abc import ABC, abstractmethod
 
+from raspbot.core.logging import configure_logging, log
 from raspbot.db.models import PointTypeEnum
 from raspbot.db.routes.schema import PointResponsePD, ThreadResponsePD
 from raspbot.services.shorteners.short_point import get_short_point_type
 from raspbot.services.split import split_string_list
 from raspbot.settings import settings
+
+logger = configure_logging(__name__)
 
 # START
 
@@ -155,6 +158,7 @@ class FormattedThreadList(ABC):
         """Returns the length of the list which is the number of timetable threads."""
         return len(self.thread_list)
 
+    @log(logger)
     def _split_threads(self, basic_msg: str, threads: list[str]) -> tuple[str]:
         split_at = self.max_length - len(basic_msg)
         split_thread_lists: list[list[str]] = split_string_list(
@@ -185,6 +189,7 @@ class FormattedUnifiedThreadList(FormattedThreadList):
     def _simple_threads(self) -> str:
         return [dep.message_with_route for dep in self.thread_list]
 
+    @log(logger)
     def station_to_settlement(self) -> tuple[str]:
         """Returns the formatted message(s) for the station-to-settlement case.
 
@@ -203,6 +208,7 @@ class FormattedUnifiedThreadList(FormattedThreadList):
             threads=self._simple_threads,
         )
 
+    @log(logger)
     def settlement_to_station(self) -> tuple[str]:
         """Returns the formatted message(s) for the settlement_to_station case.
 
@@ -221,6 +227,7 @@ class FormattedUnifiedThreadList(FormattedThreadList):
             threads=self._simple_threads,
         )
 
+    @log(logger)
     def settlement_to_settlement(self) -> tuple[str]:
         """Returns the formatted message(s) for the settlement_to_settlement case.
 
@@ -281,6 +288,7 @@ class FormattedDifferentThreadList(FormattedThreadList):
             "и прибытия!\nОни указаны в скобках рядом с каждым отправлением.\n\n"
         )
 
+    @log(logger)
     def station_to_settlement(self) -> tuple[str]:
         """Returns the formatted message(s) for the station-to-settlement case.
 
@@ -293,6 +301,7 @@ class FormattedDifferentThreadList(FormattedThreadList):
             threads=[dep.message_with_destination_station for dep in self.thread_list],
         )
 
+    @log(logger)
     def settlement_to_station(self) -> tuple[str]:
         """Returns the formatted message(s) for the settlement_to_station case.
 
@@ -305,6 +314,7 @@ class FormattedDifferentThreadList(FormattedThreadList):
             threads=[dep.message_with_departure_station for dep in self.thread_list],
         )
 
+    @log(logger)
     def settlement_one_to_settlement_diff(self) -> tuple[str]:
         """Returns the formatted message(s) for settlement_one_to_settlement_diff case.
 
@@ -320,6 +330,7 @@ class FormattedDifferentThreadList(FormattedThreadList):
             threads=[dep.message_with_destination_station for dep in self.thread_list],
         )
 
+    @log(logger)
     def settlement_diff_to_settlement_one(self) -> tuple[str]:
         """Returns the formatted message(s) for settlement_diff_to_settlement_one case.
 
@@ -335,6 +346,7 @@ class FormattedDifferentThreadList(FormattedThreadList):
             threads=[dep.message_with_departure_station for dep in self.thread_list],
         )
 
+    @log(logger)
     def settlement_diff_to_settlement_diff(self) -> tuple[str]:
         """Returns the formatted message(s) for settlement_diff_to_settlement_diff case.
 
@@ -360,6 +372,7 @@ class ThreadInfo:
         """Initialize the ThreadInfo class instance."""
         self.thread = thread
 
+    @log(logger)
     def _format_price(self, price: float | None = None) -> str:
         if not price:
             price = self.thread.ticket_price
@@ -387,6 +400,10 @@ class ThreadInfo:
             ", " + self.thread.arrival_terminal if self.thread.arrival_terminal else ""
         )
         duration = time.strftime("%H ч. %M мин.", time.gmtime(self.thread.duration))
+        logger.info(
+            "Timetable thread info has been generated within "
+            f"{self.__class__.__name__} class of {self.__class__.__module__} module."
+        )
         return (
             f"<b>№ поезда:</b> {self.thread.number}\n"
             f"<b>Тип поезда:</b> {self.thread.transport_subtype}{express}\n"
@@ -442,6 +459,7 @@ class MultipleToFav:
         """Initializes the MultipleToFav class instance."""
         self.amount: int = amount
 
+    @log(logger)
     def _words_with_endings(self):
         x = str(self.amount)
         if x == "1" or self.amount > 20 and x[-1] == "1":
@@ -452,6 +470,10 @@ class MultipleToFav:
 
     def __str__(self):
         """Returns the string representation of the class instance."""
+        logger.info(
+            "Message for adding multiple routes to favorites has been generated in "
+            f"{self.__class__.__name__} class of {self.__class__.__module__} module."
+        )
         return f"{self._words_with_endings()} в избранное 👍"
 
 
