@@ -32,6 +32,7 @@ class Timetable:
         self.limit = limit
         self.add_msg_text = (add_msg_text + "\n" * 2) if add_msg_text else ""
 
+    @log(logger)
     async def _get_timetable_dict(
         self,
         departure_code: str,
@@ -65,7 +66,7 @@ class Timetable:
         }
         timetable_dict: dict = await search_between_stations(**kwargs_dict)
         logger.debug(
-            "Элементов в изначальном словаре от Яндекса: "
+            "Number of elements in raw dict from API: "
             f"{len(timetable_dict['segments'])}."
         )
         try:
@@ -73,33 +74,35 @@ class Timetable:
             api_limit = int(timetable_dict["pagination"]["limit"])
             api_offset = int(timetable_dict["pagination"]["offset"])
             logger.debug(
-                f"Пагинация: total={api_total}, limit={api_limit}, offset={api_offset}"
+                f"Pagination: total={api_total}, limit={api_limit}, offset={api_offset}"
             )
         except KeyError as e:
             logger.error(
-                "Невозможно обработать информацию о пагинации из ответа Яндекса: "
-                f"не найдены соответствующие ключи в JSON ({e}). "
-                "Возвращаю словарь без изменений."
+                f"API pagination info handling failed: no keys in JSON ({e}). "
+                "Returning unchanged dict."
             )
-            logger.info(f"Кол-во рейсов от Яндекса: {len(timetable_dict['segments'])}")
+            logger.info(
+                f"Number of threads from API: {len(timetable_dict['segments'])}"
+            )
             return timetable_dict
         while api_total > (api_limit + api_offset):
             kwargs_dict["offset"] += api_limit
-            logger.debug(f"Новый оффсет: {kwargs_dict['offset']}")
+            logger.debug(f"New offset: {kwargs_dict['offset']}")
             next_dict: dict = await search_between_stations(**kwargs_dict)
             logger.debug(
-                f"Элементов в словаре с оффсетом {kwargs_dict['offset']}: "
+                f"Number of elements in a dict with offset {kwargs_dict['offset']}: "
                 f"{len(next_dict['segments'])}."
             )
             timetable_dict["segments"] += next_dict["segments"]
             logger.debug(
-                "Элементов в обновленном основном словаре: "
+                "Number of elements in renewed main dict: "
                 f"{len(timetable_dict['segments'])}"
             )
             api_offset += 100
-        logger.info(f"Кол-во рейсов от Яндекса: {len(timetable_dict['segments'])}")
+        logger.info(f"Number of threads from API: {len(timetable_dict['segments'])}")
         return timetable_dict
 
+    @log(logger)
     def _validate_time(self, raw_time: str) -> dt.datetime:
         """
         Превращает строку времени, пришедшую в сыром ответе, в объект datetime.
@@ -122,8 +125,7 @@ class Timetable:
             validated_time: dt.datetime = dt.datetime.fromisoformat(raw_time)
         except ValueError as e:
             logger.error(
-                f"Время пришло от Яндекса не в формате ISO: {raw_time}. "
-                f"Ошибка ValueError: {e}"
+                f"Time from API is not in ISO format: {raw_time}. ValueError: {e}"
             )
             try:
                 datetime_str = f"{self.date} {raw_time}"
@@ -132,12 +134,13 @@ class Timetable:
                 )
             except ValueError as e:
                 raise InvalidTimeFormatError(
-                    "Время пришло от Яндекса в некорректном формате. Поддерживаются "
-                    f"2023-05-29T12:48:00.000000 или 12:48:00, а пришло {raw_time}."
-                    f"Ошибка ValueError: {e}"
+                    "Time from API is in an incorrect format. "
+                    "2023-05-29T12:48:00.000000 or 12:48:00 are supported. Got "
+                    f"{raw_time}. ValueError: {e}"
                 )
         return validated_time
 
+    @log(logger)
     def _get_threadresponse_object(
         self,
         segment: dict,
@@ -277,8 +280,8 @@ class Timetable:
                 )
             except InvalidTimeFormatError as e:
                 logger.error(
-                    f"Время отправления {raw_departure_time} отбраковано "
-                    f"и не включено в вывод расписания. Причина: {e}."
+                    f"Departure {raw_departure_time} is rejected "
+                    f"and not included in a timetable. Reason: {e}."
                 )
             current_time = dt.datetime.now(tz=departure_time.tzinfo).strftime(
                 settings.DEP_FORMAT
@@ -286,8 +289,8 @@ class Timetable:
             departure_str = departure_time.strftime(settings.DEP_FORMAT)
             if departure_time < dt.datetime.now(tz=departure_time.tzinfo):
                 logger.debug(
-                    f"Отбраковка отправления: Текущее время: {current_time}, "
-                    f"поезд {departure_str} уже ушёл."
+                    f"Departure is rejected: Current time: {current_time}, "
+                    f"train {departure_str} has already left."
                 )
                 continue
             threadresponse = self._get_threadresponse_object(
@@ -296,11 +299,12 @@ class Timetable:
             )
             departures.append(threadresponse)
             logger.debug(
-                f"В список сегодняшних отправлений добавлено {threadresponse.str_time},"
-                f" объект типа {threadresponse.__class__.__name__}"
+                f"{threadresponse.str_time} has been included in the list of today's "
+                f"departures, object of type {threadresponse.__class__.__name__}"
             )
         logger.debug(
-            f"Финальное кол-во рейсов в списке на {self.date}: " f"{len(departures)}"
+            f"Final amount of departures in a timetable for {self.date}: "
+            f"{len(departures)}"
         )
         return departures
 
@@ -318,6 +322,7 @@ class Timetable:
         timetable = await self._full_timetable
         return len(timetable)
 
+    @log(logger)
     def _get_message_part_one(self, length: int, route: str) -> str:
         """Returns the first part of the message."""
         if self.date == dt.date.today():
@@ -332,6 +337,7 @@ class Timetable:
             )
         return message_part_one
 
+    @log(logger)
     def _get_message_part_two(self, length: int) -> str:
         """Returns the second part of the message."""
         if self.limit or length <= settings.CLOSEST_DEP_LIMIT:
@@ -353,6 +359,7 @@ class Timetable:
             собой общее отформатированное раписание, разбитое на части с учетом
             этого лимита.
         """
+        logger.debug("Generating a tuple of messages to be replied to the user.")
         route = str(self.route)
         timetable = await self.timetable
         if not self.timetable:
@@ -387,8 +394,10 @@ class Timetable:
                 messages.append(
                     f"{msg.CONTINUATION_MSG}\n\n{msg_part}\n\n{message_part_two}"
                 )
+        logger.debug(f"Tthere are {len(messages)} messages to be sent.")
         return tuple(messages)
 
+    @log(logger)
     def unlimit(self) -> Self:
         """Removes the closest departure limit from the timetable object."""
         self.limit = None

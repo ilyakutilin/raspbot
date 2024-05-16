@@ -1,3 +1,9 @@
+from raspbot.core.logging import configure_logging, log
+
+logger = configure_logging(__name__)
+
+
+@log(logger)
 def split_string_list(string_list: list[str], limit: int) -> list[list[str]]:
     """Split a list of strings into several lists each not exceeding the symbols limit.
 

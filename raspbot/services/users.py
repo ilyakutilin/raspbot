@@ -25,12 +25,11 @@ async def get_user_from_db(telegram_id: int) -> UserORM | None:
         telegram_id=telegram_id
     )
     if not user_from_db:
-        logger.debug(f"Пользователя с telegram_id {telegram_id} нет в базе.")
+        logger.debug(f"User with telegram_id {telegram_id} is not in DB.")
         return None
     logger.debug(
-        f"Пользователь с telegram_id {telegram_id} есть в базе, "
-        f"id {user_from_db.id}, его зовут "
-        f"{user_from_db.first_name} {user_from_db.last_name}."
+        f"User with telegram_id {telegram_id} exists in DB, "
+        f"DB id {user_from_db.id}, their name is {user_from_db.full_name}."
     )
     return user_from_db
 
@@ -76,20 +75,21 @@ async def update_recent(recent_id: int) -> RecentORM:
     recent = await crud_recents.get_or_none(_id=recent_id)
     update_date_before = recent.updated_at
     logger.info(
-        "Здесь должна происходить магия обновления даты. До обновления: "
-        f"ID пользователя {recent.user_id}, ID маршрута {recent.route_id}"
-        f", дата создания {recent.created_at}, "
-        f"дата обновления {update_date_before}."
+        "Updating the update date. Before update: "
+        f"User ID {recent.user_id}, Route ID {recent.route_id}"
+        f", created_at {recent.created_at}, updated_at {update_date_before}."
     )
 
     updated_element = await crud_recents.update_recent(recent_id=recent_id)
     if updated_element.updated_at == update_date_before:
         logger.warning(
-            "Обновление даты не получилось: дата по-прежнему "
+            "Date update failed. The updated_at is still "
             f"{updated_element.updated_at}."
         )
     else:
-        logger.info(f"Дата обновлена: новая дата {updated_element.updated_at}")
+        logger.info(
+            f"Date has been updated: new updated_at: {updated_element.updated_at}"
+        )
     return updated_element
 
 

@@ -1,7 +1,12 @@
 import datetime as dt
 import locale
 
+from raspbot.core.logging import configure_logging, log
 
+logger = configure_logging(__name__)
+
+
+@log(logger)
 def _get_date_in_words(date: dt.date) -> str:
     """Converts the date object into word representation in Russian.
 
@@ -17,6 +22,7 @@ def _get_date_in_words(date: dt.date) -> str:
     return f"{week_day}, {word_date[0].replace('0', '') + word_date[1:]} "
 
 
+@log(logger)
 def prettify_day(date: dt.date) -> str:
     """Inserts the pretty description of the date into a message.
 

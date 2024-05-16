@@ -1,3 +1,9 @@
+from raspbot.core.logging import configure_logging, log
+
+logger = configure_logging(__name__)
+
+
+@log(logger)
 def get_ending(num: int) -> str:
     """Get the ending for a Russian numeral."""
     if num % 100 in {11, 12, 13, 14}:
@@ -11,6 +17,7 @@ def get_ending(num: int) -> str:
     raise AssertionError("Unexpected error")
 
 
+@log(logger)
 def days_with_ending(num: int) -> str:
     """Get the number of days with the Russian word for 'days' in correct form."""
     if num % 100 in {11, 12, 13, 14}:
