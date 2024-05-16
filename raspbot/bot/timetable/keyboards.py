@@ -49,6 +49,8 @@ async def get_today_departures_keyboard(
         builder.adjust(*button_rows, 1, 2)
     else:
         builder.adjust(*button_rows, 2)
+
+    logger.info(f"Keyboard {__name__} contains {len(set(builder.buttons))} buttons.")
     return builder.as_markup()
 
 
@@ -63,6 +65,8 @@ async def get_date_departures_keyboard(
         callback_data=clb.OtherDateTimetableCallbackFactory(route_id=route_id),
     )
     builder.adjust(1)
+
+    logger.info(f"Keyboard {__name__} contains {len(set(builder.buttons))} buttons.")
     return builder.as_markup()
 
 

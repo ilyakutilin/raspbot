@@ -5,6 +5,7 @@ from aiogram.fsm.context import FSMContext
 
 from raspbot.bot.constants import messages as msg
 from raspbot.bot.constants import states
+from raspbot.bot.send_msg import send_telegram_message_to_admin
 from raspbot.bot.timetable import keyboards as kb
 from raspbot.core import exceptions as exc
 from raspbot.core.logging import configure_logging
@@ -49,6 +50,11 @@ async def process_timetable_callback(
     """Answers the callback based on the provided Timetable object."""
     await _answer_with_timetable(timetable_obj, callback.message)
     await callback.answer()
+
+    logger.info(
+        "Setting state to 'exact_departure_info' and updating the state data with "
+        "the Timetable object."
+    )
     await state.set_state(states.TimetableState.exact_departure_info)
     await state.update_data(timetable_obj=timetable_obj)
 
@@ -65,24 +71,16 @@ async def process_timetable_message(
 
 
 async def get_timetable_object_from_state(state: FSMContext) -> Timetable | None:
-    """Get the timetable object from the FSM Context state dictionary.
-
-    Args:
-        state: current FSMContext
-
-    Returns:
-        Timetable object or None
-
-    """
+    """Get the timetable object from the FSM Context state dictionary."""
     user_data: dict = await state.get_data()
     try:
         timetable_obj: Timetable = user_data["timetable_obj"]
     except TypeError as e:
         logger.error(f"user_data is not a dict: {e}")
-        return None
+        raise exc.UserDataNotADictError
     except KeyError:
         logger.error("There is no 'timetable_obj' key in the user_data dict.")
-        return None
+        raise exc.NoKeyError
     return timetable_obj
 
 
@@ -99,8 +97,14 @@ async def show_dep_info(
     try:
         dep_info: ThreadResponsePD = next(dep for dep in timetable if dep.uid == uid)
     except StopIteration:
-        # TODO: Complete error handling
-        logger.error("StopIteration error")
+        error_msg = (
+            f"UID {uid} provided by the callback and passed to {__name__} is not "
+            f"found in the timetable {timetable_obj}."
+        )
+        logger.error(error_msg)
+        await send_telegram_message_to_admin(error_msg)
+        await message.answer(msg.ERROR)
+
     msg_obj = msg.ThreadInfo(thread=dep_info)
     if full_kb:
         reply_markup = await kb.get_separate_departure_keyboard(

@@ -36,7 +36,16 @@ async def show_closest_departures_callback(
     """
     recent: RecentORM = await update_recent(recent_id=callback_data.recent_id)
     route: RouteORM = await route_retriever.get_route_from_db(route_id=recent.route_id)
+    logger.info(
+        f"User {callback.from_user.full_name} TGID {callback.from_user.id} "
+        f"selected route {route} from an inline keyboard."
+    )
     timetable_obj = Timetable(route=route, limit=settings.CLOSEST_DEP_LIMIT)
+    logger.info(
+        f"Timetable_object for route {route} for today with threads limit of "
+        f"{settings.CLOSEST_DEP_LIMIT} created: {timetable_obj}. "
+        "Now replying to the user with this timetable."
+    )
     await utils.process_timetable_callback(
         callback=callback, state=state, timetable_obj=timetable_obj
     )
@@ -52,8 +61,18 @@ async def show_departure_callback(
 
     Current state: TimetableState:exact_departure_info
     """
-    timetable_obj: Timetable = await utils.get_timetable_object_from_state(state=state)
+    try:
+        timetable_obj: Timetable = await utils.get_timetable_object_from_state(
+            state=state
+        )
+    except exc.InternalError:
+        await callback.message.answer(msg.ERROR)
     uid: str = callback_data.uid
+
+    logger.info(
+        f"User {callback.from_user.full_name} TGID {callback.from_user.id} "
+        f"selected a departure from an inline keyboard. Replying with departure info."
+    )
     await utils.show_dep_info(
         timetable_obj=timetable_obj, uid=uid, message=callback.message
     )
@@ -66,6 +85,10 @@ async def same_departure_callback(callback: types.CallbackQuery, state: FSMConte
 
     Current state: TimetableState:exact_departure_info
     """
+    logger.info(
+        f"User {callback.from_user.full_name} TGID {callback.from_user.id} "
+        "clicked on the same departure. Replying with an error message."
+    )
     await callback.answer(text=msg.SAME_DEPARTURE, show_alert=True)
 
 
@@ -80,15 +103,23 @@ async def show_till_the_end_of_the_day_callback(
     Current state: TimetableState:exact_departure_info
     """
     route_id: int = callback_data.route_id
-    timetable_obj: Timetable = await utils.get_timetable_object_from_state(state=state)
+
+    try:
+        timetable_obj: Timetable = await utils.get_timetable_object_from_state(
+            state=state
+        )
+    except exc.InternalError:
+        await callback.message.answer(msg.ERROR)
+
     timetable_obj = timetable_obj.unlimit()
     if timetable_obj.route.id != route_id:
         route: RouteORM = await route_retriever.get_route_from_db(route_id=route_id)
         timetable_obj = Timetable(route=route)
-    timetable = await timetable_obj.timetable
-    logger.debug(
-        "This is what I pass to the process_timetable_callback function after "
-        f"unlimiting: {len(timetable)}, last departure: {timetable[-1]}"
+
+    logger.info(
+        f"User {callback.from_user.full_name} TGID {callback.from_user.id} "
+        "clicked on an inline keyboard button to see the full timetable for "
+        f"route {timetable_obj.route} for today. Replying with full timetable."
     )
     await utils.process_timetable_callback(
         callback=callback, state=state, timetable_obj=timetable_obj
@@ -105,10 +136,20 @@ async def select_departure_info_by_text(message: types.Message, state: FSMContex
 
     Current state: TimetableState:exact_departure_info
     """
-    timetable_obj: Timetable = await utils.get_timetable_object_from_state(state=state)
+    try:
+        timetable_obj: Timetable = await utils.get_timetable_object_from_state(
+            state=state
+        )
+    except exc.InternalError:
+        await message.answer(msg.ERROR)
+
     timetable_obj = timetable_obj.unlimit()
-    timetable = await timetable_obj.timetable
-    logger.debug(f"timetable_obj has {len(timetable)} elements.")
+
+    logger.info(
+        f"User {message.from_user.full_name} TGID {message.from_user.id} "
+        f"entered the time '{message.text}'. Parsing user input and replying "
+        "with the departure info."
+    )
     try:
         uid: str = await get_uid_by_time(
             user_raw_time_input=message.text, timetable_obj=timetable_obj
@@ -135,6 +176,12 @@ async def show_tomorrow_timetable_callback(
     route: RouteORM = await route_retriever.get_route_from_db(route_id=route_id)
     tomorrow = dt.date.today() + dt.timedelta(days=1)
     timetable_obj = Timetable(route=route, date=tomorrow)
+
+    logger.info(
+        f"User {callback.from_user.full_name} TGID {callback.from_user.id} "
+        "clicked on an inline keyboard button to see timetable for "
+        f"route {timetable_obj.route} for tomorrow. Replying with the timetable."
+    )
     await utils.process_timetable_callback(
         callback=callback, state=state, timetable_obj=timetable_obj
     )
@@ -146,12 +193,18 @@ async def show_other_date_timetable_callback(
     callback_data: clb.OtherDateTimetableCallbackFactory,
     state: FSMContext,
 ):
-    """User: clicks on button to see timetable for another date. Bot: here you go.
+    """User: clicks on button to see timetable for another date. Bot: enter the date.
 
     Current state: TimetableState:exact_departure_info
     """
     route_id: int = callback_data.route_id
     route: RouteORM = await route_retriever.get_route_from_db(route_id=route_id)
+
+    logger.info(
+        f"User {callback.from_user.full_name} TGID {callback.from_user.id} "
+        f"clicked on an inline keyabord button to see the timetable for route {route} "
+        "for an arbitrary date. Replying that they now need to input a date."
+    )
     await callback.message.answer(text=msg.TYPE_ARBITRARY_DATE, parse_mode="HTML")
     await callback.answer()
     await state.set_state(states.TimetableState.other_date)
@@ -166,6 +219,12 @@ async def select_date_timetable_by_text(message: types.Message, state: FSMContex
     """
     user_data: dict = await state.get_data()
     route: RouteORM = user_data.get("route")
+
+    logger.info(
+        f"User {message.from_user.full_name} TGID {message.from_user.id} "
+        f"entered the date '{message.text}'. Parsing user input and replying "
+        "with the timetable."
+    )
     try:
         timetable_obj = get_timetable_by_date(
             route=route, user_raw_date_input=message.text

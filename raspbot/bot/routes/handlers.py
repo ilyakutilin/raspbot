@@ -161,10 +161,11 @@ async def choose_departure_from_multiple_callback(
     await callback.message.answer(text=f"{msg_text}\n{msg.INPUT_DESTINATION_POINT}")
     await callback.answer()
 
-    logger.debug("UPdating the state data with the selected departure point.")
+    logger.info(
+        "Updating the state data with the selected departure point "
+        "and setting state to 'selecting_destination_point'."
+    )
     await state.update_data(departure_point=selected_departure)
-
-    logger.info("Setting state to 'selecting_destination_point'.")
     await state.set_state(states.RouteState.selecting_destination_point)
 
 
@@ -203,16 +204,15 @@ async def choose_destination_from_multiple_callback(
         departure_point=departure_point, destination_point=selected_point, user=user
     )
 
-    logger.info(
-        f"Creating a Timetable object for route {route} for today with threads limit "
-        f"{settings.CLOSEST_DEP_LIMIT}."
-    )
     timetable_obj = Timetable(
         route=route, limit=settings.CLOSEST_DEP_LIMIT, add_msg_text=str(msg_text)
     )
-    logger.info(f"Timetable_object created: {timetable_obj}")
+    logger.info(
+        f"Timetable_object for route {route} for today with threads limit of "
+        f"{settings.CLOSEST_DEP_LIMIT} created: {timetable_obj}. "
+        "Now replying to the user with this timetable."
+    )
 
-    logger.info("Replying to the user with the timetable.")
     await process_timetable_callback(
         callback=callback,
         state=state,

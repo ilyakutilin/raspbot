@@ -98,3 +98,11 @@ class AlreadyExistsError(DBError):
 
 class InternalError(Exception):
     """Base class for internal exceptions."""
+
+
+class UserDataNotADictError(InternalError):
+    """Raised if the user data is not a dict."""
+
+
+class NoKeyError(InternalError):
+    """Raised if the key is not in the dict."""
