@@ -1,16 +1,19 @@
 import asyncio
-import datetime
+import datetime as dt
 import json
+from collections import deque
 from enum import Enum
 from typing import Mapping
 
 from raspbot.apicalls.base import get_response
+from raspbot.bot.send_msg import send_telegram_message_to_admin
 from raspbot.core.exceptions import (
+    APIError,
     DateInThePastError,
     InvalidDataError,
     InvalidValueError,
 )
-from raspbot.core.logging import configure_logging
+from raspbot.core.logging import configure_logging, log
 from raspbot.settings import settings as s
 
 logger = configure_logging(name=__name__)
@@ -50,6 +53,34 @@ class TransportTypes(Args):
     HELICOPTER = "helicopter"
 
 
+# Global API connectivity related variables
+_exception_log = deque(maxlen=s.API_EXCEPTION_THRESHOLD)
+_last_exception_time = None
+
+
+def _check_exception_threshold(
+    exception_threshold: int = s.API_EXCEPTION_THRESHOLD,
+    exception_window: dt.timedelta = dt.timedelta(
+        minutes=s.API_EXCEPTION_WINDOW_MINUTES
+    ),
+):
+    """Checks the API exception threshold and notifies admin if it's exceeded."""
+    global _last_exception_time
+    exception_window_minutes = exception_window.total_seconds() / 60
+    if len(_exception_log) >= exception_threshold:
+        _last_exception_time = _exception_log[-1]
+        if dt.datetime.now() - _last_exception_time <= exception_window:
+            send_telegram_message_to_admin(
+                f"There were more than {exception_threshold} API errors in the last "
+                f"{exception_window_minutes} minutes."
+            )
+    logger.debug(
+        f"Number of API exceptions within the last {exception_window_minutes} minutes: "
+        f"{len(_exception_log)}."
+    )
+
+
+@log(logger)
 def _validate_arg(
     key: str,
     value: object,
@@ -69,7 +100,7 @@ def _validate_arg(
     """
     enums = {"format": Format, "lang": Lang, "transport_types": TransportTypes}
     if key == "date":
-        if value < datetime.date.today():
+        if value < dt.date.today():
             raise DateInThePastError("Дата поиска не может быть в прошлом.")
     if key in enums.keys() and not isinstance(value, Enum):
         allowed_values = enums[key].list()
@@ -84,10 +115,11 @@ def _validate_arg(
     return key_str, value_str
 
 
+@log(logger)
 async def search_between_stations(
     from_: str,
     to: str,
-    date: datetime.datetime | None = None,
+    date: dt.datetime | None = None,
     format: str | Format | None = None,
     lang: str | Lang | None = None,
     transport_types: str | TransportTypes | None = None,
@@ -150,14 +182,22 @@ async def search_between_stations(
             url_components.append(f"{key_str}={value_str}&")
     url = "".join([item for item in url_components]).rstrip("&")
     logger.info(f"Сформирован URL для поиска между пунктами: {url}")
-    response = await get_response(endpoint=url, headers=s.headers)
+
+    try:
+        response = await get_response(endpoint=url, headers=s.headers)
+    except APIError as e:
+        logger.error(f"API Exception: {e}")
+        # exception_log is a global variable
+        _exception_log.append(dt.datetime.now())
+        _check_exception_threshold()
+        raise e
     return response
 
 
 if __name__ == "__main__":
     tt = asyncio.run(
         search_between_stations(
-            from_="s9601728", to="s2000006", date=datetime.date.today(), offset=100
+            from_="s9601728", to="s2000006", date=dt.date.today(), offset=100
         )
     )
     with open(file="timetable.json", mode="w", encoding="UTF-8") as file:

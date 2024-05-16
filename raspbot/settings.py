@@ -23,6 +23,8 @@ class Settings(BaseSettings):
     SCHEDULE_ENDPOINT: str = "https://api.rasp.yandex.net/v3.0/schedule/"
     THREAD_INFO_ENDPOINT: str = "https://api.rasp.yandex.net/v3.0/thread/"
     STATIONS_LIST_ENDPOINT: str = "https://api.rasp.yandex.net/v3.0/stations_list/"
+    API_EXCEPTION_THRESHOLD: int = 10
+    API_EXCEPTION_WINDOW_MINUTES: int = 5
 
     # Files and directories
     FILES_DIR: str | Path = BASE_DIR / "files"
