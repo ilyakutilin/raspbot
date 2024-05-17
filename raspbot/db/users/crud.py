@@ -2,7 +2,7 @@ from sqlalchemy import and_, desc, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
-from raspbot.core.logging import configure_logging, log
+from raspbot.core.logging import configure_logging
 from raspbot.db.base import async_session_factory
 from raspbot.db.crud import CRUDBase
 from raspbot.db.models import RecentORM, RouteORM, UserORM
@@ -18,7 +18,6 @@ class CRUDUsers(CRUDBase):
         """Initializes CRUDUsers class instance."""
         super().__init__(UserORM, session)
 
-    @log(logger)
     async def get_user_by_telegram_id(self, telegram_id: int) -> UserORM | None:
         """Gets user by Telegram ID."""
         async with self._session as session:
@@ -40,7 +39,6 @@ class CRUDRecents(CRUDBase):
         """Initializes CRUDRecents class instance."""
         super().__init__(RecentORM, session)
 
-    @log(logger)
     async def get_recent_or_fav_by_user_id(
         self, user_id: int, fav: bool = False
     ) -> list[RecentORM]:
@@ -66,7 +64,6 @@ class CRUDRecents(CRUDBase):
             )
             return result.scalars().unique().all()
 
-    @log(logger)
     async def route_in_recent(self, user_id: int, route_id: int) -> RecentORM | None:
         """Checks if a route is in the recents of a user."""
         async with self._session as session:
@@ -77,7 +74,6 @@ class CRUDRecents(CRUDBase):
             )
             return query.scalars().first()
 
-    @log(logger)
     async def update_recent(self, recent_id: RecentORM) -> RecentORM:
         """Updates recent 'count' and 'updated_at'."""
         async with self._session as session:
@@ -91,7 +87,6 @@ class CRUDRecents(CRUDBase):
             recent_db_new: RecentORM = await self.get_or_none(_id=recent_id)
             return recent_db_new
 
-    @log(logger)
     async def add_recent_to_fav(self, recent_id: int) -> RecentORM:
         """Adds a recent to favorites."""
         async with self._session as session:
