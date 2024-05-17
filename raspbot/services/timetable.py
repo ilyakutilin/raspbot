@@ -169,6 +169,7 @@ class Timetable:
         except ValueError:  # TODO: Complete Exception handling
             logger.error("Error")
 
+        # FIXME: If anything is missing in the dict from API, it will raise an error
         try:
             short_title = segment.get("thread").get("short_title")
             short_from_title = segment.get("from").get("short_title")
