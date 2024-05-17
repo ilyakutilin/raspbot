@@ -170,7 +170,7 @@ class RouteFinder:
         else:
             logger.info(
                 f"Route from {dep_st_or_stl} {departure_point.title} to "
-                f"{dest_st_or_stl} {destination_point.title} does not exist yet."
+                f"{dest_st_or_stl} {destination_point.title} does not exist yet. "
                 "Creating new route."
             )
             instance = RouteORM(

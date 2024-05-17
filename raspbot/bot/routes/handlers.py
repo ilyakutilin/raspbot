@@ -152,7 +152,7 @@ async def choose_departure_from_multiple_callback(
     )
     logger.info(
         f"User {callback.from_user.full_name} TGID {callback.from_user.id} "
-        f"selected the departure point '{selected_departure.title}'."
+        f"selected the departure point '{selected_departure.title}'. "
         "Replying that they need to input a destinaton point now."
     )
     msg_text: str = msg.SinglePointFound(
