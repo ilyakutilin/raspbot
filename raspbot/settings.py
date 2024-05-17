@@ -42,6 +42,7 @@ class Settings(BaseSettings):
     EMAIL_PORT: int
     EMAIL_USER: str
     EMAIL_PASSWORD: str
+    EMAIL_TO: str
 
     # Telegram API
     MAX_TG_MSG_LENGTH: int = 4096
