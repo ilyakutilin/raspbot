@@ -14,9 +14,7 @@ class Settings(BaseSettings):
     # Keys and tokens
     YANDEX_KEY: str
     TELEGRAM_TOKEN: str
-    TELEGRAM_CHAT_ID: str
     TELEGRAM_TESTENV_TOKEN: str = ""
-    TELEGRAM_TESTENV_CHAT_ID: str = ""
 
     # Endpoints and Headers
     SEARCH_ENDPOINT: str = "https://api.rasp.yandex.net/v3.0/search/"
@@ -37,6 +35,13 @@ class Settings(BaseSettings):
     DB_PORT: str
     LC_COLLATE: str = "ru_RU.UTF-8"
     LC_CTYPE: str = "ru_RU.UTF-8"
+
+    # Email
+    EMAIL_FROM: str
+    EMAIL_HOST: str
+    EMAIL_PORT: int
+    EMAIL_USER: str
+    EMAIL_PASSWORD: str
 
     # Telegram API
     MAX_TG_MSG_LENGTH: int = 4096
