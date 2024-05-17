@@ -5,6 +5,8 @@ from logging.handlers import RotatingFileHandler
 
 from raspbot.settings import settings
 
+logging.getLogger("sqlalchemy.engine.Engine").setLevel(logging.WARNING)
+
 
 def configure_logging(name: str, level: int = logging.DEBUG) -> logging.Logger:
     """Logging configuration."""
