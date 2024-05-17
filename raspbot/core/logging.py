@@ -52,12 +52,12 @@ def log(logger: logging.Logger = None):  # noqa: C901
             try:
                 result = await func(*args, **kwargs)
                 logger.debug(f"Function {func.__name__} returned {result}")
+                return result
             except Exception as e:
                 logger.exception(
                     f"Exception {str(e)} was raised in function {func.__name__}."
                 )
                 raise e
-            return result
 
         def sync_wrapper(*args, **kwargs):
             signature = _get_signature(args, kwargs)
@@ -65,12 +65,12 @@ def log(logger: logging.Logger = None):  # noqa: C901
             try:
                 result = func(*args, **kwargs)
                 logger.debug(f"Function {func.__name__} returned {result}")
+                return result
             except Exception as e:
                 logger.exception(
                     f"Exception {str(e)} was raised in function {func.__name__}."
                 )
                 raise e
-            return result
 
         if inspect.iscoroutinefunction(func):
             return async_wrapper
