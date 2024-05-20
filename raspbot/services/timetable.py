@@ -10,7 +10,7 @@ from raspbot.core.exceptions import InvalidTimeFormatError
 from raspbot.core.logging import configure_logging, log
 from raspbot.db.models import PointTypeEnum, RouteORM
 from raspbot.db.routes.schema import RouteResponsePD, ThreadResponsePD
-from raspbot.services.pretty_day import prettify_day
+from raspbot.services.prettify_datetimes import prettify_day
 from raspbot.settings import settings
 
 logger = configure_logging(name=__name__)

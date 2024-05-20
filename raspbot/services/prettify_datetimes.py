@@ -38,3 +38,19 @@ def prettify_day(date: dt.date) -> str:
     if date == dt.date.today() + dt.timedelta(2):
         return f"послезавтра, {word_date}"
     return word_date
+
+
+@log(logger)
+def prettify_time(seconds: int) -> str:
+    """Inserts the pretty description of the time into a message."""
+    if seconds < 60:
+        return f"{seconds} seconds"
+    if seconds < 3600:
+        minutes = int(seconds // 60)
+        remaining_seconds = seconds % 60
+        return f"{minutes} minutes {remaining_seconds:.2f} seconds"
+    hours = int(seconds // 3600)
+    remaining_seconds = seconds % 3600
+    minutes = int(remaining_seconds // 60)
+    remaining_seconds = remaining_seconds % 60
+    return f"{hours} hours {minutes:.2f} minutes {remaining_seconds:.2f} seconds"
