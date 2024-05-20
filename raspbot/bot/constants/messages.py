@@ -159,17 +159,14 @@ class FormattedThreadList(ABC):
         return len(self.thread_list)
 
     @log(logger)
-    def _split_threads(self, basic_msg: str, threads: list[str]) -> tuple[str]:
+    def _split_threads(self, basic_msg: str, threads: list[str]) -> tuple[str, ...]:
         split_at = self.max_length - len(basic_msg)
         split_thread_lists: list[list[str]] = split_string_list(
             string_list=threads, limit=split_at
         )
-        for tl in split_thread_lists:
-            split_thread_lists[split_thread_lists.index(tl)] = "\n".join(
-                dep for dep in tl
-            )
-        split_thread_lists[0] = f"{basic_msg}{split_thread_lists[0]}"
-        return tuple(split_thread_lists)
+        joined_thread_lists: list[str] = ["\n".join(tl) for tl in split_thread_lists]
+        joined_thread_lists[0] = f"{basic_msg}{joined_thread_lists[0]}"
+        return tuple(joined_thread_lists)
 
     @abstractmethod
     def station_to_settlement(self) -> str:
@@ -186,11 +183,11 @@ class FormattedUnifiedThreadList(FormattedThreadList):
     """Class for formatting threads with the same departure and the same destination."""
 
     @property
-    def _simple_threads(self) -> str:
+    def _simple_threads(self) -> list[str]:
         return [dep.message_with_route for dep in self.thread_list]
 
     @log(logger)
-    def station_to_settlement(self) -> tuple[str]:
+    def station_to_settlement(self) -> tuple[str, ...]:
         """Returns the formatted message(s) for the station-to-settlement case.
 
         Departure point is a station, but the destination point is a settlement,
@@ -209,7 +206,7 @@ class FormattedUnifiedThreadList(FormattedThreadList):
         )
 
     @log(logger)
-    def settlement_to_station(self) -> tuple[str]:
+    def settlement_to_station(self) -> tuple[str, ...]:
         """Returns the formatted message(s) for the settlement_to_station case.
 
         Departure point is a settlement, but the destination point is a station,
@@ -228,7 +225,7 @@ class FormattedUnifiedThreadList(FormattedThreadList):
         )
 
     @log(logger)
-    def settlement_to_settlement(self) -> tuple[str]:
+    def settlement_to_settlement(self) -> tuple[str, ...]:
         """Returns the formatted message(s) for the settlement_to_settlement case.
 
         Both the departure and the destination points are settlements, thus both the
@@ -289,7 +286,7 @@ class FormattedDifferentThreadList(FormattedThreadList):
         )
 
     @log(logger)
-    def station_to_settlement(self) -> tuple[str]:
+    def station_to_settlement(self) -> tuple[str, ...]:
         """Returns the formatted message(s) for the station-to-settlement case.
 
         The message is split into multiple ones if they are too long.
@@ -302,7 +299,7 @@ class FormattedDifferentThreadList(FormattedThreadList):
         )
 
     @log(logger)
-    def settlement_to_station(self) -> tuple[str]:
+    def settlement_to_station(self) -> tuple[str, ...]:
         """Returns the formatted message(s) for the settlement_to_station case.
 
         The message is split into multiple ones if they are too long.
@@ -315,7 +312,7 @@ class FormattedDifferentThreadList(FormattedThreadList):
         )
 
     @log(logger)
-    def settlement_one_to_settlement_diff(self) -> tuple[str]:
+    def settlement_one_to_settlement_diff(self) -> tuple[str, ...]:
         """Returns the formatted message(s) for settlement_one_to_settlement_diff case.
 
         The same departure station within a given settlement, but different
@@ -331,7 +328,7 @@ class FormattedDifferentThreadList(FormattedThreadList):
         )
 
     @log(logger)
-    def settlement_diff_to_settlement_one(self) -> tuple[str]:
+    def settlement_diff_to_settlement_one(self) -> tuple[str, ...]:
         """Returns the formatted message(s) for settlement_diff_to_settlement_one case.
 
         Different departure stations within a given settlement, but the same
@@ -347,7 +344,7 @@ class FormattedDifferentThreadList(FormattedThreadList):
         )
 
     @log(logger)
-    def settlement_diff_to_settlement_diff(self) -> tuple[str]:
+    def settlement_diff_to_settlement_diff(self) -> tuple[str, ...]:
         """Returns the formatted message(s) for settlement_diff_to_settlement_diff case.
 
         Different departure stations within a given settlement, as well as different
