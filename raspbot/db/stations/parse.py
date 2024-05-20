@@ -293,9 +293,13 @@ async def populate_db(initial_data: dict | Path) -> None:
 
 async def main() -> None:
     """Obtains the initial data and populates the stations DB with it."""
-    initial_data: dict = await get_response(
-        endpoint=settings.STATIONS_LIST_ENDPOINT, headers=settings.headers
-    )
+    try:
+        initial_data: dict = await get_response(
+            endpoint=settings.STATIONS_LIST_ENDPOINT, headers=settings.headers
+        )
+    except exc.APIError as e:
+        logger.exception(e)
+        await send_email_async(e)
 
     logger.info("Starting to populate the Stations DB.")
     await populate_db(initial_data)
