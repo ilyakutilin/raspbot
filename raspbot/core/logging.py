@@ -34,7 +34,7 @@ def configure_logging(name: str, level: int = logging.DEBUG) -> logging.Logger:
 # Декоратор
 
 
-def log(logger: logging.Logger = None):  # noqa: C901
+def log(logger: logging.Logger | None = None):  # noqa: C901
     """Decorator for logging function calls, returns and raises."""
     if logger is None:
         logger = logging.getLogger(__name__)
