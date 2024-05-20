@@ -22,7 +22,7 @@ pydantic-settings = "^2.2.1"
 python-dateutil = "^2.9.0.post0"
 apscheduler = "^3.10.4"
 aiosmtplib = "^3.0.1"
-sqlalchemy-stubs = "^0.4"
+sqlalchemy2-stubs = "^0.0.2a38"
 
 [tool.poetry.group.dev.dependencies]
 flake8 = "^6.0.0"
