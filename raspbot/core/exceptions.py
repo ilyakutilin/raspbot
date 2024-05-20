@@ -17,6 +17,10 @@ class APIConnectionError(APIError):
     """Raised in case of general problems with the connection to API."""
 
 
+class APIExceptionThresholdError(APIError):
+    """Raised if the API exception threshold is exceeded."""
+
+
 # Initial Data
 
 
@@ -78,6 +82,10 @@ class TimeNotFoundError(InvalidDataError):
     """Raised if the dep time cannot be found."""
 
 
+class NoUIDInTimetableError(InvalidDataError):
+    """Raised if the uid cannot be found in the timetable."""
+
+
 # DB
 
 
@@ -106,3 +114,7 @@ class UserDataNotADictError(InternalError):
 
 class NoKeyError(InternalError):
     """Raised if the key is not in the dict."""
+
+
+class EmailSendingAttributesError(InternalError):
+    """Raised if the email sending attributes are not valid."""

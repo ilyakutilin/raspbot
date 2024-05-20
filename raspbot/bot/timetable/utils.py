@@ -1,11 +1,11 @@
 import datetime as dt
+import inspect
 
 from aiogram import types
 from aiogram.fsm.context import FSMContext
 
 from raspbot.bot.constants import messages as msg
 from raspbot.bot.constants import states
-from raspbot.bot.send_msg import send_telegram_message_to_admin
 from raspbot.bot.timetable import keyboards as kb
 from raspbot.core import exceptions as exc
 from raspbot.core.logging import configure_logging
@@ -98,12 +98,13 @@ async def show_dep_info(
         dep_info: ThreadResponsePD = next(dep for dep in timetable if dep.uid == uid)
     except StopIteration:
         error_msg = (
-            f"UID {uid} provided by the callback and passed to {__name__} is not "
-            f"found in the timetable {timetable_obj}."
+            f"UID {uid} provided by the callback "
+            f"{inspect.currentframe().f_back.f_code.co_name} and passed to "
+            f"{inspect.currentframe().f_code.co_name} is not found in the timetable "
+            f"{timetable_obj}."
         )
         logger.error(error_msg)
-        await send_telegram_message_to_admin(error_msg)
-        await message.answer(msg.ERROR)
+        raise exc.NoUIDInTimetableError(error_msg)
 
     msg_obj = msg.ThreadInfo(thread=dep_info)
     if full_kb:

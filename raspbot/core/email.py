@@ -7,6 +7,7 @@ from email.mime.text import MIMEText
 
 import aiosmtplib
 
+from raspbot.core import exceptions as exc
 from raspbot.core.logging import configure_logging, log
 from raspbot.settings import settings as s
 
@@ -34,7 +35,27 @@ def _get_exception_details(
 
 
 @log(logger)
-def _create_email_message(
+def _create_email_message_from_text(
+    text: str,
+    from_email: str = s.EMAIL_FROM,
+    to_email: str = s.EMAIL_TO,
+    content_type: str = "plain",
+    charset: str = "utf-8",
+) -> MIMEMultipart:
+    msg = MIMEMultipart()
+    msg["From"] = from_email
+    msg["To"] = to_email
+
+    msg["Subject"] = "Internal message from Raspbot"
+
+    message = text
+    msg.attach(MIMEText(message, content_type, charset))
+
+    return msg
+
+
+@log(logger)
+def _create_email_message_from_exception(
     exception: Exception,
     from_email: str = s.EMAIL_FROM,
     to_email: str = s.EMAIL_TO,
@@ -71,10 +92,18 @@ def _get_smtp_params() -> tuple[str, str, str, int]:
 
 
 @log(logger)
-def send_error_email(exception: Exception):
+def send_email(payload: str | Exception):
     """Send an email with error info to bot admin."""
     host, user, password, port = _get_smtp_params()
-    msg = _create_email_message(exception)
+
+    if isinstance(payload, Exception):
+        msg = _create_email_message_from_exception(payload)
+    elif isinstance(payload, str):
+        msg = _create_email_message_from_text(payload)
+    else:
+        raise exc.EmailSendingAttributesError(
+            "You must provide either a text or an exception object."
+        )
 
     try:
         server = smtplib.SMTP(host, port)
@@ -89,10 +118,18 @@ def send_error_email(exception: Exception):
 
 
 @log(logger)
-async def send_error_email_async(exception: Exception):
+async def send_email_async(payload: str | Exception):
     """Send an email with error info to bot admin from within an async function."""
     host, user, password, port = _get_smtp_params()
-    msg = _create_email_message(exception)
+
+    if isinstance(payload, Exception):
+        msg = _create_email_message_from_exception(payload)
+    elif isinstance(payload, str):
+        msg = _create_email_message_from_text(payload)
+    else:
+        raise exc.EmailSendingAttributesError(
+            "You must provide either a text or an exception object."
+        )
 
     try:
         await aiosmtplib.send(

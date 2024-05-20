@@ -6,13 +6,8 @@ from enum import Enum
 from typing import Mapping
 
 from raspbot.apicalls.base import get_response
-from raspbot.bot.send_msg import send_telegram_message_to_admin
-from raspbot.core.exceptions import (
-    APIError,
-    DateInThePastError,
-    InvalidDataError,
-    InvalidValueError,
-)
+from raspbot.core import exceptions as exc
+from raspbot.core.email import send_email_async
 from raspbot.core.logging import configure_logging, log
 from raspbot.settings import settings as s
 
@@ -65,13 +60,13 @@ def _check_exception_threshold(
         minutes=s.API_EXCEPTION_WINDOW_MINUTES
     ),
 ) -> None:
-    """Checks the API exception threshold and notifies admin if it's exceeded."""
+    """Checks the API exception threshold and raises exception if it's exceeded."""
     global _last_exception_time
     exception_window_minutes = exception_window.total_seconds() / 60
     if len(_exception_log) >= exception_threshold:
         _last_exception_time = _exception_log[-1]
         if dt.datetime.now() - _last_exception_time <= exception_window:
-            send_telegram_message_to_admin(
+            raise exc.APIExceptionThresholdError(
                 f"There were more than {exception_threshold} API errors in the last "
                 f"{exception_window_minutes} minutes."
             )
@@ -102,11 +97,11 @@ def _validate_arg(
     enums = {"format": Format, "lang": Lang, "transport_types": TransportTypes}
     if key == "date":
         if value < dt.date.today():
-            raise DateInThePastError("Search date cannot be in the past.")
+            raise exc.DateInThePastError("Search date cannot be in the past.")
     if key in enums.keys() and not isinstance(value, Enum):
         allowed_values = enums[key].list()
         if value not in allowed_values:
-            raise InvalidValueError(
+            raise exc.InvalidValueError(
                 f"Value for {key} can only be one of the following: {allowed_values}"
             )
     # Remove underscore from "from_" in key_str
@@ -171,7 +166,7 @@ def _generate_url(
             logger.debug(f"Since value {value} is not None, starting its validation.")
             try:
                 key_str, value_str = _validate_arg(key=key, value=value)
-            except InvalidDataError as e:
+            except exc.InvalidDataError as e:
                 logger.error(
                     f"Value '{value}' of arg '{key}' passed to search_between_stations "
                     f"is incorrect: {e}"
@@ -201,12 +196,15 @@ async def _get_raw_timetable(
     # аргументы. Нужно получить их до объявления других переменных.
     try:
         response = await get_response(endpoint=url, headers=headers)
-    except APIError as e:
+    except exc.APIError as e:
         logger.error(f"API Exception: {e}")
         # exception_log is a global variable
         _exception_log.append(dt.datetime.now())
-        _check_exception_threshold()
-        raise e
+        try:
+            _check_exception_threshold()
+        except exc.APIExceptionThresholdError as e:
+            logger.error(f"API Exception Threshold has been exceeded: {e}")
+            await send_email_async(e)
     return response
 
 

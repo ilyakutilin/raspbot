@@ -8,6 +8,7 @@ from raspbot.bot.constants import messages as msg
 from raspbot.bot.constants import states
 from raspbot.bot.timetable import utils
 from raspbot.core import exceptions as exc
+from raspbot.core.email import send_email_async
 from raspbot.core.logging import configure_logging
 from raspbot.db.models import RecentORM, RouteORM
 from raspbot.services.deptime import get_uid_by_time
@@ -73,9 +74,13 @@ async def show_departure_callback(
         f"User {callback.from_user.full_name} TGID {callback.from_user.id} "
         f"selected a departure from an inline keyboard. Replying with departure info."
     )
-    await utils.show_dep_info(
-        timetable_obj=timetable_obj, uid=uid, message=callback.message
-    )
+    try:
+        await utils.show_dep_info(
+            timetable_obj=timetable_obj, uid=uid, message=callback.message
+        )
+    except exc.NoUIDInTimetableError as e:
+        await send_email_async(e)
+        await callback.message.answer(msg.ERROR)
     await callback.answer()
 
 
@@ -155,9 +160,13 @@ async def select_departure_info_by_text(message: types.Message, state: FSMContex
             user_raw_time_input=message.text, timetable_obj=timetable_obj
         )
         logger.debug(f"uid is {uid}")
-        await utils.show_dep_info(
-            timetable_obj=timetable_obj, uid=uid, message=message, full_kb=False
-        )
+        try:
+            await utils.show_dep_info(
+                timetable_obj=timetable_obj, uid=uid, message=message, full_kb=False
+            )
+        except exc.NoUIDInTimetableError as e:
+            await send_email_async(e)
+            await message.answer(msg.ERROR)
     except exc.InvalidDataError as e:
         await message.answer(text=str(e))
 

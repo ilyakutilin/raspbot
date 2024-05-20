@@ -21,12 +21,13 @@ from sqlalchemy.ext.declarative import DeclarativeMeta
 
 from raspbot.apicalls.base import get_response
 from raspbot.apicalls.search import TransportTypes
-from raspbot.bot.send_msg import send_telegram_message_to_admin
 from raspbot.core import exceptions as exc
+from raspbot.core.email import send_email_async
 from raspbot.core.logging import configure_logging, log
 from raspbot.db.base import async_session_factory
 from raspbot.db.stations import models, schema
 from raspbot.db.stations.schema import RegionPD
+from raspbot.services.prettify_datetimes import prettify_time
 from raspbot.settings import settings
 
 logger = configure_logging(__name__)
@@ -246,6 +247,7 @@ async def _add_last_updated_time(session: AsyncSession) -> None:
 async def populate_db(initial_data: dict | Path) -> None:
     """Populates the stations DB with the initial data."""
     logger.debug("Ready for the DB population.")
+    start_time = datetime.now()
 
     try:
         regions_generator = _yield_regions_pd(initial_data)
@@ -277,11 +279,16 @@ async def populate_db(initial_data: dict | Path) -> None:
             await session.commit()
         except Exception as e:
             logger.exception(f"DB population failed: {e}", exc_info=True)
-            await send_telegram_message_to_admin(
-                message=f"Station DB population failed: {e}"
-            )
+            await send_email_async(e)
 
-        logger.info("DB is now populated.")
+        finish_time = datetime.now()
+        it_took = (
+            "Station DB has been populated. It took "
+            f"{prettify_time((finish_time - start_time).total_seconds())} seconds "
+            "to fill the Stations DB with the data from API."
+        )
+        logger.info(it_took)
+        await send_email_async(it_took)
 
 
 async def main() -> None:
@@ -295,16 +302,4 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
-    start_time = datetime.now()
     asyncio.run(main())
-    finish_time = datetime.now()
-    it_took = (
-        f"It took {(finish_time - start_time).total_seconds()} seconds "
-        "to fill the Stations DB with the data from Yandex."
-    )
-    logger.info(it_took)
-    asyncio.run(
-        send_telegram_message_to_admin(
-            message=(f"Station DB has been populated. {it_took}")
-        )
-    )
