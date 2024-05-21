@@ -50,7 +50,7 @@ class TransportTypes(Args):
 
 
 # Global API connectivity related variables
-_exception_log = deque(maxlen=s.API_EXCEPTION_THRESHOLD)
+_exception_log: deque[dt.datetime] = deque(maxlen=s.API_EXCEPTION_THRESHOLD)
 _last_exception_time = None
 
 
