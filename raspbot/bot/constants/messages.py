@@ -169,12 +169,12 @@ class FormattedThreadList(ABC):
         return tuple(joined_thread_lists)
 
     @abstractmethod
-    def station_to_settlement(self) -> str:
+    def station_to_settlement(self) -> tuple[str, ...]:
         """Abstract method for the station-to-settlement case."""
         raise NotImplementedError("Please implement station_to_settlement.")
 
     @abstractmethod
-    def settlement_to_station(self) -> str:
+    def settlement_to_station(self) -> tuple[str, ...]:
         """Abstract method for the settlement_to_station case."""
         raise NotImplementedError("Please implement settlement_to_station.")
 
