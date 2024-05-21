@@ -1,7 +1,7 @@
 import datetime as dt
-from typing import Self
+from typing import Self, TypedDict
 
-from async_property import async_cached_property, async_property
+from async_property import async_cached_property, async_property  # type: ignore
 from pydantic import ValidationError
 
 from raspbot.apicalls.search import TransportTypes, search_between_stations
@@ -57,7 +57,15 @@ class Timetable:
             постепенно увеличивается оффсет пагинации, и рейсы каждого нового словаря
             добавляются к рейсам основного.
         """
-        kwargs_dict = {
+
+        class KwargsDict(TypedDict):
+            from_: str
+            to: str
+            date: dt.date
+            transport_types: str
+            offset: int
+
+        kwargs_dict: KwargsDict = {
             "from_": departure_code,
             "to": destination_code,
             "date": self.date,
@@ -122,23 +130,20 @@ class Timetable:
             Объект datetime.
         """
         try:
-            validated_time: dt.datetime = dt.datetime.fromisoformat(raw_time)
+            return dt.datetime.fromisoformat(raw_time)
         except ValueError as e:
             logger.error(
                 f"Time from API is not in ISO format: {raw_time}. ValueError: {e}"
             )
             try:
                 datetime_str = f"{self.date} {raw_time}"
-                validated_time: dt.datetime = dt.datetime.strptime(
-                    datetime_str, "%Y-%m-%d %H:%M:%S"
-                )
+                return dt.datetime.strptime(datetime_str, "%Y-%m-%d %H:%M:%S")
             except ValueError as e:
                 raise InvalidTimeFormatError(
                     "Time from API is in an incorrect format. "
                     "2023-05-29T12:48:00.000000 or 12:48:00 are supported. Got "
                     f"{raw_time}. ValueError: {e}"
                 )
-        return validated_time
 
     @log(logger)
     def _get_threadresponse_object(
@@ -162,18 +167,21 @@ class Timetable:
                     raw_time=segment["departure"]
                 )
             arrival: dt.datetime = self._validate_time(raw_time=segment["arrival"])
-        except InvalidTimeFormatError:  # TODO: Complete Exception handling
+        except InvalidTimeFormatError as e:  # TODO: Complete Exception handling
             logger.error("Error")
-        except KeyError:  # TODO: Complete Exception handling
+            raise e
+        except KeyError as e:  # TODO: Complete Exception handling
             logger.error("Error")
-        except ValueError:  # TODO: Complete Exception handling
+            raise e
+        except ValueError as e:  # TODO: Complete Exception handling
             logger.error("Error")
+            raise e
 
         # FIXME: If anything is missing in the dict from API, it will raise an error
         try:
-            short_title = segment.get("thread").get("short_title")
-            short_from_title = segment.get("from").get("short_title")
-            short_to_title = segment.get("to").get("short_title")
+            short_title = segment["thread"]["short_title"]
+            short_from_title = segment["from"]["short_title"]
+            short_to_title = segment["to"]["short_title"]
             thread = segment["thread"]
             ticket_price_dict = segment["tickets_info"]["places"][0]["price"]
             ticket_price = float(
@@ -204,10 +212,12 @@ class Timetable:
             )
             logger.debug(f"Threadresponse: {threadresponse}")
             return threadresponse
-        except KeyError:  # TODO: Complete Exception handling
+        except KeyError as e:  # TODO: Complete Exception handling
             logger.error("Error")
+            raise e
         except ValidationError as e:  # TODO: Complete Exception handling
             logger.error(f"ValidationError: {e}")
+            raise e
 
     @log(logger)
     def format_thread_list(
@@ -215,7 +225,7 @@ class Timetable:
         thread_list: list[ThreadResponsePD],
         max_length: int = settings.MAX_TG_MSG_LENGTH,
         max_threads_for_long_fmt: int = settings.MAX_THREADS_FOR_LONG_FMT,
-    ) -> tuple[str]:
+    ) -> tuple[str, ...]:
         """Formats the thread list."""
         simple_threads_short = (
             ", ".join([dep.str_time_with_express_type for dep in thread_list]),
@@ -348,7 +358,7 @@ class Timetable:
         return msg.PRESS_DEPARTURE_BUTTON_OR_TYPE
 
     @async_property
-    async def msg(self) -> tuple[str]:
+    async def msg(self) -> tuple[str, ...]:
         """
         Генерирует кортеж готовых сообщений для Telegram.
 
@@ -364,7 +374,7 @@ class Timetable:
         route = str(self.route)
         timetable = await self.timetable
         if not self.timetable:
-            return msg.NO_TODAY_DEPARTURES.format(route=route)
+            return (msg.NO_TODAY_DEPARTURES.format(route=route),)
         length = await self.length
         message_part_one = self._get_message_part_one(length=length, route=route)
         message_part_two = self._get_message_part_two(length=length)
