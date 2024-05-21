@@ -1,7 +1,10 @@
 import asyncio
 from datetime import datetime, timedelta, timezone
 
-from apscheduler.schedulers.asyncio import AsyncIOScheduler, BaseScheduler
+from apscheduler.schedulers.asyncio import (  # type: ignore
+    AsyncIOScheduler,
+    BaseScheduler,
+)
 from sqlalchemy import func, select
 
 from raspbot.core.logging import configure_logging
