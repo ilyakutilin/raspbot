@@ -78,7 +78,7 @@ class CRUDRecents(CRUDBase):
             )
             return query.scalars().first()
 
-    async def update_recent(self, recent_id: int) -> RecentORM | None:
+    async def update_recent(self, recent_id: int) -> RecentORM:
         """Updates recent 'count' and 'updated_at'."""
         async with self._session as session:
             stmt = (
@@ -96,7 +96,7 @@ class CRUDRecents(CRUDBase):
                 raise e
             return recent_db_new
 
-    async def add_recent_to_fav(self, recent_id: int) -> RecentORM | None:
+    async def add_recent_to_fav(self, recent_id: int) -> RecentORM:
         """Adds a recent to favorites."""
         async with self._session as session:
             stmt = (

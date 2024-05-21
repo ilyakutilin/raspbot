@@ -1,3 +1,5 @@
+from typing import Sequence
+
 from aiogram.types.user import User as TgUser
 
 from raspbot.core.logging import configure_logging, log
@@ -58,13 +60,13 @@ async def create_user(tg_user: TgUser) -> UserORM:
 
 
 @log(logger)
-async def get_user_recent(user: UserORM) -> list[RecentORM] | None:
+async def get_user_recent(user: UserORM) -> Sequence[RecentORM]:
     """Get user recent routes."""
     return await crud_recents.get_recent_or_fav_by_user_id(user_id=user.id, fav=False)
 
 
 @log(logger)
-async def get_user_fav(user: UserORM) -> list[RecentORM] | None:
+async def get_user_fav(user: UserORM) -> Sequence[RecentORM]:
     """Get user favorite routes."""
     return await crud_recents.get_recent_or_fav_by_user_id(user_id=user.id, fav=True)
 
@@ -72,7 +74,7 @@ async def get_user_fav(user: UserORM) -> list[RecentORM] | None:
 @log(logger)
 async def update_recent(recent_id: int) -> RecentORM:
     """Update recent count and update date."""
-    recent = await crud_recents.get_or_raise(_id=recent_id)
+    recent: RecentORM = await crud_recents.get_or_raise(_id=recent_id)
     update_date_before = recent.updated_at
     logger.info(
         "Updating the update date. Before update: "
