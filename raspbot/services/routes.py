@@ -201,5 +201,5 @@ class RouteRetriever:
     @log(logger)
     async def get_route_by_recent(self, recent_id: int) -> RouteORM | None:
         """Get route from db by recent id."""
-        route: RouteORM = await crud_routes.get_or_none(_id=recent_id)
+        route: RouteORM = await crud_routes.get_or_raise(_id=recent_id)
         return await crud_routes.get_route_by_id(id=route.id)

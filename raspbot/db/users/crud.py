@@ -1,7 +1,11 @@
+from typing import Sequence
+
 from sqlalchemy import and_, desc, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
+from raspbot.core import exceptions as exc
+from raspbot.core.email import send_email_async
 from raspbot.core.logging import configure_logging
 from raspbot.db.base import async_session_factory
 from raspbot.db.crud import CRUDBase
@@ -41,7 +45,7 @@ class CRUDRecents(CRUDBase):
 
     async def get_recent_or_fav_by_user_id(
         self, user_id: int, fav: bool = False
-    ) -> list[RecentORM]:
+    ) -> Sequence[RecentORM]:
         """Gets recent or favorite by user ID."""
         async with self._session as session:
             selection = (
@@ -74,7 +78,7 @@ class CRUDRecents(CRUDBase):
             )
             return query.scalars().first()
 
-    async def update_recent(self, recent_id: RecentORM) -> RecentORM:
+    async def update_recent(self, recent_id: int) -> RecentORM | None:
         """Updates recent 'count' and 'updated_at'."""
         async with self._session as session:
             stmt = (
@@ -84,10 +88,15 @@ class CRUDRecents(CRUDBase):
             )
             await session.execute(stmt)
             await session.commit()
-            recent_db_new: RecentORM = await self.get_or_none(_id=recent_id)
+            try:
+                recent_db_new: RecentORM = await self.get_or_raise(_id=recent_id)
+            except exc.NoDBObjectError as e:
+                logger.exception(e)
+                await send_email_async(e)
+                raise e
             return recent_db_new
 
-    async def add_recent_to_fav(self, recent_id: int) -> RecentORM:
+    async def add_recent_to_fav(self, recent_id: int) -> RecentORM | None:
         """Adds a recent to favorites."""
         async with self._session as session:
             stmt = (
@@ -95,5 +104,10 @@ class CRUDRecents(CRUDBase):
             )
             await session.execute(stmt)
             await session.commit()
-            recent_db_new: RecentORM = await self.get_or_none(_id=recent_id)
+            try:
+                recent_db_new: RecentORM = await self.get_or_raise(_id=recent_id)
+            except exc.NoDBObjectError as e:
+                logger.exception(e)
+                await send_email_async(e)
+                raise e
             return recent_db_new

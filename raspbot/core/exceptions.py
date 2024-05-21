@@ -47,6 +47,10 @@ class CreateSchemaError(SQLError):
     """Raised if there is an SQLAlchemy error."""
 
 
+class NoDBObjectError(SQLError):
+    """Raised if there is no object in the DB."""
+
+
 # Values
 
 

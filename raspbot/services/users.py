@@ -72,7 +72,7 @@ async def get_user_fav(user: UserORM) -> list[RecentORM] | None:
 @log(logger)
 async def update_recent(recent_id: int) -> RecentORM:
     """Update recent count and update date."""
-    recent = await crud_recents.get_or_none(_id=recent_id)
+    recent = await crud_recents.get_or_raise(_id=recent_id)
     update_date_before = recent.updated_at
     logger.info(
         "Updating the update date. Before update: "
