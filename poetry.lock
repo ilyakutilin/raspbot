@@ -1448,20 +1448,6 @@ pymysql = ["pymysql"]
 sqlcipher = ["sqlcipher3-binary"]
 
 [[package]]
-name = "sqlalchemy2-stubs"
-version = "0.0.2a38"
-description = "Typing Stubs for SQLAlchemy 1.4"
-optional = false
-python-versions = ">=3.6"
-files = [
-    {file = "sqlalchemy2-stubs-0.0.2a38.tar.gz", hash = "sha256:861d722abeb12f13eacd775a9f09379b11a5a9076f469ccd4099961b95800f9e"},
-    {file = "sqlalchemy2_stubs-0.0.2a38-py3-none-any.whl", hash = "sha256:b62aa46943807287550e2033dafe07564b33b6a815fbaa3c144e396f9cc53bcb"},
-]
-
-[package.dependencies]
-typing-extensions = ">=3.7.4"
-
-[[package]]
 name = "typing-extensions"
 version = "4.11.0"
 description = "Backported and Experimental Type Hints for Python 3.8+"
@@ -1610,4 +1596,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "b8cbfc35cf19d1b0995787e12cab61cbae4c1d6b5d193b5d41207abecf8ba4b9"
+content-hash = "70dd229b5b1f096237cf6b18a72e7e7e59e28a741b82a46582c552e39bab3c9f"
