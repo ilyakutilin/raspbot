@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Protocol
 
 from sqlalchemy import (
     BigInteger,
@@ -14,6 +15,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from raspbot.db.base import BaseORM
+from raspbot.db.routes.schema import PointResponsePD
 from raspbot.db.stations.models import PointORM
 from raspbot.services.shorteners import get_short_point_type, shorten_route_description
 from raspbot.settings import settings
@@ -50,10 +52,17 @@ class UserORM(BaseUserRouteORM):
         return self.first_name
 
 
+class RouteProtocol(Protocol):
+    """Protocol for routes."""
+
+    departure_point: PointORM | PointResponsePD
+    destination_point: PointORM | PointResponsePD
+
+
 class RouteStrMixin:
     """Mixin for Route string representation."""
 
-    def __str__(self) -> str:
+    def __str__(self: "RouteProtocol") -> str:
         """String representation."""
         return (
             f"{get_short_point_type(self.departure_point.point_type)} "
@@ -63,7 +72,7 @@ class RouteStrMixin:
         )
 
     @property
-    def short(self) -> str:
+    def short(self: "RouteProtocol") -> str:
         """Shortened route string representation."""
         return shorten_route_description(
             route_descr=self.__str__(), limit=settings.ROUTE_INLINE_LIMIT
