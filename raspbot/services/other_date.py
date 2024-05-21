@@ -19,7 +19,7 @@ logger = configure_logging(name=__name__)
 
 locale.setlocale(locale.LC_TIME, "ru_RU.UTF-8")
 
-SPECIFIC_WORDS = {
+SPECIFIC_WORDS: dict[str, dt.date | str] = {
     "послезавтра": dt.date.today() + dt.timedelta(2),
     "завтра": dt.date.today() + dt.timedelta(1),
     "сегодня": dt.date.today(),
