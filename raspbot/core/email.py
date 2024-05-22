@@ -16,10 +16,12 @@ logger = configure_logging(__name__)
 
 def _get_exception_details(
     exception: Exception,
-) -> tuple[str, types.TracebackType, str, str]:
+) -> tuple[str, types.TracebackType | str, str, str]:
     """Get the exception details."""
     exc_name = exception.__class__.__name__
     tb = exception.__traceback__
+    if not tb:
+        return exc_name, "No traceback", "No function name", "No module name"
     # Iterate through the traceback object to get the last call in the stack
     while tb.tb_next:
         tb = tb.tb_next

@@ -46,13 +46,13 @@ def _log_object_creation(obj: object) -> None:
 @log(logger)
 async def _instance_exists_in_database(
     session: AsyncSession, model: Type[DeclarativeMeta], **kwargs
-) -> Type[DeclarativeMeta] | None:
+) -> DeclarativeMeta | None:
     # Construct the filter criteria dynamically using kwargs
     filters = [getattr(model, key) == value for key, value in kwargs.items()]
 
     # Query the database for an instance with the specified attribute values
     query = await session.execute(select(model).where(*filters))
-    existing_instance = query.first()
+    existing_instance = query.scalars().first()
 
     return existing_instance
 
@@ -126,7 +126,7 @@ async def _yield_regions_orm_and_add_to_db(
             continue
         session.add(sql_obj)
         await session.flush()
-        yield tuple((sql_obj.id, region))
+        yield tuple((sql_obj.id, region))  # type: ignore
 
 
 @log(logger)
@@ -137,6 +137,12 @@ async def _yield_points_by_region_pd(
     """Receives regions and returns settlements by regions."""
     async for region in regions_orm_generator:
         region_sql_obj = await session.get(models.RegionORM, region[0])
+
+        if not region_sql_obj:
+            raise exc.NoDBObjectError(
+                f"Region with ID {region[0]} was not found in the DB."
+            )
+
         region_pd_obj = region[1]
         stations = list(
             chain.from_iterable(

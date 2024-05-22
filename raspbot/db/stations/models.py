@@ -81,4 +81,4 @@ async def create_db_schema():
 
 
 if __name__ == "__main__":
-    asyncio.run(create_db_schema)
+    asyncio.run(create_db_schema())

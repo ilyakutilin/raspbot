@@ -83,6 +83,7 @@ async def get_separate_departure_keyboard(
     )
     for row in markup.inline_keyboard:
         for button in row:
+            assert button.callback_data
             callpback_split = button.callback_data.split(":")
             callback_prefix = callpback_split[0]
             uid = callpback_split[1] if callback_prefix == clb.DEP_UID else None

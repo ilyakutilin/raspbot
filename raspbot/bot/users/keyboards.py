@@ -17,12 +17,12 @@ def get_fav_or_recent_keyboard(
     builder = InlineKeyboardBuilder()
     for element in fav_or_recent_list:
         builder.button(
-            text=element.route.short,
+            text=element.route.short,  # type: ignore
             callback_data=clb.GetTimetableCallbackFactory(recent_id=element.id),
         )
     builder.button(text=btn.NEW_SEARCH, callback_data=clb.NEW_SEARCH)
     builder.adjust(1)
-    logger.info(f"Keyboard {__name__} contains {len(set(builder.buttons))} buttons.")
+    logger.info(f"fav_or_recent_keyboard contains {len(set(builder.buttons))} buttons.")
     return builder.as_markup()
 
 
@@ -34,7 +34,7 @@ def add_recent_to_fav_keyboard(
     builder = InlineKeyboardBuilder()
     for recent in user_recent:
         builder.button(
-            text=recent.route.short,
+            text=recent.route.short,  # type: ignore
             callback_data=clb.RecentToFavCallbackFactory(recent_id=recent.id),
         )
     callback_arg = "_".join([str(recent.id) for recent in user_recent])
@@ -45,5 +45,5 @@ def add_recent_to_fav_keyboard(
     builder.button(text=btn.NEW_SEARCH, callback_data=clb.NEW_SEARCH)
     ones = [1] * len(user_recent)
     builder.adjust(*ones, 2)
-    logger.info(f"Keyboard {__name__} contains {len(set(builder.buttons))} buttons.")
+    logger.info(f"recent_to_fav_keyboard contains {len(set(builder.buttons))} buttons.")
     return builder.as_markup()

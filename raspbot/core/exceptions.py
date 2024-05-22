@@ -47,6 +47,10 @@ class CreateSchemaError(SQLError):
     """Raised if there is an SQLAlchemy error."""
 
 
+class NoDBObjectError(SQLError):
+    """Raised if there is no object in the DB."""
+
+
 # Values
 
 
@@ -84,6 +88,14 @@ class TimeNotFoundError(InvalidDataError):
 
 class NoUIDInTimetableError(InvalidDataError):
     """Raised if the uid cannot be found in the timetable."""
+
+
+class NoUserError(InvalidDataError):
+    """Raised if there is no user in Telegram message."""
+
+
+class CallbackMessageTypeError(InvalidDataError):
+    """Raised if the type of the callback message is not types.Message."""
 
 
 # DB

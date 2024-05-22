@@ -3,6 +3,7 @@ import datetime as dt
 import json
 from collections import deque
 from enum import Enum
+from pathlib import Path
 from typing import Mapping
 
 from raspbot.apicalls.base import get_response
@@ -49,7 +50,7 @@ class TransportTypes(Args):
 
 
 # Global API connectivity related variables
-_exception_log = deque(maxlen=s.API_EXCEPTION_THRESHOLD)
+_exception_log: deque[dt.datetime] = deque(maxlen=s.API_EXCEPTION_THRESHOLD)
 _last_exception_time = None
 
 
@@ -80,7 +81,7 @@ def _check_exception_threshold(
 def _validate_arg(
     key: str,
     value: object,
-) -> tuple[str]:
+) -> tuple[str, str]:
     """
     Валидирует компонент запроса (аргумент основной функции search_between_stations).
 
@@ -96,7 +97,7 @@ def _validate_arg(
     """
     enums = {"format": Format, "lang": Lang, "transport_types": TransportTypes}
     if key == "date":
-        if value < dt.date.today():
+        if isinstance(value, dt.date) and value < dt.date.today():
             raise exc.DateInThePastError("Search date cannot be in the past.")
     if key in enums.keys() and not isinstance(value, Enum):
         allowed_values = enums[key].list()
@@ -185,7 +186,7 @@ def _generate_url(
 @log(logger)
 async def _get_raw_timetable(
     url: str, headers: dict[str, str | bytes | None] = s.headers
-) -> Mapping:
+) -> Mapping | None:
     """
     Search for the timetable between two points.
 
@@ -209,7 +210,7 @@ async def _get_raw_timetable(
 
 
 @log(logger)
-async def search_between_stations(*args, **kwargs) -> Mapping:
+async def search_between_stations(*args, **kwargs) -> Mapping | None:
     """
     Search for the timetable between two points.
 
@@ -226,6 +227,6 @@ if __name__ == "__main__":
             from_="s9601728", to="s2000006", date=dt.date.today(), offset=100
         )
     )
-    tt_file = s.FILES_DIR / "timetable.json"
+    tt_file = Path(s.FILES_DIR, "timetable.json")
     with open(file=tt_file, mode="w", encoding="UTF-8") as file:
         json.dump(obj=tt, fp=file, ensure_ascii=False, indent=2)

@@ -1,4 +1,6 @@
-from raspbot.core.exceptions import UserInputTooShortError
+from typing import Sequence
+
+from raspbot.core import exceptions as exc
 from raspbot.core.logging import configure_logging, log
 from raspbot.db.models import PointORM, PointTypeEnum, RouteORM, UserORM
 from raspbot.db.routes.crud import CRUDPoints, CRUDRoutes
@@ -17,7 +19,7 @@ class PointSelector:
 
     def __init__(self):
         """Initializes PointSelector class instance."""
-        self.choices: list[PointResponsePD] = []
+        self.choices = []
 
     @log(logger)
     def _prettify(self, raw_user_input: str) -> str:
@@ -26,7 +28,7 @@ class PointSelector:
     @log(logger)
     def _validate_user_input(self, pretty_user_input: str) -> bool:
         if len(pretty_user_input) < 2:
-            raise UserInputTooShortError(
+            raise exc.UserInputTooShortError(
                 f"User input {pretty_user_input} is too short."
             )
         if len(pretty_user_input) == 2:
@@ -86,6 +88,8 @@ class PointSelector:
     @log(logger)
     def _add_point_to_choices(self, points_from_db: list[PointORM]) -> None:
         for point_from_db in points_from_db:
+            if not point_from_db.yandex_code:
+                continue
             point = PointResponsePD(
                 id=point_from_db.id,
                 point_type=point_from_db.point_type,
@@ -96,11 +100,11 @@ class PointSelector:
             self.choices.append(point)
 
     @log(logger)
-    async def _get_points_from_db(self, pretty_user_input: str) -> list[PointORM]:
+    async def _get_points_from_db(self, pretty_user_input: str) -> Sequence[PointORM]:
         strict_search: bool = self._validate_user_input(
             pretty_user_input=pretty_user_input
         )
-        points_from_db: list[PointORM] = await crud_points.get_points_by_title(
+        points_from_db: Sequence[PointORM] = await crud_points.get_points_by_title(
             title=pretty_user_input, strict_search=strict_search
         )
         return points_from_db
@@ -135,6 +139,10 @@ class PointRetriever:
     async def get_point(self, point_id: int) -> PointResponsePD:
         """Get point from db by id."""
         point_from_db: PointORM = await self._get_point_from_db(point_id=point_id)
+        if not point_from_db.yandex_code:
+            raise exc.InvalidValueError(
+                f"Point with id {point_id} does not have yandex code."
+            )
         point = PointResponsePD(
             id=point_from_db.id,
             point_type=point_from_db.point_type,
@@ -162,12 +170,8 @@ class RouteFinder:
         )
         dep_st_or_stl = get_short_point_type(point_type=departure_point.point_type)
         dest_st_or_stl = get_short_point_type(point_type=destination_point.point_type)
-        if route_from_db:
-            logger.info(
-                f"Route from {dep_st_or_stl} {departure_point.title} to "
-                f"{dest_st_or_stl} {destination_point.title} already exists."
-            )
-        else:
+
+        if not route_from_db:
             logger.info(
                 f"Route from {dep_st_or_stl} {departure_point.title} to "
                 f"{dest_st_or_stl} {destination_point.title} does not exist yet. "
@@ -177,10 +181,16 @@ class RouteFinder:
                 departure_point_id=departure_point.id,
                 destination_point_id=destination_point.id,
             )
-            route_from_db: RouteORM = await crud_routes.create(instance=instance)
+            route_db: RouteORM = await crud_routes.create(instance=instance)
+        else:
+            logger.info(
+                f"Route from {dep_st_or_stl} {departure_point.title} to "
+                f"{dest_st_or_stl} {destination_point.title} already exists."
+            )
+            route_db = route_from_db
 
         # Добавляем маршрут в последние у пользователя (либо обновляем дату)
-        await add_or_update_recent(user_id=user.id, route_id=route_from_db.id)
+        await add_or_update_recent(user_id=user.id, route_id=route_db.id)
 
         route = RouteResponsePD(
             id=route_from_db.id,
@@ -201,5 +211,5 @@ class RouteRetriever:
     @log(logger)
     async def get_route_by_recent(self, recent_id: int) -> RouteORM | None:
         """Get route from db by recent id."""
-        route: RouteORM = await crud_routes.get_or_none(_id=recent_id)
+        route: RouteORM = await crud_routes.get_or_raise(_id=recent_id)
         return await crud_routes.get_route_by_id(id=route.id)

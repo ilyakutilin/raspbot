@@ -20,7 +20,7 @@ def split_string_list(string_list: list[str], limit: int) -> list[list[str]]:
     # Initialize variables to keep track of the cumulative symbols count and the
     # current sublist
     symbols_count = 0
-    current_list = []
+    current_list: list[str] = []
 
     # Iterate over the string list
     for string in string_list:

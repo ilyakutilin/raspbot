@@ -1,7 +1,10 @@
+from typing import Sequence
+
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
+from raspbot.core import exceptions as exc
 from raspbot.core.logging import configure_logging
 from raspbot.db.base import async_session_factory
 from raspbot.db.crud import CRUDBase
@@ -19,7 +22,7 @@ class CRUDPoints(CRUDBase):
 
     async def get_points_by_title(
         self, title: str, strict_search: bool = False
-    ) -> list[PointORM]:
+    ) -> Sequence[PointORM]:
         """Gets points by title."""
         search_template = "{title}" if strict_search else "%{title}%"
 
@@ -32,7 +35,7 @@ class CRUDPoints(CRUDBase):
             # Define a subquery to find the maximum created_at
             # for each combination of title, yandex_code and point_type
             subquery = (
-                select(
+                select(  # type: ignore
                     *fields_defining_uniqueness,
                     func.max(PointORM.created_at).label("max_created_at"),
                 )
@@ -68,12 +71,17 @@ class CRUDPoints(CRUDBase):
     async def get_point_by_id(self, id: int) -> PointORM:
         """Gets point by ID."""
         async with self._session as session:
-            point = await session.execute(
+            query = await session.execute(
                 select(PointORM)
                 .options(joinedload(PointORM.region))
                 .where(PointORM.id == id)
             )
-            return point.scalars().first()
+            point = query.scalars().first()
+            if not point:
+                raise exc.NoDBObjectError(
+                    f"Point with ID {id} does not exist in the database."
+                )
+            return point
 
 
 class CRUDRoutes(CRUDBase):
@@ -88,7 +96,7 @@ class CRUDRoutes(CRUDBase):
     ) -> RouteORM:
         """Gets route by departure and destination point IDs."""
         async with self._session as session:
-            route = await session.execute(
+            query = await session.execute(
                 select(RouteORM).where(
                     and_(
                         RouteORM.departure_point_id == departure_point_id,
@@ -96,12 +104,18 @@ class CRUDRoutes(CRUDBase):
                     )
                 )
             )
-            return route.scalars().first()
+            route = query.scalars().first()
+            if not route:
+                raise exc.NoDBObjectError(
+                    f"Route between points with IDs {departure_point_id} and "
+                    f"{destination_point_id} does not exist in the database."
+                )
+            return route
 
     async def get_route_by_id(self, id: int) -> RouteORM:
         """Gets route by ID."""
         async with self._session as session:
-            route = await session.execute(
+            query = await session.execute(
                 select(RouteORM)
                 .options(
                     joinedload(RouteORM.departure_point),
@@ -109,4 +123,9 @@ class CRUDRoutes(CRUDBase):
                 )
                 .where(RouteORM.id == id)
             )
-            return route.scalars().first()
+            route = query.scalars().first()
+            if not route:
+                raise exc.NoDBObjectError(
+                    f"Route with ID {id} does not exist in the database."
+                )
+            return route

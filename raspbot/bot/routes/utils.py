@@ -52,7 +52,7 @@ async def select_point(is_departure: bool, message: types.Message, state: FSMCon
         )
     else:
         point = point_chunks[0][0]
-        msg_text: str = msg.SinglePointFound(point=point, is_departure=is_departure)
+        msg_text = msg.SinglePointFound(point=point, is_departure=is_departure)
         await message.answer(
             text=f"{msg_text} {msg.WHAT_YOU_WERE_LOOKING_FOR}",
             reply_markup=get_single_point_confirmation_keyboard(
