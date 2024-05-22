@@ -38,4 +38,5 @@ async def start_bot(bot: Bot, handle_signals: bool = True):
 
 
 if __name__ == "__main__":
-    asyncio.run(start_bot(test=True))
+    bot = get_bot(test=True)
+    asyncio.run(start_bot(bot))
