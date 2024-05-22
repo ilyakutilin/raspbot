@@ -1,8 +1,10 @@
 import datetime as dt
+from typing import Protocol
 
 from pydantic import BaseModel as BaseModelPD
 
-from raspbot.db.models import PointTypeEnum, RouteStrMixin
+from raspbot.db.stations.models import PointORM, PointTypeEnum
+from raspbot.services.shorteners import get_short_point_type, shorten_route_description
 from raspbot.settings import settings
 
 
@@ -14,6 +16,33 @@ class PointResponsePD(BaseModelPD):
     title: str
     yandex_code: str
     region_title: str
+
+
+class RouteProtocol(Protocol):
+    """Protocol for routes."""
+
+    departure_point: PointORM | PointResponsePD
+    destination_point: PointORM | PointResponsePD
+
+
+class RouteStrMixin:
+    """Mixin for Route string representation."""
+
+    def __str__(self: "RouteProtocol") -> str:
+        """String representation."""
+        return (
+            f"{get_short_point_type(self.departure_point.point_type)} "
+            f"{self.departure_point.title}{settings.ROUTE_INLINE_DELIMITER}"
+            f"{get_short_point_type(self.destination_point.point_type)} "
+            f"{self.destination_point.title}"
+        )
+
+    @property
+    def short(self: "RouteProtocol") -> str:
+        """Shortened route string representation."""
+        return shorten_route_description(
+            route_descr=self.__str__(), limit=settings.ROUTE_INLINE_LIMIT
+        )
 
 
 class RouteResponsePD(RouteStrMixin, BaseModelPD):
