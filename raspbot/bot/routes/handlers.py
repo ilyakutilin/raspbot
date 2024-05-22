@@ -27,6 +27,7 @@ route_finder = RouteFinder()
 @router.message(Command("search"))
 async def search_command(message: types.Message, state: FSMContext):
     """User: issues /search command. Bot: please input the departure point."""
+    assert message.from_user
     user = await get_user_from_db(telegram_id=message.from_user.id)
     if not user:
         logger.info(
@@ -52,6 +53,7 @@ async def new_search_callback(callback: types.CallbackQuery, state: FSMContext):
         f"User {callback.from_user.full_name} TGID {callback.from_user.id} clicked on "
         "the 'New Search' inline button. Replying."
     )
+    assert isinstance(callback.message, types.Message)
     await callback.message.answer(msg.INPUT_DEPARTURE_POINT)
 
     logger.info("Setting state to 'selecting_departure_point'.")
@@ -63,6 +65,7 @@ async def new_search_callback(callback: types.CallbackQuery, state: FSMContext):
 @router.message(states.RouteState.selecting_departure_point)
 async def select_departure(message: types.Message, state: FSMContext):
     """User: inputs the desired departure point. Bot: here's what I have in the DB."""
+    assert message.from_user
     logger.info(
         f"User {message.from_user.full_name} TGID {message.from_user.id} entered the "
         f"departure point '{message.text}'. Searching for the point in the DB."
@@ -73,6 +76,7 @@ async def select_departure(message: types.Message, state: FSMContext):
 @router.message(states.RouteState.selecting_destination_point)
 async def select_destination(message: types.Message, state: FSMContext):
     """User: inputs the destination point. Bot: here's what I have in the DB."""
+    assert message.from_user
     logger.info(
         f"User {message.from_user.full_name} TGID {message.from_user.id} entered the "
         f"destination point '{message.text}'. Searching for the point in the DB."
@@ -97,6 +101,7 @@ async def more_buttons_handler(
     point_chunks: list[list[PointResponsePD]] = user_data["remaining_point_chunks"]
     points: list = point_chunks.pop(0)
 
+    assert isinstance(callback.message, types.Message)
     await callback.message.answer(
         msg.MORE_POINT_CHOICES,
         reply_markup=get_point_choice_keyboard(
@@ -129,6 +134,8 @@ async def missing_point_callback(
         "them. Replying that they need to input the point differently."
     )
     is_departure: bool = callback_data.is_departure
+
+    assert isinstance(callback.message, types.Message)
     await callback.message.answer(msg.MISSING_POINT)
     await callback.answer()
 
@@ -155,9 +162,11 @@ async def choose_departure_from_multiple_callback(
         f"selected the departure point '{selected_departure.title}'. "
         "Replying that they need to input a destinaton point now."
     )
-    msg_text: str = msg.SinglePointFound(
+    msg_text = msg.SinglePointFound(
         point=selected_departure, is_departure=callback_data.is_departure
     )
+
+    assert isinstance(callback.message, types.Message)
     await callback.message.answer(text=f"{msg_text}\n{msg.INPUT_DESTINATION_POINT}")
     await callback.answer()
 
@@ -189,6 +198,9 @@ async def choose_destination_from_multiple_callback(
         point=selected_point, is_departure=callback_data.is_departure
     )
     user_data: dict = await state.get_data()
+
+    assert isinstance(callback.message, types.Message)
+
     try:
         departure_point: PointResponsePD = user_data["departure_point"]
     except ValueError as e:

@@ -29,6 +29,7 @@ route_retriever = RouteRetriever()
 @router.message(Command("recent"))
 async def recent_command(message: types.Message):
     """Команда /recent."""
+    assert message.from_user
     user = await get_user_from_db(telegram_id=message.from_user.id)
 
     if not user:
@@ -72,6 +73,7 @@ async def recent_command(message: types.Message):
 @router.message(Command("fav"))
 async def fav_command(message: types.Message):
     """Команда /fav."""
+    assert message.from_user
     user = await get_user_from_db(telegram_id=message.from_user.id)
 
     if not user:
@@ -127,6 +129,7 @@ async def add_recent_to_fav_callback(
         f"User {callback.from_user.full_name} TGID {callback.from_user.id} "
         f"added the route '{route}' to favorites."
     )
+    assert isinstance(callback.message, types.Message)
     await callback.message.answer(text=msg.ROUTE_ADDED_TO_FAV.format(route=route))
     await callback.answer()
 
@@ -145,5 +148,6 @@ async def add_all_recent_to_fav_callback(
         f"User {callback.from_user.full_name} TGID {callback.from_user.id} "
         f"added all their recent routes to favorites."
     )
+    assert isinstance(callback.message, types.Message)
     await callback.message.answer(text=msg_text)
     await callback.answer()

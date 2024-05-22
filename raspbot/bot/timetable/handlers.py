@@ -63,10 +63,9 @@ async def show_departure_callback(
     Current state: TimetableState:exact_departure_info
     """
     try:
-        timetable_obj: Timetable = await utils.get_timetable_object_from_state(
-            state=state
-        )
+        timetable_obj = await utils.get_timetable_object_from_state(state=state)
     except exc.InternalError:
+        assert isinstance(callback.message, types.Message)
         await callback.message.answer(msg.ERROR)
     uid: str = callback_data.uid
 
@@ -74,6 +73,8 @@ async def show_departure_callback(
         f"User {callback.from_user.full_name} TGID {callback.from_user.id} "
         f"selected a departure from an inline keyboard. Replying with departure info."
     )
+
+    assert isinstance(callback.message, types.Message)
     try:
         await utils.show_dep_info(
             timetable_obj=timetable_obj, uid=uid, message=callback.message
@@ -114,6 +115,7 @@ async def show_till_the_end_of_the_day_callback(
             state=state
         )
     except exc.InternalError:
+        assert isinstance(callback.message, types.Message)
         await callback.message.answer(msg.ERROR)
 
     timetable_obj = timetable_obj.unlimit()
@@ -150,6 +152,7 @@ async def select_departure_info_by_text(message: types.Message, state: FSMContex
 
     timetable_obj = timetable_obj.unlimit()
 
+    assert message.from_user
     logger.info(
         f"User {message.from_user.full_name} TGID {message.from_user.id} "
         f"entered the time '{message.text}'. Parsing user input and replying "
@@ -214,6 +217,7 @@ async def show_other_date_timetable_callback(
         f"clicked on an inline keyabord button to see the timetable for route {route} "
         "for an arbitrary date. Replying that they now need to input a date."
     )
+    assert isinstance(callback.message, types.Message)
     await callback.message.answer(text=msg.TYPE_ARBITRARY_DATE, parse_mode="HTML")
     await callback.answer()
     await state.set_state(states.TimetableState.other_date)
@@ -227,8 +231,9 @@ async def select_date_timetable_by_text(message: types.Message, state: FSMContex
     Current state: TimetableState:other_date
     """
     user_data: dict = await state.get_data()
-    route: RouteORM = user_data.get("route")
+    route = user_data.get("route")
 
+    assert message.from_user
     logger.info(
         f"User {message.from_user.full_name} TGID {message.from_user.id} "
         f"entered the date '{message.text}'. Parsing user input and replying "

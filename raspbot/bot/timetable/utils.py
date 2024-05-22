@@ -48,6 +48,8 @@ async def process_timetable_callback(
     timetable_obj: Timetable,
 ):
     """Answers the callback based on the provided Timetable object."""
+    assert isinstance(callback.message, types.Message)
+
     await _answer_with_timetable(timetable_obj, callback.message)
     await callback.answer()
 
@@ -70,18 +72,17 @@ async def process_timetable_message(
     await state.update_data(timetable_obj=timetable_obj)
 
 
-async def get_timetable_object_from_state(state: FSMContext) -> Timetable | None:
+async def get_timetable_object_from_state(state: FSMContext) -> Timetable:
     """Get the timetable object from the FSM Context state dictionary."""
     user_data: dict = await state.get_data()
     try:
-        timetable_obj: Timetable = user_data["timetable_obj"]
+        return user_data["timetable_obj"]
     except TypeError as e:
         logger.error(f"user_data is not a dict: {e}")
         raise exc.UserDataNotADictError
     except KeyError:
         logger.error("There is no 'timetable_obj' key in the user_data dict.")
         raise exc.NoKeyError
-    return timetable_obj
 
 
 async def show_dep_info(
@@ -97,10 +98,12 @@ async def show_dep_info(
     try:
         dep_info: ThreadResponsePD = next(dep for dep in timetable if dep.uid == uid)
     except StopIteration:
+        frame = inspect.currentframe()
+        assert frame and frame.f_back
         error_msg = (
             f"UID {uid} provided by the callback "
-            f"{inspect.currentframe().f_back.f_code.co_name} and passed to "
-            f"{inspect.currentframe().f_code.co_name} is not found in the timetable "
+            f"{frame.f_back.f_code.co_name} and passed to "
+            f"{frame.f_code.co_name} is not found in the timetable "
             f"{timetable_obj}."
         )
         logger.error(error_msg)
