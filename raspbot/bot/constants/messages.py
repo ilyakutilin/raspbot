@@ -401,7 +401,10 @@ class ThreadInfo:
         dest_terminal = (
             ", " + self.thread.arrival_terminal if self.thread.arrival_terminal else ""
         )
-        duration = time.strftime("%H ч. %M мин.", time.gmtime(self.thread.duration))
+        duration = time.strftime(
+            f"{'%H ч. ' if self.thread.duration > 3600 else ''}%M мин.",
+            time.gmtime(self.thread.duration),
+        ).lstrip("0")
         ticket_price = (
             f"<b>Стоимость билета:</b> {self._format_price()}\n"
             if self.thread.ticket_price
