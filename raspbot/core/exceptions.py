@@ -98,6 +98,10 @@ class CallbackMessageTypeError(InvalidDataError):
     """Raised if the type of the callback message is not types.Message."""
 
 
+class NoPriceInThreadError(InvalidDataError):
+    """Raised if there is no price in the thread."""
+
+
 # DB
 
 

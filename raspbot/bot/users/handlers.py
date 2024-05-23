@@ -8,16 +8,12 @@ from raspbot.bot.users.keyboards import (
     add_recent_to_fav_keyboard,
     get_fav_or_recent_keyboard,
 )
+from raspbot.bot.utils import get_command_user
+from raspbot.core.email import send_email_async
 from raspbot.core.logging import configure_logging
 from raspbot.db.models import RouteORM
 from raspbot.services.routes import RouteRetriever
-from raspbot.services.users import (
-    add_recent_to_fav,
-    create_user,
-    get_user_fav,
-    get_user_from_db,
-    get_user_recent,
-)
+from raspbot.services.users import add_recent_to_fav, get_user_fav, get_user_recent
 
 logger = configure_logging(name=__name__)
 
@@ -29,26 +25,19 @@ route_retriever = RouteRetriever()
 @router.message(Command("recent"))
 async def recent_command(message: types.Message):
     """Команда /recent."""
-    assert message.from_user
-    user = await get_user_from_db(telegram_id=message.from_user.id)
+    user, _ = await get_command_user(
+        command="recent",
+        message=message,
+        reply_text=msg.NO_RECENT,
+        reply_markup=start_keyboard,
+    )
 
-    if not user:
-        logger.info(
-            f"New user detected: {message.from_user.full_name}, "
-            f"telegram id = {message.from_user.id}. Adding to DB."
-        )
-        user = await create_user(tg_user=message.from_user)
-
-        logger.info(
-            f"User {user.full_name} TGID {user.telegram_id} issued a /recent command. "
-            "This is a new user, so there is no recent. Replying."
-        )
-        await message.answer(
-            text=msg.NO_RECENT, reply_markup=start_keyboard, parse_mode="HTML"
-        )
-        return
-
-    user_recent = await get_user_recent(user=user)
+    try:
+        user_recent = await get_user_recent(user=user)
+    except Exception as e:
+        logger.exception(e)
+        await message.answer(msg.ERROR)
+        await send_email_async(e)
 
     if not user_recent:
         logger.info(
@@ -73,16 +62,17 @@ async def recent_command(message: types.Message):
 @router.message(Command("fav"))
 async def fav_command(message: types.Message):
     """Команда /fav."""
-    assert message.from_user
-    user = await get_user_from_db(telegram_id=message.from_user.id)
+    user, _ = await get_command_user(
+        command="fav",
+        message=message,
+    )
 
-    if not user:
-        logger.info(
-            f"New user detected: {message.from_user.full_name}, "
-            f"telegram id = {message.from_user.id}. Adding to DB."
-        )
-        user = await create_user(tg_user=message.from_user)
-    user_recent = await get_user_recent(user=user)
+    try:
+        user_recent = await get_user_recent(user=user)
+    except Exception as e:
+        logger.exception(e)
+        await message.answer(msg.ERROR)
+        await send_email_async(e)
 
     if not user_recent:
         logger.info(
@@ -93,7 +83,13 @@ async def fav_command(message: types.Message):
             text=msg.NO_FAV_NO_RECENT, reply_markup=start_keyboard, parse_mode="HTML"
         )
         return
-    user_fav = await get_user_fav(user=user)
+
+    try:
+        user_fav = await get_user_fav(user=user)
+    except Exception as e:
+        logger.exception(e)
+        await message.answer(msg.ERROR)
+        await send_email_async(e)
 
     if not user_fav:
         logger.info(

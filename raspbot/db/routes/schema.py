@@ -73,7 +73,7 @@ class ThreadResponsePD(BaseModelPD):
     departure_terminal: str | None
     arrival_terminal: str | None
     duration: float
-    ticket_price: float
+    ticket_price: float | None
 
     @property
     def str_time(self) -> str:

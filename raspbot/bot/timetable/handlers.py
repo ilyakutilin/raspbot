@@ -35,8 +35,18 @@ async def show_closest_departures_callback(
 
     Current state: TimetableState:exact_departure_info
     """
-    recent: RecentORM = await update_recent(recent_id=callback_data.recent_id)
-    route: RouteORM = await route_retriever.get_route_from_db(route_id=recent.route_id)
+    try:
+        recent: RecentORM = await update_recent(recent_id=callback_data.recent_id)
+        route: RouteORM = await route_retriever.get_route_from_db(
+            route_id=recent.route_id
+        )
+    # Exception includes the most common NoDBObjectError exception
+    except Exception as e:
+        logger.exception(e)
+        assert isinstance(callback.message, types.Message)
+        await callback.message.answer(msg.ERROR)
+        await send_email_async(e)
+
     logger.info(
         f"User {callback.from_user.full_name} TGID {callback.from_user.id} "
         f"selected route {route} from an inline keyboard."
@@ -62,10 +72,11 @@ async def show_departure_callback(
 
     Current state: TimetableState:exact_departure_info
     """
+    assert isinstance(callback.message, types.Message)
+
     try:
         timetable_obj = await utils.get_timetable_object_from_state(state=state)
     except exc.InternalError:
-        assert isinstance(callback.message, types.Message)
         await callback.message.answer(msg.ERROR)
     uid: str = callback_data.uid
 
@@ -74,7 +85,6 @@ async def show_departure_callback(
         f"selected a departure from an inline keyboard. Replying with departure info."
     )
 
-    assert isinstance(callback.message, types.Message)
     try:
         await utils.show_dep_info(
             timetable_obj=timetable_obj, uid=uid, message=callback.message
@@ -109,18 +119,25 @@ async def show_till_the_end_of_the_day_callback(
     Current state: TimetableState:exact_departure_info
     """
     route_id: int = callback_data.route_id
+    assert isinstance(callback.message, types.Message)
 
     try:
         timetable_obj: Timetable = await utils.get_timetable_object_from_state(
             state=state
         )
-    except exc.InternalError:
-        assert isinstance(callback.message, types.Message)
+    except exc.InternalError as e:
+        logger.exception(e)
         await callback.message.answer(msg.ERROR)
+        await send_email_async(e)
 
     timetable_obj = timetable_obj.unlimit()
     if timetable_obj.route.id != route_id:
-        route: RouteORM = await route_retriever.get_route_from_db(route_id=route_id)
+        try:
+            route: RouteORM = await route_retriever.get_route_from_db(route_id=route_id)
+        except Exception as e:
+            logger.exception(e)
+            await callback.message.answer(msg.ERROR)
+            await send_email_async(e)
         timetable_obj = Timetable(route=route)
 
     logger.info(
@@ -147,8 +164,10 @@ async def select_departure_info_by_text(message: types.Message, state: FSMContex
         timetable_obj: Timetable = await utils.get_timetable_object_from_state(
             state=state
         )
-    except exc.InternalError:
+    except exc.InternalError as e:
+        logger.exception(e)
         await message.answer(msg.ERROR)
+        await send_email_async(e)
 
     timetable_obj = timetable_obj.unlimit()
 
@@ -185,7 +204,15 @@ async def show_tomorrow_timetable_callback(
     Current state: TimetableState:exact_departure_info
     """
     route_id: int = callback_data.route_id
-    route: RouteORM = await route_retriever.get_route_from_db(route_id=route_id)
+
+    try:
+        route: RouteORM = await route_retriever.get_route_from_db(route_id=route_id)
+    except Exception as e:
+        logger.exception(e)
+        assert isinstance(callback.message, types.Message)
+        await callback.message.answer(msg.ERROR)
+        await send_email_async(e)
+
     tomorrow = dt.date.today() + dt.timedelta(days=1)
     timetable_obj = Timetable(route=route, date=tomorrow)
 
@@ -210,14 +237,20 @@ async def show_other_date_timetable_callback(
     Current state: TimetableState:exact_departure_info
     """
     route_id: int = callback_data.route_id
-    route: RouteORM = await route_retriever.get_route_from_db(route_id=route_id)
+    assert isinstance(callback.message, types.Message)
+
+    try:
+        route: RouteORM = await route_retriever.get_route_from_db(route_id=route_id)
+    except Exception as e:
+        logger.exception(e)
+        await callback.message.answer(msg.ERROR)
+        await send_email_async(e)
 
     logger.info(
         f"User {callback.from_user.full_name} TGID {callback.from_user.id} "
         f"clicked on an inline keyabord button to see the timetable for route {route} "
         "for an arbitrary date. Replying that they now need to input a date."
     )
-    assert isinstance(callback.message, types.Message)
     await callback.message.answer(text=msg.TYPE_ARBITRARY_DATE, parse_mode="HTML")
     await callback.answer()
     await state.set_state(states.TimetableState.other_date)
@@ -231,7 +264,12 @@ async def select_date_timetable_by_text(message: types.Message, state: FSMContex
     Current state: TimetableState:other_date
     """
     user_data: dict = await state.get_data()
-    route = user_data.get("route")
+    try:
+        route = user_data["route"]
+    except KeyError as e:
+        logger.exception(f"There is no 'route' key in the state user data: {e}")
+        await message.answer(msg.ERROR)
+        await send_email_async(e)
 
     assert message.from_user
     logger.info(

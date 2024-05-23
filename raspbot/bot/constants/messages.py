@@ -1,6 +1,7 @@
 import time
 from abc import ABC, abstractmethod
 
+from raspbot.core import exceptions as exc
 from raspbot.core.logging import configure_logging, log
 from raspbot.db.models import PointTypeEnum
 from raspbot.db.routes.schema import PointResponsePD, ThreadResponsePD
@@ -372,6 +373,10 @@ class ThreadInfo:
     @log(logger)
     def _format_price(self, price: float | None = None) -> str:
         if not price:
+            if not self.thread.ticket_price:
+                raise exc.NoPriceInThreadError(
+                    f"There is no price in thread {self.thread.title}"
+                )
             price = self.thread.ticket_price
         if price.is_integer():
             return f"{int(price)} ₽"
@@ -396,7 +401,15 @@ class ThreadInfo:
         dest_terminal = (
             ", " + self.thread.arrival_terminal if self.thread.arrival_terminal else ""
         )
-        duration = time.strftime("%H ч. %M мин.", time.gmtime(self.thread.duration))
+        duration = time.strftime(
+            f"{'%H ч. ' if self.thread.duration > 3600 else ''}%M мин.",
+            time.gmtime(self.thread.duration),
+        ).lstrip("0")
+        ticket_price = (
+            f"<b>Стоимость билета:</b> {self._format_price()}\n"
+            if self.thread.ticket_price
+            else ""
+        )
         logger.info(
             "Timetable thread info has been generated within "
             f"{self.__class__.__name__} class of {self.__class__.__module__} module."
@@ -413,7 +426,7 @@ class ThreadInfo:
             f"{dest_platform}{dest_terminal}\n"
             f"<b>Останавливается:</b> {self.thread.stops}\n"
             f"<b>Время в пути:</b> {duration}\n"
-            f"<b>Стоимость билета:</b> {self._format_price()}\n"
+            f"{ticket_price}"
         )
 
 
