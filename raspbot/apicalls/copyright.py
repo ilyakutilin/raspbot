@@ -2,6 +2,7 @@ import asyncio
 from typing import Mapping
 
 from raspbot.apicalls.base import get_response
+from raspbot.core import exceptions as exc
 from raspbot.core.logging import configure_logging, log
 from raspbot.settings import settings as s
 
@@ -13,7 +14,11 @@ async def get_copyright() -> Mapping | None:
     """Gets the Yandex copyright."""
     url = s.COPYRIGHT_ENDPOINT
     headers = s.headers
-    return await get_response(endpoint=url, headers=headers)
+    try:
+        return await get_response(endpoint=url, headers=headers)
+    except exc.APIError as e:
+        logger.exception(e)
+        return None
 
 
 if __name__ == "__main__":
