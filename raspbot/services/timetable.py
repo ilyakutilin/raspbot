@@ -183,10 +183,14 @@ class Timetable:
             short_from_title = segment["from"]["short_title"]
             short_to_title = segment["to"]["short_title"]
             thread = segment["thread"]
-            ticket_price_dict = segment["tickets_info"]["places"][0]["price"]
-            ticket_price = float(
-                f"{ticket_price_dict['whole']}.{ticket_price_dict['cents']}"
-            )
+            ticket_places = segment["tickets_info"]["places"]
+            if not ticket_places:
+                ticket_price = None
+            else:
+                ticket_price_dict = segment["tickets_info"]["places"][0]["price"]
+                ticket_price = float(
+                    f"{ticket_price_dict['whole']}.{ticket_price_dict['cents']}"
+                )
 
             threadresponse = ThreadResponsePD(
                 uid=thread["uid"],
