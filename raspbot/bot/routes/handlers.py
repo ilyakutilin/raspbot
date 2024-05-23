@@ -8,12 +8,13 @@ from raspbot.bot.constants import states
 from raspbot.bot.routes import utils
 from raspbot.bot.routes.keyboards import get_point_choice_keyboard
 from raspbot.bot.timetable.utils import process_timetable_callback
+from raspbot.bot.utils import get_command_user
 from raspbot.core.logging import configure_logging
 from raspbot.db.models import UserORM
 from raspbot.db.routes.schema import PointResponsePD, RouteResponsePD
 from raspbot.services.routes import PointRetriever, RouteFinder
 from raspbot.services.timetable import Timetable
-from raspbot.services.users import create_user, get_user_from_db
+from raspbot.services.users import get_user_from_db
 from raspbot.settings import settings
 
 logger = configure_logging(name=__name__)
@@ -27,20 +28,9 @@ route_finder = RouteFinder()
 @router.message(Command("search"))
 async def search_command(message: types.Message, state: FSMContext):
     """User: issues /search command. Bot: please input the departure point."""
-    assert message.from_user
-    user = await get_user_from_db(telegram_id=message.from_user.id)
-    if not user:
-        logger.info(
-            f"New user detected: {message.from_user.full_name}, "
-            f"telegram id = {message.from_user.id}. Adding to DB."
-        )
-        user = await create_user(tg_user=message.from_user)
-
-    logger.info(
-        f"User {user.full_name} TGID {user.telegram_id} issued a /search command. "
-        "Replying."
+    await get_command_user(
+        command="search", message=message, reply_text=msg.INPUT_DEPARTURE_POINT
     )
-    await message.answer(msg.INPUT_DEPARTURE_POINT)
 
     logger.info("Setting state to 'selecting_departure_point'.")
     await state.set_state(states.RouteState.selecting_departure_point)
