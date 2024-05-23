@@ -9,6 +9,7 @@ from raspbot.bot.users.keyboards import (
     get_fav_or_recent_keyboard,
 )
 from raspbot.bot.utils import get_command_user
+from raspbot.core.email import send_email_async
 from raspbot.core.logging import configure_logging
 from raspbot.db.models import RouteORM
 from raspbot.services.routes import RouteRetriever
@@ -31,7 +32,12 @@ async def recent_command(message: types.Message):
         reply_markup=start_keyboard,
     )
 
-    user_recent = await get_user_recent(user=user)
+    try:
+        user_recent = await get_user_recent(user=user)
+    except Exception as e:
+        logger.exception(e)
+        await message.answer(msg.ERROR)
+        await send_email_async(e)
 
     if not all((new_user, user_recent)):
         logger.info(
@@ -60,7 +66,13 @@ async def fav_command(message: types.Message):
         command="fav",
         message=message,
     )
-    user_recent = await get_user_recent(user=user)
+
+    try:
+        user_recent = await get_user_recent(user=user)
+    except Exception as e:
+        logger.exception(e)
+        await message.answer(msg.ERROR)
+        await send_email_async(e)
 
     if not user_recent:
         logger.info(
@@ -72,7 +84,12 @@ async def fav_command(message: types.Message):
         )
         return
 
-    user_fav = await get_user_fav(user=user)
+    try:
+        user_fav = await get_user_fav(user=user)
+    except Exception as e:
+        logger.exception(e)
+        await message.answer(msg.ERROR)
+        await send_email_async(e)
 
     if not user_fav:
         logger.info(
