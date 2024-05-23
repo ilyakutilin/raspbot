@@ -205,7 +205,7 @@ class RouteRetriever:
     """Route retrieval process."""
 
     @log(logger)
-    async def get_route_from_db(self, route_id: int) -> RouteORM | None:
+    async def get_route_from_db(self, route_id: int) -> RouteORM:
         """Get route from db by id."""
         return await crud_routes.get_route_by_id(id=route_id)
 
