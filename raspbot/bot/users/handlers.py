@@ -25,7 +25,7 @@ route_retriever = RouteRetriever()
 @router.message(Command("recent"))
 async def recent_command(message: types.Message):
     """Команда /recent."""
-    user, new_user = await get_command_user(
+    user, _ = await get_command_user(
         command="recent",
         message=message,
         reply_text=msg.NO_RECENT,
@@ -39,7 +39,7 @@ async def recent_command(message: types.Message):
         await message.answer(msg.ERROR)
         await send_email_async(e)
 
-    if not all((new_user, user_recent)):
+    if not user_recent:
         logger.info(
             f"User {user.full_name} TGID {user.telegram_id} issued a /recent command. "
             "User has no recent. Replying."

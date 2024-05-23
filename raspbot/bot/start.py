@@ -31,7 +31,9 @@ async def start_command(message: types.Message):
     user, new_user = await get_command_user(
         command="start",
         message=message,
-        reply_text=msg.GREETING_NEW_USER.format(message.from_user.first_name),
+        reply_text=msg.GREETING_NEW_USER.format(
+            first_name=message.from_user.first_name
+        ),
         reply_markup=keyboard,
     )
 

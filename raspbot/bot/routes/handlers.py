@@ -31,10 +31,9 @@ route_finder = RouteFinder()
 @router.message(Command("search"))
 async def search_command(message: types.Message, state: FSMContext):
     """User: issues /search command. Bot: please input the departure point."""
-    await get_command_user(
-        command="search", message=message, reply_text=msg.INPUT_DEPARTURE_POINT
-    )
+    await get_command_user(command="search", message=message)
 
+    await message.answer(msg.INPUT_DEPARTURE_POINT)
     logger.info("Setting state to 'selecting_departure_point'.")
     await state.set_state(states.RouteState.selecting_departure_point)
 
