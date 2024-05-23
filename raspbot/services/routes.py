@@ -164,14 +164,19 @@ class RouteFinder:
         user: UserORM,
     ) -> RouteResponsePD:
         """Gets route by departure and destination points or creates a new one."""
-        route_from_db: RouteORM = await crud_routes.get_route_by_points(
-            departure_point_id=departure_point.id,
-            destination_point_id=destination_point.id,
-        )
         dep_st_or_stl = get_short_point_type(point_type=departure_point.point_type)
         dest_st_or_stl = get_short_point_type(point_type=destination_point.point_type)
 
-        if not route_from_db:
+        try:
+            route_from_db: RouteORM = await crud_routes.get_route_by_points(
+                departure_point_id=departure_point.id,
+                destination_point_id=destination_point.id,
+            )
+            logger.info(
+                f"Route from {dep_st_or_stl} {departure_point.title} to "
+                f"{dest_st_or_stl} {destination_point.title} already exists."
+            )
+        except exc.NoDBObjectError:
             logger.info(
                 f"Route from {dep_st_or_stl} {departure_point.title} to "
                 f"{dest_st_or_stl} {destination_point.title} does not exist yet. "
@@ -181,16 +186,12 @@ class RouteFinder:
                 departure_point_id=departure_point.id,
                 destination_point_id=destination_point.id,
             )
-            route_db: RouteORM = await crud_routes.create(instance=instance)
-        else:
-            logger.info(
-                f"Route from {dep_st_or_stl} {departure_point.title} to "
-                f"{dest_st_or_stl} {destination_point.title} already exists."
+            route_from_db: RouteORM = await crud_routes.create(  # type: ignore
+                instance=instance
             )
-            route_db = route_from_db
 
         # Добавляем маршрут в последние у пользователя (либо обновляем дату)
-        await add_or_update_recent(user_id=user.id, route_id=route_db.id)
+        await add_or_update_recent(user_id=user.id, route_id=route_from_db.id)
 
         route = RouteResponsePD(
             id=route_from_db.id,

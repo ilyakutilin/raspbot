@@ -1,3 +1,5 @@
+from typing import Any
+
 from aiogram import F, Router, types
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
@@ -9,6 +11,7 @@ from raspbot.bot.routes import utils
 from raspbot.bot.routes.keyboards import get_point_choice_keyboard
 from raspbot.bot.timetable.utils import process_timetable_callback
 from raspbot.bot.utils import get_command_user
+from raspbot.core.email import send_email_async
 from raspbot.core.logging import configure_logging
 from raspbot.db.models import UserORM
 from raspbot.db.routes.schema import PointResponsePD, RouteResponsePD
@@ -86,12 +89,18 @@ async def more_buttons_handler(
         "the 'More points' inline button. Getting the remaining points from the state "
         "user data and replying to the user."
     )
-    user_data: dict = await state.get_data()
-
-    point_chunks: list[list[PointResponsePD]] = user_data["remaining_point_chunks"]
-    points: list = point_chunks.pop(0)
+    user_data: dict[str, Any] = await state.get_data()
 
     assert isinstance(callback.message, types.Message)
+    try:
+        point_chunks: list[list[PointResponsePD]] = user_data["remaining_point_chunks"]
+    except KeyError as e:
+        logger.exception(e)
+        await callback.message.answer(text=msg.ERROR)
+        await send_email_async(e)
+
+    points: list = point_chunks.pop(0)
+
     await callback.message.answer(
         msg.MORE_POINT_CHOICES,
         reply_markup=get_point_choice_keyboard(
@@ -144,9 +153,16 @@ async def choose_departure_from_multiple_callback(
     state: FSMContext,
 ):
     """User: selects the departure from the list. Bot: input the destination point."""
-    selected_departure: PointResponsePD = await point_retriever.get_point(
-        point_id=callback_data.point_id
-    )
+    assert isinstance(callback.message, types.Message)
+    try:
+        selected_departure: PointResponsePD = await point_retriever.get_point(
+            point_id=callback_data.point_id
+        )
+    except Exception as e:
+        logger.exception(e)
+        await callback.message.answer(msg.ERROR)
+        await send_email_async(e)
+
     logger.info(
         f"User {callback.from_user.full_name} TGID {callback.from_user.id} "
         f"selected the departure point '{selected_departure.title}'. "
@@ -156,7 +172,6 @@ async def choose_departure_from_multiple_callback(
         point=selected_departure, is_departure=callback_data.is_departure
     )
 
-    assert isinstance(callback.message, types.Message)
     await callback.message.answer(text=f"{msg_text}\n{msg.INPUT_DESTINATION_POINT}")
     await callback.answer()
 
@@ -177,9 +192,16 @@ async def choose_destination_from_multiple_callback(
     state: FSMContext,
 ):
     """User: selects the destination from the list. Bot: here's the timetable."""
-    selected_point: PointResponsePD = await point_retriever.get_point(
-        point_id=callback_data.point_id
-    )
+    assert isinstance(callback.message, types.Message)
+    try:
+        selected_point: PointResponsePD = await point_retriever.get_point(
+            point_id=callback_data.point_id
+        )
+    except Exception as e:
+        logger.exception(e)
+        await callback.message.answer(msg.ERROR)
+        await send_email_async(e)
+
     logger.info(
         f"User {callback.from_user.full_name} TGID {callback.from_user.id} "
         f"selected the destination point '{selected_point.title}'."
@@ -193,7 +215,7 @@ async def choose_destination_from_multiple_callback(
 
     try:
         departure_point: PointResponsePD = user_data["departure_point"]
-    except ValueError as e:
+    except KeyError as e:
         logger.error(f"Departure point is not found in the state data: {e}")
         callback.message.answer(text=msg.ERROR)
     user: UserORM = await get_user_from_db(telegram_id=callback.from_user.id)

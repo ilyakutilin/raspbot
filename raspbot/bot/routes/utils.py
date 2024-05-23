@@ -7,6 +7,7 @@ from raspbot.bot.routes.keyboards import (
     get_single_point_confirmation_keyboard,
 )
 from raspbot.core import exceptions as exc
+from raspbot.core.email import send_email_async
 from raspbot.core.logging import configure_logging, log
 from raspbot.db.routes.schema import PointResponsePD
 from raspbot.services.routes import PointSelector
@@ -20,12 +21,16 @@ async def select_point(is_departure: bool, message: types.Message, state: FSMCon
     point_selector = PointSelector()
 
     try:
-        point_chunks: list[list[PointResponsePD]] = await point_selector.select_points(
-            raw_user_input=message.text
+        point_chunks: list[list[PointResponsePD]] | None = (
+            await point_selector.select_points(raw_user_input=message.text)
         )
     except exc.UserInputTooShortError as e:
         logger.error(e, exc_info=True)
         await message.answer(text=msg.INPUT_TOO_SHORT)
+    except Exception as e:
+        logger.exception(e)
+        await message.answer(msg.ERROR)
+        await send_email_async(e)
 
     if not point_chunks:
         await message.answer(text=msg.POINT_NOT_FOUND)
