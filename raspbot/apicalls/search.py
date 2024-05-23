@@ -83,17 +83,16 @@ def _validate_arg(
     value: object,
 ) -> tuple[str, str]:
     """
-    Валидирует компонент запроса (аргумент основной функции search_between_stations).
+    Validates the query component (arg of the main search_between_stations function).
 
-    Принимает на вход:
-        - value (object): значение аргумента;
-        - key_name (str): имя аргумента.
+    Accepts:
+        - key (str): the name of the argument;
+        - value (object): the value of the argument.
 
-    Вызывает исключения:
-        - InvalidDateError: Дата в прошлом.
-          Поиск может быть только начиная с сегодняшнего дня.
-        - InvalidValueError: Значения format, lang и transport_types должны быть выбраны
-          из предустановленного списка.
+    Raises:
+        - InvalidDateError: Date in the past. The search can only be today onwards.
+        - InvalidValueError: The values format, lang, and transport_types
+          must be selected from a preset list.
     """
     enums = {"format": Format, "lang": Lang, "transport_types": TransportTypes}
     if key == "date":
@@ -126,7 +125,7 @@ def _generate_url(
     result_timezone: str | None = None,
     transfers: bool | None = None,
 ) -> str:
-    """Generate the URL for the search_between_stations API call.
+    """Generates the URL for the search_between_stations API call.
 
     Args:
         - from_ (str): Code of the departure point E.g. "s2000006".
@@ -193,13 +192,10 @@ async def _get_raw_timetable(
     Returns a dict with the timetable bewteen the points in raw format
     as received from the API.
     """
-    # Получаем локальные переменные функции, т.е. на данном этапе все переданные ей
-    # аргументы. Нужно получить их до объявления других переменных.
     try:
         response = await get_response(endpoint=url, headers=headers)
     except exc.APIError as e:
         logger.error(f"API Exception: {e}")
-        # exception_log is a global variable
         _exception_log.append(dt.datetime.now())
         try:
             _check_exception_threshold()

@@ -24,7 +24,7 @@ route_retriever = RouteRetriever()
 
 @router.message(Command("recent"))
 async def recent_command(message: types.Message):
-    """Команда /recent."""
+    """User: issues /recent command. Bot: lists recents or advises otherwise."""
     user, _ = await get_command_user(
         command="recent",
         message=message,
@@ -61,7 +61,7 @@ async def recent_command(message: types.Message):
 
 @router.message(Command("fav"))
 async def fav_command(message: types.Message):
-    """Команда /fav."""
+    """User: issues /fav command. Bot: lists favs or advises otherwise."""
     user, _ = await get_command_user(
         command="fav",
         message=message,

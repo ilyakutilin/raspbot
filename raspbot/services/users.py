@@ -15,13 +15,13 @@ crud_recents = CRUDRecents()
 @log(logger)
 async def get_user_from_db(telegram_id: int) -> UserORM | None:
     """
-    Получает объект пользователя из БД или None при его отсутствии.
+    Gets the user object from the database, or None if it does not exist.
 
-    Принимает на вход:
-        telegram_id (int): Telegram ID пользователя.
+    Accepts:
+        telegram_id (int): the user's Telegram ID.
 
-    Возвращает:
-        Объект пользователя (User) или None.
+    Returns:
+        User object (User) or None.
     """
     user_from_db: UserORM | None = await crud_users.get_user_by_telegram_id(
         telegram_id=telegram_id
@@ -39,13 +39,13 @@ async def get_user_from_db(telegram_id: int) -> UserORM | None:
 @log(logger)
 async def create_user(tg_user: TgUser) -> UserORM:
     """
-    Создает пользователя в БД.
+    Creates a user in the database.
 
-    Принимает на вход:
-        tg_user (TgUser): Объект пользователя aiogram.
+    Accepts:
+        tg_user (TgUser): The aiogram user object.
 
-    Возвращает:
-        User: объект пользователя.
+    Returns:
+        User: User object.
     """
     instance = UserORM(
         telegram_id=tg_user.id,
@@ -61,19 +61,19 @@ async def create_user(tg_user: TgUser) -> UserORM:
 
 @log(logger)
 async def get_user_recent(user: UserORM) -> Sequence[RecentORM]:
-    """Get user recent routes."""
+    """Gets user recent routes."""
     return await crud_recents.get_recent_or_fav_by_user_id(user_id=user.id, fav=False)
 
 
 @log(logger)
 async def get_user_fav(user: UserORM) -> Sequence[RecentORM]:
-    """Get user favorite routes."""
+    """Gets user favorite routes."""
     return await crud_recents.get_recent_or_fav_by_user_id(user_id=user.id, fav=True)
 
 
 @log(logger)
 async def update_recent(recent_id: int) -> RecentORM:
-    """Update recent count and update date."""
+    """Updates recent count and update date."""
     recent: RecentORM = await crud_recents.get_or_raise(_id=recent_id)
     update_date_before = recent.updated_at
     logger.info(
@@ -97,7 +97,7 @@ async def update_recent(recent_id: int) -> RecentORM:
 
 @log(logger)
 async def add_or_update_recent(user_id: int, route_id: int):
-    """Add or update user recent route."""
+    """Adds or updates user recent route."""
     route_added: RecentORM | None = await crud_recents.route_in_recent(
         user_id=user_id, route_id=route_id
     )
@@ -110,5 +110,5 @@ async def add_or_update_recent(user_id: int, route_id: int):
 
 @log(logger)
 async def add_recent_to_fav(recent_id: int) -> RecentORM:
-    """Add recent to user favorite routes."""
+    """Adds recent to user favorite routes."""
     return await crud_recents.add_recent_to_fav(recent_id=recent_id)
