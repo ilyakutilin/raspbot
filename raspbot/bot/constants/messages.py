@@ -402,6 +402,11 @@ class ThreadInfo:
             ", " + self.thread.arrival_terminal if self.thread.arrival_terminal else ""
         )
         duration = time.strftime("%H ч. %M мин.", time.gmtime(self.thread.duration))
+        ticket_price = (
+            f"<b>Стоимость билета:</b> {self._format_price()}\n"
+            if self.thread.ticket_price
+            else ""
+        )
         logger.info(
             "Timetable thread info has been generated within "
             f"{self.__class__.__name__} class of {self.__class__.__module__} module."
@@ -418,9 +423,7 @@ class ThreadInfo:
             f"{dest_platform}{dest_terminal}\n"
             f"<b>Останавливается:</b> {self.thread.stops}\n"
             f"<b>Время в пути:</b> {duration}\n"
-            f"<b>Стоимость билета:</b> {self._format_price()}\n"
-            if self.thread.ticket_price
-            else ""
+            f"{ticket_price}"
         )
 
 
