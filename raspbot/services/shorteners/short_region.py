@@ -21,16 +21,17 @@ shorteners = {
 @log(logger)
 def get_short_region_title(region_title: str) -> str:
     """
-    Генерирует короткое наименование региона для инлайн-кнопок бота.
+    Generates a short region title to fit the bot inline keyboard buttons.
 
-    "Республика" заменяет на "Респ.", "область" на "обл.", а также в отдельных случаях
-    сокращает до аббревиатур (напр. "Москва и Московская область" на "МСК и МО").
+    "Республика" is replaced with "Респ.", "область" with "обл.", and in some
+    specific cases the region is abbreviated (e.g. "Москва и Московская область"
+    replaced with "МСК и МО").
 
-    Принимает на вход:
-        region_title (str): Полное наименование региона из базы данных.
+    Accepts:
+        region_title (str): Full region title from the database.
 
-    Возвращает:
-        str: Сокращенное наименование региона.
+    Returns:
+        str: Short region title.
     """
     if region_title in special_cases:
         region_title = special_cases[region_title]

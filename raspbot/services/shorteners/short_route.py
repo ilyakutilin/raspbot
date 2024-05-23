@@ -1,12 +1,12 @@
 """
-Модуль для сокращения описания маршрута на инлайн-кнопках.
+Module for shortening route description on inline buttons.
 
-Пример: строка "Санкт-Петербург (Московский вокзал) ➡ Чудово-1 (Московское)"
-не поместится на инлайн-кнопку бота целиком, на кнопке будет отображён только начальный
-пункт маршрута, и выбор маршрута (например, из списка избранного) будет практически
-невозможен. Такую строку нужно сокращать.
-Результатом работы данного модуля станет строка "СПб (Моск вкз) ➡ Чудово-1 (Моск)",
-которая поместится на кнопку.
+Example: the line "Санкт-Петербург (Московский вокзал) ➡ Чудово-1 (Московское)"
+will not fit on the bot's inline keyboard button, only the starting point of the route
+will be visible on the button, and it will be almost impossible to choose a route
+(for example, from the favorites list). Such a string shall be shortened.
+The result of this module will be the string "СПб (Моск вкз) ➡ Чудово-1 (Моск)",
+which will fit the button.
 """
 
 import re
@@ -55,16 +55,15 @@ def _replace_special_phrases(
     string: str, special_phrases: dict[str | re.Pattern, str]
 ) -> str:
     """
-    Заменяет определенные элементы строки на сокращенные в соответствии со словарём.
+    Replaces certain string elements with abbreviations according to the dictionary.
 
-    Принимает на вход:
-        string: строку, в которой нужно искать определенные элементы;
-        - special_phrases: словарь элементов. Если в переданной строке встречается
-          элемент из этого словаря, он заменяется на соответствующее сокращённое
-          значение.
+    Accepts:
+        - string: the string in which to search for certain elements;
+        - special_phrases: dictionary of elements.
+          If an element from this dictionary is found in the passed string,
+          it is replaced by the corresponding abbreviated value.
 
-    Возвращает строку, в которой заменены словарные элементы, если они в ней
-    встречаются.
+    Returns the string in which the dictionary elements are replaced, if found.
     """
     modified_string = string
     for pattern, value in special_phrases.items():
@@ -75,11 +74,11 @@ def _replace_special_phrases(
 @log(logger)
 def _clean_string(string: str) -> str:
     """
-    Очищает строку от лишних пробелов.
+    Clears the string of extra spaces.
 
-    Принимает на вход строку.
-    Возвращает строку без пробелов в начале и в конце, а также без лишних пробелов
-    в середине.
+    Accepts a string as input.
+    Returns a string with no spaces at the beginning and end,
+    and no extra spaces in the middle.
     """
     cleaned_string = string.strip()
     return re.sub(r"\s+", " ", cleaned_string)
@@ -88,18 +87,18 @@ def _clean_string(string: str) -> str:
 @log(logger)
 def _split_string_into_tokens(string: str) -> list[str]:
     """
-    Разделяет строку на токены.
+    Splits a string into tokens.
 
-    Принимает на вход строку.
+    Accepts a string as input.
 
-    Возвращает список токенов, представляющих собой элементы изначальной строки.
-    В отдельные токены объединяются следующие элементы строки:
-    - слова (последовательность букв);
-    - числа (последовательность цифр);
-    - символ разделителя (отделяющего пункт отправления от пункта назначения в описании
-      маршрута) с пробелами по бокам.
-    Остальные символы (пробелы, запятые, точки, дефисы и т.п.) представляют собой
-    отдельные токены.
+    Returns a list of tokens representing elements of the original string.
+    The following string elements are combined into separate tokens:
+    - words (a sequence of letters);
+    - numbers (sequence of digits);
+    - a separator character (separating the origin from the destination
+      in the route description) with spaces on the sides.
+    The remaining characters (spaces, commas, periods, hyphens, etc.)
+    are treated as separate tokens.
     """
     tokens = re.findall(
         r"{delimiter}|\d+|[{alphabet}]+|[^{alphabet}\d]".format(
@@ -115,18 +114,17 @@ def _distribute_tokens(
     tokens: list[str],
 ) -> tuple[list[tuple[int, str]], list[tuple[int, str]]]:
     """
-    Распределяет токены по отдельным спискам по их содержимому.
+    Distributes tokens to individual lists according to their contents.
 
-    Принимает на вход список с токенами.
+    Takes a list with tokens as input.
 
-    Возвращает два списка:
-    - В первом списке слова, которые мы потом будем сокращать;
-    - Во втором списке всё остальное (т.е. токены, которые не подлежат сокращению и
-      будут перенесены в финальное сокращённое описание маршрута без изменений.)
-    К каждому токену добавляем его позицию в изначальном списке, чтобы потом можно было
-    их в правильном порядке соединить в финальную строку. Таким образом, элементами
-    каждого списка являются кортежи, состоящие из индекса позиции токена и
-    непосредственно самого токена.
+    Returns two lists:
+    - In the first list, the words that we are going to abbreviate later;
+    - In the second list, everything else (i.e. tokens that are not to be abbreviated
+      and will be moved to the final abbreviated route description without changes).
+    To each token, we add its position in the original list, so that they can then be
+    combined in the correct order into the final line. Thus, the elements of each list
+    are tuples consisting of the token position index and the token itself.
     """
     letters_list = []
     other_list = []
@@ -148,9 +146,9 @@ def _distribute_tokens(
 @log(logger)
 def _take_closest(my_list: list[int], my_number: int) -> int:
     """
-    Возвращает значение из списка my_list, ближайшее к my_number.
+    Returns the value from my_list closest to my_number.
 
-    Если числа одинаково близки, возвращает наименьшее.
+    If the numbers are equally close, returns the smallest.
     """
     pos = bisect_left(my_list, my_number)
     if pos == 0:
@@ -171,18 +169,17 @@ def _get_limit_multiplier(
     string_limit: int,
 ) -> float:
     """
-    Определяет коэффициент сокращения слов в строке.
+    Determines the reduction factor of words in a string.
 
-    Принимает на вход:
-        - words: список кортежей, состоящих из индекса позиций в описании маршрута
-          и токена (слова);
-        others: список кортежей, состоящих из индекса позиции в описании маршрута
-          и токена, не являющегося словом;
-        string_limit: Лимит длины, к которому необходимо привести финальную строку.
+    Takes as input:
+        - words: a list of tuples consisting of the index of positions
+          in the route description and a token (word);
+        - other: a list of tuples consisting of a position index
+          in the route description and a token that is not a word;
+        - string_limit: The length limit which the final string should be reduced to.
 
-    Возвращает коэффициент сокращения в формате числа с плавающей запятой,
-    на который должны будут умножаться слова для достижения оптимальной длины
-    сокращенной строки.
+    Returns the reduction factor (float), by which words will have to be multiplied
+    to achieve the optimal length of the reduced string.
     """
     workable_limit = string_limit - sum(len(t[1]) for t in others)
     return min((workable_limit / sum(len(t[1]) for t in words)), 1)
@@ -191,50 +188,51 @@ def _get_limit_multiplier(
 @log(logger)
 def _shorten_word(word: str, limit_multiplier: float) -> str:
     """
-    Сокращает слово по установленным правилом в соответствии с лимитом.
+    Shortens a word by a set rule according to a limit.
 
-    Принимает на вход:
-        - word (str): слово, которое необходимо сократить
-        - limit_multiplier (float): коэффициент, на который умножается длина слова
-          для получения лимита его длины.
+    Takes as input:
+        - word (str): the word to be shortened
+        - limit_multiplier (float): the factor by which the length of the word
+          is multiplied to get the limit of its length.
 
-    Возвращает сокращённое слово.
+    Returns the shortened word.
     """
-    # Если слово есть в словаре спец слов, то оно сокращается по значению словаря.
+    # If a word is in the special words dict, it is abbreviated as per the dict value.
     for pattern in SPECIAL_WORDS:
         if re.match(pattern, word):
             if word[0].isupper() and "(?i)" in pattern:
                 return SPECIAL_WORDS[pattern].capitalize()
             return SPECIAL_WORDS[pattern]
 
-    # Если коэффициент сокращения больше или равен 1, то слово не сокращается.
+    # If a reduction coefficient is more than or equal to 1,
+    # the word does not get shortened
     if limit_multiplier >= 1:
-        logger.debug(f"Нет смысла сокращать слово {word}, оно и так помещается.")
+        logger.debug(f"No point in shortening the word '{word}', it fits as is.")
         return word
 
-    # Проверяем, есть ли в слове согласные. Если нет - возвращаем изначальное слово.
+    # Check if there are consonants in the word. If not, return the original word.
     if not any(char.lower() in CONSONANTS for char in word):
-        logger.debug(f"В слове {word} нет согласных. Возвращаем слово целиком.")
+        logger.debug(f"The word '{word}' has no consonants. Returning the whole word.")
         return word
 
     consonant_indices = [
         index for index, char in enumerate(word) if char.lower() in CONSONANTS
     ]
-    logger.debug(f"Индексы согласных букв в слове {word}: {consonant_indices}")
+    logger.debug(f"indices of consonants in word '{word}': {consonant_indices}")
 
     word_length = len(word)
     max_word_length = word_length * limit_multiplier
 
     last_consonant = _take_closest(my_list=consonant_indices, my_number=max_word_length)
-    logger.debug(f"Последняя согласная в слове {word}: {last_consonant}")
+    logger.debug(f"The last consonant in word '{word}': {last_consonant}")
 
     short_word = word[: last_consonant + 1]
-    logger.debug(f"Сокращённое слово: {short_word}")
+    logger.debug(f"The shortened word is '{short_word}'")
 
     if len(word) - len(short_word) == 1:
         logger.debug(
-            f"Поскольку в слове {word} осталась только одна буква, не будем сокращать "
-            f"до {short_word}, выведем полное слово."
+            f"Since there is only one letter left in word '{word}', there is no point "
+            f"in shortening it to '{short_word}', so returning the whole word."
         )
         return word
 
@@ -244,16 +242,17 @@ def _shorten_word(word: str, limit_multiplier: float) -> str:
 @log(logger)
 def _combine(words: list[tuple[int, str]], others: list[tuple[int, str]]) -> str:
     """
-    Комбинирует финальную строку из отдельных сокращённых токенов.
+    Combines a final string of individual abbreviated tokens.
 
-    Принимает на вход:
-        - words: список кортежей, состоящих из индекса позиции в описании маршрута
-          и токена (слова, сокращённого по установленным правилам);
-        - others: список кортежей, состоящих из индекса позиции в описании маршрута
-          и токена, не являющегося словом, при необходимости сокращённого
-          по установленным правилам.
+    Takes as input:
+        - words: a list of tuples consisting of a position index
+          in the route description and a token
+          (a word abbreviated according to the established rules);
+        - others: a list of tuples consisting of a position index
+        in the route description and a token that is not a word,
+        if necessary abbreviated according to the set rules.
 
-    Возвращает финальную сокращённую строку.
+    Returns the final abbreviated string.
     """
     combined_list: list[tuple[int, str]] = words + others
     sorted_list: list[tuple[int, str]] = sorted(combined_list, key=lambda t: t[0])
@@ -265,14 +264,14 @@ def _combine(words: list[tuple[int, str]], others: list[tuple[int, str]]) -> str
 @log(logger)
 def shorten_route_description(route_descr: str, limit: int) -> str:
     """
-    Сокращает описание маршрута, чтобы оно поместилось на inline кнопку бота.
+    Shortens the route description to fit on the bot's inline keyboard button.
 
-    Принимает на вход:
-        - route_descr: Строку с описанием маршрута
-          (<Пункт отправления> <разделитель> <Пункт назначения>)
-        limit (int): Лимит длины, к которому необходимо привести финальную строку.
+    Accepts:
+        - route_descr: A string containing the route description
+          (<departure point> <separator> <destination point>)
+        - limit (int): The length limit which the final string should be reduced to.
 
-    Возвращает сокращенное описание маршрута, помещающееся на inline кнопку бота.
+    Returns an abbreviated route description that fits on the bot's inline button.
     """
     route_descr = _replace_special_phrases(
         string=route_descr, special_phrases=SPECIAL_PHRASES

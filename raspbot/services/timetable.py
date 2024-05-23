@@ -40,23 +40,23 @@ class Timetable:
         destination_code: str,
     ) -> dict:
         """
-        Возвращает сырой JSON (в виде словаря) с расписанием от Яндекса.
+        Returns raw JSON (as a dictionary) with the schedule from API.
 
-        Принимает на вход:
-            - departure_code (str): Яндекс-код пункта отправления в виде строки,
-            пример: "s2000006"
-            - destination_code (str): Яндекс-код пункта назначения в виде строки,
-            пример: "s9600721"
+        Accepts:
+            - departure_code (str): Yandex code of the departure point as a string,
+              example: “s2000006”
+            - destination_code (str): Yandex code of the destination point as a string,
+              example: “s9600721”
 
-        Возвращает:
-            dict: Полный словарь со всеми рейсами от Яндекса (по-прежнему сырые данные).
+        Returns:
+            dict: Full dictionary with all departures from Yandex (still raw data).
 
-        Примечания:
-            Лимит пагинации, установленный Яндексом по умолчанию - 100 рейсов.
-            В данной функции при формировании запроса в kwargs_dict этот лимит
-            не увеличивается; вместо этого формируется несколько словарей, в которых
-            постепенно увеличивается оффсет пагинации, и рейсы каждого нового словаря
-            добавляются к рейсам основного.
+        Notes:
+            The default pagination limit set by Yandex is 100 departures.
+            In this function, when forming a query in kwargs_dict, this limit is
+            not increased; instead, several dictionaries are formed, in which
+            the pagination offset is gradually increased, and the departures
+            of each new dictionary are added to the departures of the main dictionary.
         """
 
         class KwargsDict(TypedDict):
@@ -114,21 +114,21 @@ class Timetable:
     @log(logger)
     def _validate_time(self, raw_time: str) -> dt.datetime:
         """
-        Превращает строку времени, пришедшую в сыром ответе, в объект datetime.
+        Turns the time string that came in the raw response into a datetime object.
 
-        Принимает на вход:
-            raw_time (str): Строка времени из сырых данных.
-            Допустимые форматы:
-                - ISO (пример: 2023-05-29T12:48:00.000000)
-                - HH:MM:SS (пример: 12:48:00)
+        Accepts:
+            raw_time (str): A time string from raw data.
+            Acceptable formats:
+                - ISO (example: 2023-05-29T12:48:00.00.000000)
+                - HH:MM:SS (example: 12:48:00)
 
-        Вызывает исключения:
-            InvalidTimeFormatError: вызывается в случае, если формат времени в строке
-            сырых данных не совпадает с ожидаемым и, соответственно, не может быть
-            конвертирован в объект datetime.
+        Raises:
+            InvalidTimeFormatError: called if the time format in the raw data string
+            does not match the expected format and thus cannot be converted
+            to a datetime object.
 
-        Возвращает:
-            Объект datetime.
+        Returns:
+            A datetime object.
         """
         try:
             return dt.datetime.fromisoformat(raw_time)
@@ -351,15 +351,12 @@ class Timetable:
     @async_property
     async def msg(self) -> tuple[str, ...]:
         """
-        Генерирует кортеж готовых сообщений для Telegram.
+        Generates a tuple of messages prepared for Telegram.
 
-        Возвращает:
-            - Кортеж, состоящий из сообщений с отформатированным текстом
-            с отправлениями, готовыми к отправке.
-            Возвращается именно кортеж, поскольку Telegram не позволяет отправлять
-            сообщения длиннее определенного лимита. Соотвественно, кортеж представляет
-            собой общее отформатированное раписание, разбитое на части с учетом
-            этого лимита.
+        Returns a tuple consisting of messages with formatted departures ready to send.
+        It is the tuple that is returned, since Telegram does not allow sending messages
+        longer than a certain limit. Therefore, a tuple is an overall formatted message
+        divided into parts, taking this limit into account.
         """
         logger.debug("Generating a tuple of messages to be replied to the user.")
         route = str(self.route)

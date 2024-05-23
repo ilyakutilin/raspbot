@@ -190,7 +190,7 @@ class RouteFinder:
                 instance=instance
             )
 
-        # Добавляем маршрут в последние у пользователя (либо обновляем дату)
+        # Add a route to user's recents (or update the updated_at)
         await add_or_update_recent(user_id=user.id, route_id=route_from_db.id)
 
         route = RouteResponsePD(

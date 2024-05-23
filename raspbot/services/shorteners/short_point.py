@@ -7,13 +7,13 @@ logger = configure_logging(__name__)
 @log(logger)
 def get_short_point_type(point_type: PointTypeEnum) -> str:
     """
-    Гененирует сокращение типа пункта отправления или назначения - ст. или г.
+    Generates abbreviation for the type of departure or destination - "ст." or "г.".
 
-    Принимает на вход:
-        point_type (PointTypeEnum): Тип пункта в формате Enum.
+    Accepts:
+        point_type (PointTypeEnum): Point type in Enum format.
 
-    Возвращает:
-        str: Сокращение "ст." (станция) или "г." (город).
+    Returns:
+        str: "ст." for station or "г." for settlement.
     """
     if point_type == PointTypeEnum.station:
         return "ст."

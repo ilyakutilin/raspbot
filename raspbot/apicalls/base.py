@@ -16,20 +16,20 @@ async def get_response(
     endpoint: str, headers: dict[str, str | bytes | None]
 ) -> dict | None:
     """
-    Отправляет запрос на сервер и возвращает ответ.
+    Sends a request to the server and returns a response.
 
-    Принимает на вход:
-        endpoint (строка): URL адрес (эндпоинт), по которому нуэно перейти;
-        headers (словарь): Хедеры (напр. токен аутентификации для API).
+    Accepts:
+        endpoint (string): The URL (endpoint) to send a request to;
+        headers (dict): Headers (e.g. authentication token for an API).
 
-    Вызывает исключения:
-        EmptyHeadersError: вызывается при отсутствии хедеров;
-        APIStatusCodeError: вызывается при плохом статус коде;
-        APIConnectionError: вызывается при ошибках соединения.
+    Raises:
+        EmptyHeadersError: raised if there are no headers;
+        APIStatusCodeError: raised in case of the bad status code;
+        APIConnectionError: raised in case of connection errors.
 
-    Возвращает:
-        словарь или None: При получении ответа в виде JSON конвертирует его в словарь;
-        в противном случае возвращает None.
+    Returns:
+        Dict or None: If the response is received as JSON, converts it to a dictionary;
+        otherwise returns None.
     """
     if headers["Authorization"] is None:
         raise exc.EmptyHeadersError("No authorization key in the headers.")
