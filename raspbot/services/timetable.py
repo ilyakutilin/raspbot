@@ -6,7 +6,8 @@ from pydantic import ValidationError
 
 from raspbot.apicalls.search import TransportTypes, search_between_stations
 from raspbot.bot.constants import messages as msg
-from raspbot.core.exceptions import InvalidTimeFormatError
+from raspbot.core import exceptions as exc
+from raspbot.core.email import send_email
 from raspbot.core.logging import configure_logging, log
 from raspbot.db.models import PointTypeEnum, RouteORM
 from raspbot.db.routes.schema import RouteResponsePD, ThreadResponsePD
@@ -139,7 +140,7 @@ class Timetable:
                 datetime_str = f"{self.date} {raw_time}"
                 return dt.datetime.strptime(datetime_str, "%Y-%m-%d %H:%M:%S")
             except ValueError as e:
-                raise InvalidTimeFormatError(
+                raise exc.InvalidTimeFormatError(
                     "Time from API is in an incorrect format. "
                     "2023-05-29T12:48:00.000000 or 12:48:00 are supported. Got "
                     f"{raw_time}. ValueError: {e}"
@@ -151,33 +152,22 @@ class Timetable:
         segment: dict,
         departure_time: dt.datetime | None = None,
     ) -> ThreadResponsePD:
-        # TODO: Complete docstring
-        # """
-        # _summary_
-
-        # Args:
-        #     segment (dict): _description_
-
-        # Returns:
-        #     ThreadResponse: _description_
-        # """
+        """Turns raw dict with thread into a ThreadResponse object."""
         try:
             if not departure_time:
                 departure: dt.datetime = self._validate_time(
                     raw_time=segment["departure"]
                 )
             arrival: dt.datetime = self._validate_time(raw_time=segment["arrival"])
-        except InvalidTimeFormatError as e:  # TODO: Complete Exception handling
-            logger.error("Error")
+        except exc.InvalidTimeFormatError as e:
+            logger.exception(e)
+            send_email(e)
             raise e
-        except KeyError as e:  # TODO: Complete Exception handling
-            logger.error("Error")
-            raise e
-        except ValueError as e:  # TODO: Complete Exception handling
-            logger.error("Error")
-            raise e
+        except KeyError as e:
+            logger.exception(e)
+            send_email(e)
+            raise exc.NoKeyError(e)
 
-        # FIXME: If anything is missing in the dict from API, it will raise an error
         try:
             short_title = segment["thread"]["short_title"]
             short_from_title = segment["from"]["short_title"]
@@ -216,11 +206,13 @@ class Timetable:
             )
             logger.debug(f"Threadresponse: {threadresponse}")
             return threadresponse
-        except KeyError as e:  # TODO: Complete Exception handling
-            logger.error("Error")
-            raise e
-        except ValidationError as e:  # TODO: Complete Exception handling
-            logger.error(f"ValidationError: {e}")
+        except KeyError as e:
+            logger.exception(e)
+            send_email(e)
+            raise exc.NoKeyError
+        except ValidationError as e:
+            logger.exception(e)
+            send_email(e)
             raise e
 
     @log(logger)
@@ -276,12 +268,7 @@ class Timetable:
 
     @async_cached_property
     async def _full_timetable(self) -> list[ThreadResponsePD]:
-        # TODO: Complete docstring
-        # """_summary_
-
-        # Returns:
-        #     list[ThreadResponse]: _description_
-        # """
+        """Gets the full timetable in the form of a list of ThreadResponse objects."""
         timetable_dict: dict = await self._get_timetable_dict(
             departure_code=self.route.departure_point.yandex_code,
             destination_code=self.route.destination_point.yandex_code,
@@ -293,7 +280,7 @@ class Timetable:
                 departure_time: dt.datetime = self._validate_time(
                     raw_time=raw_departure_time
                 )
-            except InvalidTimeFormatError as e:
+            except exc.InvalidTimeFormatError as e:
                 logger.error(
                     f"Departure {raw_departure_time} is rejected "
                     f"and not included in a timetable. Reason: {e}."
