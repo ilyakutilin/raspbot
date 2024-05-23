@@ -342,10 +342,10 @@ class Timetable:
     @log(logger)
     def _get_message_part_two(self, length: int) -> str:
         """Returns the second part of the message."""
-        if self.limit or length <= settings.CLOSEST_DEP_LIMIT:
-            return msg.PRESS_DEPARTURE_BUTTON
         if self.date != dt.date.today():
             return msg.TYPE_DEPARTURE
+        if self.limit or length <= settings.CLOSEST_DEP_LIMIT:
+            return msg.PRESS_DEPARTURE_BUTTON
         return msg.PRESS_DEPARTURE_BUTTON_OR_TYPE
 
     @async_property
