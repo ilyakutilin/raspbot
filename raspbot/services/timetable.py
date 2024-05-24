@@ -1,4 +1,5 @@
 import datetime as dt
+import time
 from typing import Self, TypedDict
 
 from async_property import async_cached_property, async_property  # type: ignore
@@ -11,6 +12,7 @@ from raspbot.core.email import send_email
 from raspbot.core.logging import configure_logging, log
 from raspbot.db.models import PointTypeEnum, RouteORM
 from raspbot.db.routes.schema import RouteResponsePD, ThreadResponsePD
+from raspbot.services.copyright import get_formatted_copyright
 from raspbot.services.prettify_datetimes import prettify_day
 from raspbot.settings import settings
 
@@ -340,13 +342,14 @@ class Timetable:
         return message_part_one
 
     @log(logger)
-    def _get_message_part_two(self, length: int) -> str:
+    async def _get_message_part_two(self, length: int) -> str:
         """Returns the second part of the message."""
+        copyright_ = await get_formatted_copyright()
         if self.date != dt.date.today():
-            return msg.TYPE_DEPARTURE
+            return f"{msg.TYPE_DEPARTURE}\n\n{copyright_}"
         if self.limit or length <= settings.CLOSEST_DEP_LIMIT:
-            return msg.PRESS_DEPARTURE_BUTTON
-        return msg.PRESS_DEPARTURE_BUTTON_OR_TYPE
+            return f"{msg.PRESS_DEPARTURE_BUTTON}\n\n{copyright_}"
+        return f"{msg.PRESS_DEPARTURE_BUTTON_OR_TYPE}\n\n{copyright_}"
 
     @async_property
     async def msg(self) -> tuple[str, ...]:
@@ -365,7 +368,7 @@ class Timetable:
             return (msg.NO_TODAY_DEPARTURES.format(route=route),)
         length = await self.length
         message_part_one = self._get_message_part_one(length=length, route=route)
-        message_part_two = self._get_message_part_two(length=length)
+        message_part_two = await self._get_message_part_two(length=length)
         pre_thread_msg_length = len(
             f"{self.add_msg_text}"
             f"{message_part_one.format(route=str(self.route))}\n\n"
@@ -411,4 +414,74 @@ class Timetable:
         return (
             f"<{self.__class__.__name__} (date={self.date.strftime('%d.%m.%Y')}, "
             f"route={self.route}{limit}{add_msg_text})>"
+        )
+
+
+class ThreadInfo:
+    """Information about a particular timetable thread."""
+
+    def __init__(self, thread: ThreadResponsePD):
+        """Initialize the ThreadInfo class instance."""
+        self.thread = thread
+        self.copyright = None
+
+    @log(logger)
+    def _format_price(self, price: float | None = None) -> str:
+        if not price:
+            if not self.thread.ticket_price:
+                raise exc.NoPriceInThreadError(
+                    f"There is no price in thread {self.thread.title}"
+                )
+            price = self.thread.ticket_price
+        if price.is_integer():
+            return f"{int(price)} ₽"
+        return f"{price:.2f} ₽"
+
+    @async_property
+    async def msg(self):
+        """Returns messag with information about the thread."""
+        express = ", " + self.thread.express_type if self.thread.express_type else ""
+        dep_platform = (
+            ", " + self.thread.departure_platform
+            if self.thread.departure_platform
+            else ""
+        )
+        dep_terminal = (
+            ", " + self.thread.departure_terminal
+            if self.thread.departure_terminal
+            else ""
+        )
+        dest_platform = (
+            ", " + self.thread.arrival_platform if self.thread.arrival_platform else ""
+        )
+        dest_terminal = (
+            ", " + self.thread.arrival_terminal if self.thread.arrival_terminal else ""
+        )
+        duration = time.strftime(
+            f"{'%H ч. ' if self.thread.duration > 3600 else ''}%M мин.",
+            time.gmtime(self.thread.duration),
+        ).lstrip("0")
+        ticket_price = (
+            f"<b>Стоимость билета:</b> {self._format_price()}\n"
+            if self.thread.ticket_price
+            else ""
+        )
+        copyright_text = await get_formatted_copyright()
+        logger.info(
+            "Timetable thread info has been generated within "
+            f"{self.__class__.__name__} class of {self.__class__.__module__} module."
+        )
+        return (
+            f"<b>№ поезда:</b> {self.thread.number}\n"
+            f"<b>Тип поезда:</b> {self.thread.transport_subtype}{express}\n"
+            f"<b>Маршрут поезда:</b> {self.thread.title}\n"
+            f"<b>Перевозчик:</b> {self.thread.carrier}\n"
+            f"<b>Отправление от ст. {self.thread.from_}:</b> "
+            f"{self.thread.str_time}{dep_platform}{dep_terminal}\n"
+            f"<b>Прибытие на ст. {self.thread.to}:</b> "
+            f"{self.thread.arrival.strftime(settings.DEP_FORMAT)}"
+            f"{dest_platform}{dest_terminal}\n"
+            f"<b>Останавливается:</b> {self.thread.stops}\n"
+            f"<b>Время в пути:</b> {duration}\n"
+            f"{ticket_price}\n{copyright_text}"
         )

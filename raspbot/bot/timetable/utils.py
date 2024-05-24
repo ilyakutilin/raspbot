@@ -10,7 +10,7 @@ from raspbot.bot.timetable import keyboards as kb
 from raspbot.core import exceptions as exc
 from raspbot.core.logging import configure_logging
 from raspbot.db.routes.schema import ThreadResponsePD
-from raspbot.services.timetable import Timetable
+from raspbot.services.timetable import ThreadInfo, Timetable
 
 logger = configure_logging(name=__name__)
 
@@ -35,11 +35,19 @@ async def _answer_with_timetable(
             route_id=timetable_obj.route.id
         )
     for i, part in enumerate(timetable_obj_msgs):
-        await message.answer(
-            text=part,
-            reply_markup=reply_markup if i == len(timetable_obj_msgs) - 1 else None,
-            parse_mode="HTML",
-        )
+        if i == len(timetable_obj_msgs) - 1:
+            await message.answer(
+                text=part,
+                reply_markup=reply_markup,
+                parse_mode="HTML",
+                disable_web_page_preview=True,
+            )
+        else:
+            await message.answer(
+                text=part,
+                reply_markup=None,
+                parse_mode="HTML",
+            )
 
 
 async def process_timetable_callback(
@@ -109,7 +117,8 @@ async def show_dep_info(
         logger.error(error_msg)
         raise exc.NoUIDInTimetableError(error_msg)
 
-    msg_obj = msg.ThreadInfo(thread=dep_info)
+    msg_obj = ThreadInfo(thread=dep_info)
+    msg_text = await msg_obj.msg
     if full_kb:
         reply_markup = await kb.get_separate_departure_keyboard(
             this_departure=dep_info,
@@ -120,7 +129,8 @@ async def show_dep_info(
             route_id=timetable_obj.route.id
         )
     await message.answer(
-        text=str(msg_obj),
+        text=msg_text,
         reply_markup=reply_markup,
         parse_mode="HTML",
+        disable_web_page_preview=True,
     )
