@@ -437,8 +437,9 @@ class ThreadInfo:
             return f"{int(price)} ₽"
         return f"{price:.2f} ₽"
 
-    def __str__(self):
-        """Returns the string representation of the class instance."""
+    @async_property
+    async def msg(self):
+        """Returns messag with information about the thread."""
         express = ", " + self.thread.express_type if self.thread.express_type else ""
         dep_platform = (
             ", " + self.thread.departure_platform
@@ -465,6 +466,7 @@ class ThreadInfo:
             if self.thread.ticket_price
             else ""
         )
+        copyright_text = await get_formatted_copyright()
         logger.info(
             "Timetable thread info has been generated within "
             f"{self.__class__.__name__} class of {self.__class__.__module__} module."
@@ -481,5 +483,5 @@ class ThreadInfo:
             f"{dest_platform}{dest_terminal}\n"
             f"<b>Останавливается:</b> {self.thread.stops}\n"
             f"<b>Время в пути:</b> {duration}\n"
-            f"{ticket_price}"
+            f"{ticket_price}\n{copyright_text}"
         )

@@ -8,7 +8,5 @@ async def get_formatted_copyright() -> str:
         text = copyright_dict["copyright"]["text"]
         url = copyright_dict["copyright"]["url"]
     except (KeyError, TypeError):
-        return (
-            "Данные предоставлены сервисом Яндекс.Расписания (http://rasp.yandex.ru/)"
-        )
-    return f"{text} ({url})"
+        return "Данные предоставлены сервисом Яндекс.Расписания\nhttp://rasp.yandex.ru/"
+    return f"{text}\n{url}"

@@ -110,6 +110,7 @@ async def show_dep_info(
         raise exc.NoUIDInTimetableError(error_msg)
 
     msg_obj = ThreadInfo(thread=dep_info)
+    msg_text = await msg_obj.msg
     if full_kb:
         reply_markup = await kb.get_separate_departure_keyboard(
             this_departure=dep_info,
@@ -120,7 +121,7 @@ async def show_dep_info(
             route_id=timetable_obj.route.id
         )
     await message.answer(
-        text=str(msg_obj),
+        text=msg_text,
         reply_markup=reply_markup,
         parse_mode="HTML",
     )
