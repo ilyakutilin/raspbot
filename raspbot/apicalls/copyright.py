@@ -22,5 +22,5 @@ async def get_copyright() -> Mapping | None:
 
 
 if __name__ == "__main__":
-    copyright = asyncio.run(get_copyright())
-    print(copyright)
+    copyright_ = asyncio.run(get_copyright())
+    print(copyright_)
