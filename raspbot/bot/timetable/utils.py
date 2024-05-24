@@ -35,11 +35,19 @@ async def _answer_with_timetable(
             route_id=timetable_obj.route.id
         )
     for i, part in enumerate(timetable_obj_msgs):
-        await message.answer(
-            text=part,
-            reply_markup=reply_markup if i == len(timetable_obj_msgs) - 1 else None,
-            parse_mode="HTML",
-        )
+        if i == len(timetable_obj_msgs) - 1:
+            await message.answer(
+                text=part,
+                reply_markup=reply_markup,
+                parse_mode="HTML",
+                disable_web_page_preview=True,
+            )
+        else:
+            await message.answer(
+                text=part,
+                reply_markup=None,
+                parse_mode="HTML",
+            )
 
 
 async def process_timetable_callback(
@@ -124,4 +132,5 @@ async def show_dep_info(
         text=msg_text,
         reply_markup=reply_markup,
         parse_mode="HTML",
+        disable_web_page_preview=True,
     )
