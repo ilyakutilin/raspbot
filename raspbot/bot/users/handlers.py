@@ -3,12 +3,12 @@ from aiogram.filters import Command
 
 from raspbot.bot.constants import callback as clb
 from raspbot.bot.constants import messages as msg
-from raspbot.bot.start import keyboard as start_keyboard
+from raspbot.bot.start.keyboards import back_to_start_keyboard, start_keyboard
+from raspbot.bot.start.utils import get_command_user
 from raspbot.bot.users.keyboards import (
     add_recent_to_fav_keyboard,
     get_fav_or_recent_keyboard,
 )
-from raspbot.bot.utils import get_command_user
 from raspbot.core.email import send_email_async
 from raspbot.core.logging import configure_logging
 from raspbot.db.models import RouteORM
@@ -36,7 +36,7 @@ async def recent_command(message: types.Message):
         user_recent = await get_user_recent(user=user)
     except Exception as e:
         logger.exception(e)
-        await message.answer(msg.ERROR)
+        await message.answer(text=msg.ERROR, reply_markup=back_to_start_keyboard())
         await send_email_async(e)
 
     if not user_recent:
@@ -71,7 +71,7 @@ async def fav_command(message: types.Message):
         user_recent = await get_user_recent(user=user)
     except Exception as e:
         logger.exception(e)
-        await message.answer(msg.ERROR)
+        await message.answer(text=msg.ERROR, reply_markup=back_to_start_keyboard())
         await send_email_async(e)
 
     if not user_recent:
@@ -88,7 +88,7 @@ async def fav_command(message: types.Message):
         user_fav = await get_user_fav(user=user)
     except Exception as e:
         logger.exception(e)
-        await message.answer(msg.ERROR)
+        await message.answer(text=msg.ERROR, reply_markup=back_to_start_keyboard())
         await send_email_async(e)
 
     if not user_fav:
