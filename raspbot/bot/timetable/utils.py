@@ -6,6 +6,7 @@ from aiogram.fsm.context import FSMContext
 
 from raspbot.bot.constants import messages as msg
 from raspbot.bot.constants import states
+from raspbot.bot.start.keyboards import back_to_start_keyboard
 from raspbot.bot.timetable import keyboards as kb
 from raspbot.core import exceptions as exc
 from raspbot.core.logging import configure_logging
@@ -22,9 +23,11 @@ async def _answer_with_timetable(
     try:
         timetable_obj_msgs: tuple[str] = await timetable_obj.msg
     except exc.APIError:
-        await message.answer(msg.API_CONNECTION_ERROR)
+        await message.answer(
+            text=msg.API_CONNECTION_ERROR, reply_markup=back_to_start_keyboard()
+        )
     except Exception:
-        await message.answer(msg.ERROR)
+        await message.answer(text=msg.ERROR, reply_markup=back_to_start_keyboard())
 
     if timetable_obj.date == dt.date.today():
         reply_markup = await kb.get_today_departures_keyboard(

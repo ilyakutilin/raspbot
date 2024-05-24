@@ -37,6 +37,7 @@ def get_point_choice_keyboard(
             text=btn.MY_POINT_IS_NOT_HERE,
             callback_data=clb.MissingPointCallbackFactory(is_departure=is_departure),
         )
+    builder.button(text=btn.START, callback_data=clb.START)
     builder.adjust(1)
     logger.info(
         f"Keyboard {__name__} contains {len(set(builder.buttons))} buttons."
@@ -60,5 +61,6 @@ def get_single_point_confirmation_keyboard(point: PointResponsePD, is_departure:
         text=btn.DECLINE_SINGLE_POINT,
         callback_data=clb.MissingPointCallbackFactory(is_departure=is_departure),
     )
+    builder.button(text=btn.START, callback_data=clb.START)
     builder.adjust(1)
     return builder.as_markup()

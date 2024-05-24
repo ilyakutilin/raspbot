@@ -1,5 +1,7 @@
 from aiogram.filters.callback_data import CallbackData
 
+START = "start"
+
 NEW_SEARCH = "new_search"
 
 

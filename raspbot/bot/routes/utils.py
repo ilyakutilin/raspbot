@@ -6,6 +6,7 @@ from raspbot.bot.routes.keyboards import (
     get_point_choice_keyboard,
     get_single_point_confirmation_keyboard,
 )
+from raspbot.bot.start.keyboards import back_to_start_keyboard
 from raspbot.core import exceptions as exc
 from raspbot.core.email import send_email_async
 from raspbot.core.logging import configure_logging, log
@@ -26,14 +27,18 @@ async def select_point(is_departure: bool, message: types.Message, state: FSMCon
         )
     except exc.UserInputTooShortError as e:
         logger.error(e, exc_info=True)
-        await message.answer(text=msg.INPUT_TOO_SHORT)
+        await message.answer(
+            text=msg.INPUT_TOO_SHORT, reply_markup=back_to_start_keyboard()
+        )
     except Exception as e:
         logger.exception(e)
-        await message.answer(msg.ERROR)
+        await message.answer(text=msg.ERROR, reply_markup=back_to_start_keyboard())
         await send_email_async(e)
 
     if not point_chunks:
-        await message.answer(text=msg.POINT_NOT_FOUND)
+        await message.answer(
+            text=msg.POINT_NOT_FOUND, reply_markup=back_to_start_keyboard()
+        )
     elif len(point_chunks) > 1 or len(point_chunks[0]) > 1:
         logger.debug(f"Number of point chunks before pop: {len(point_chunks)}.")
         points: list = point_chunks.pop(0)

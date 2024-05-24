@@ -6,6 +6,7 @@ from aiogram.fsm.context import FSMContext
 from raspbot.bot.constants import callback as clb
 from raspbot.bot.constants import messages as msg
 from raspbot.bot.constants import states
+from raspbot.bot.start.keyboards import back_to_start_keyboard
 from raspbot.bot.timetable import utils
 from raspbot.core import exceptions as exc
 from raspbot.core.email import send_email_async
@@ -44,7 +45,9 @@ async def show_closest_departures_callback(
     except Exception as e:
         logger.exception(e)
         assert isinstance(callback.message, types.Message)
-        await callback.message.answer(msg.ERROR)
+        await callback.message.answer(
+            text=msg.ERROR, reply_markup=back_to_start_keyboard()
+        )
         await send_email_async(e)
 
     logger.info(
@@ -77,7 +80,9 @@ async def show_departure_callback(
     try:
         timetable_obj = await utils.get_timetable_object_from_state(state=state)
     except exc.InternalError:
-        await callback.message.answer(msg.ERROR)
+        await callback.message.answer(
+            text=msg.ERROR, reply_markup=back_to_start_keyboard()
+        )
     uid: str = callback_data.uid
 
     logger.info(
@@ -91,7 +96,9 @@ async def show_departure_callback(
         )
     except exc.NoUIDInTimetableError as e:
         await send_email_async(e)
-        await callback.message.answer(msg.ERROR)
+        await callback.message.answer(
+            text=msg.ERROR, reply_markup=back_to_start_keyboard()
+        )
     await callback.answer()
 
 
@@ -127,7 +134,9 @@ async def show_till_the_end_of_the_day_callback(
         )
     except exc.InternalError as e:
         logger.exception(e)
-        await callback.message.answer(msg.ERROR)
+        await callback.message.answer(
+            text=msg.ERROR, reply_markup=back_to_start_keyboard()
+        )
         await send_email_async(e)
 
     timetable_obj = timetable_obj.unlimit()
@@ -136,7 +145,9 @@ async def show_till_the_end_of_the_day_callback(
             route: RouteORM = await route_retriever.get_route_from_db(route_id=route_id)
         except Exception as e:
             logger.exception(e)
-            await callback.message.answer(msg.ERROR)
+            await callback.message.answer(
+                text=msg.ERROR, reply_markup=back_to_start_keyboard()
+            )
             await send_email_async(e)
         timetable_obj = Timetable(route=route)
 
@@ -166,7 +177,7 @@ async def select_departure_info_by_text(message: types.Message, state: FSMContex
         )
     except exc.InternalError as e:
         logger.exception(e)
-        await message.answer(msg.ERROR)
+        await message.answer(text=msg.ERROR, reply_markup=back_to_start_keyboard())
         await send_email_async(e)
 
     timetable_obj = timetable_obj.unlimit()
@@ -188,9 +199,9 @@ async def select_departure_info_by_text(message: types.Message, state: FSMContex
             )
         except exc.NoUIDInTimetableError as e:
             await send_email_async(e)
-            await message.answer(msg.ERROR)
+            await message.answer(text=msg.ERROR, reply_markup=back_to_start_keyboard())
     except exc.InvalidDataError as e:
-        await message.answer(text=str(e))
+        await message.answer(text=str(e), reply_markup=back_to_start_keyboard())
 
 
 @router.callback_query(clb.TomorrowTimetableCallbackFactory.filter())
@@ -210,7 +221,9 @@ async def show_tomorrow_timetable_callback(
     except Exception as e:
         logger.exception(e)
         assert isinstance(callback.message, types.Message)
-        await callback.message.answer(msg.ERROR)
+        await callback.message.answer(
+            text=msg.ERROR, reply_markup=back_to_start_keyboard()
+        )
         await send_email_async(e)
 
     tomorrow = dt.date.today() + dt.timedelta(days=1)
@@ -243,7 +256,9 @@ async def show_other_date_timetable_callback(
         route: RouteORM = await route_retriever.get_route_from_db(route_id=route_id)
     except Exception as e:
         logger.exception(e)
-        await callback.message.answer(msg.ERROR)
+        await callback.message.answer(
+            text=msg.ERROR, reply_markup=back_to_start_keyboard()
+        )
         await send_email_async(e)
 
     logger.info(
@@ -251,7 +266,11 @@ async def show_other_date_timetable_callback(
         f"clicked on an inline keyabord button to see the timetable for route {route} "
         "for an arbitrary date. Replying that they now need to input a date."
     )
-    await callback.message.answer(text=msg.TYPE_ARBITRARY_DATE, parse_mode="HTML")
+    await callback.message.answer(
+        text=msg.TYPE_ARBITRARY_DATE,
+        reply_markup=back_to_start_keyboard(),
+        parse_mode="HTML",
+    )
     await callback.answer()
     await state.set_state(states.TimetableState.other_date)
     await state.update_data(route=route)
@@ -268,7 +287,7 @@ async def select_date_timetable_by_text(message: types.Message, state: FSMContex
         route = user_data["route"]
     except KeyError as e:
         logger.exception(f"There is no 'route' key in the state user data: {e}")
-        await message.answer(msg.ERROR)
+        await message.answer(text=msg.ERROR, reply_markup=back_to_start_keyboard())
         await send_email_async(e)
 
     assert message.from_user
@@ -283,6 +302,8 @@ async def select_date_timetable_by_text(message: types.Message, state: FSMContex
         )
         await utils.process_timetable_message(message, state, timetable_obj)
     except exc.InvalidDataError as e:
-        await message.answer(text=str(e), parse_mode="HTML")
+        await message.answer(
+            text=str(e), reply_markup=back_to_start_keyboard(), parse_mode="HTML"
+        )
     except exc.InternalError:
-        await message.answer(msg.ERROR)
+        await message.answer(text=msg.ERROR, reply_markup=back_to_start_keyboard())

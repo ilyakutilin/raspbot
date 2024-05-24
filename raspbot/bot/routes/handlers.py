@@ -9,8 +9,9 @@ from raspbot.bot.constants import messages as msg
 from raspbot.bot.constants import states
 from raspbot.bot.routes import utils
 from raspbot.bot.routes.keyboards import get_point_choice_keyboard
+from raspbot.bot.start.keyboards import back_to_start_keyboard
+from raspbot.bot.start.utils import get_command_user
 from raspbot.bot.timetable.utils import process_timetable_callback
-from raspbot.bot.utils import get_command_user
 from raspbot.core.email import send_email_async
 from raspbot.core.logging import configure_logging
 from raspbot.db.models import UserORM
@@ -33,7 +34,9 @@ async def search_command(message: types.Message, state: FSMContext):
     """User: issues /search command. Bot: please input the departure point."""
     await get_command_user(command="search", message=message)
 
-    await message.answer(msg.INPUT_DEPARTURE_POINT)
+    await message.answer(
+        text=msg.INPUT_DEPARTURE_POINT, reply_markup=back_to_start_keyboard()
+    )
     logger.info("Setting state to 'selecting_departure_point'.")
     await state.set_state(states.RouteState.selecting_departure_point)
 
@@ -46,7 +49,9 @@ async def new_search_callback(callback: types.CallbackQuery, state: FSMContext):
         "the 'New Search' inline button. Replying."
     )
     assert isinstance(callback.message, types.Message)
-    await callback.message.answer(msg.INPUT_DEPARTURE_POINT)
+    await callback.message.answer(
+        text=msg.INPUT_DEPARTURE_POINT, reply_markup=back_to_start_keyboard()
+    )
 
     logger.info("Setting state to 'selecting_departure_point'.")
     await state.set_state(states.RouteState.selecting_departure_point)
@@ -95,7 +100,9 @@ async def more_buttons_handler(
         point_chunks: list[list[PointResponsePD]] = user_data["remaining_point_chunks"]
     except KeyError as e:
         logger.exception(e)
-        await callback.message.answer(text=msg.ERROR)
+        await callback.message.answer(
+            text=msg.ERROR, reply_markup=back_to_start_keyboard()
+        )
         await send_email_async(e)
 
     points: list = point_chunks.pop(0)
@@ -134,7 +141,9 @@ async def missing_point_callback(
     is_departure: bool = callback_data.is_departure
 
     assert isinstance(callback.message, types.Message)
-    await callback.message.answer(msg.MISSING_POINT)
+    await callback.message.answer(
+        text=msg.MISSING_POINT, reply_markup=back_to_start_keyboard()
+    )
     await callback.answer()
 
     if is_departure:
@@ -159,7 +168,9 @@ async def choose_departure_from_multiple_callback(
         )
     except Exception as e:
         logger.exception(e)
-        await callback.message.answer(msg.ERROR)
+        await callback.message.answer(
+            text=msg.ERROR, reply_markup=back_to_start_keyboard()
+        )
         await send_email_async(e)
 
     logger.info(
@@ -171,7 +182,10 @@ async def choose_departure_from_multiple_callback(
         point=selected_departure, is_departure=callback_data.is_departure
     )
 
-    await callback.message.answer(text=f"{msg_text}\n{msg.INPUT_DESTINATION_POINT}")
+    await callback.message.answer(
+        text=f"{msg_text}\n{msg.INPUT_DESTINATION_POINT}",
+        reply_markup=back_to_start_keyboard(),
+    )
     await callback.answer()
 
     logger.info(
@@ -198,7 +212,9 @@ async def choose_destination_from_multiple_callback(
         )
     except Exception as e:
         logger.exception(e)
-        await callback.message.answer(msg.ERROR)
+        await callback.message.answer(
+            text=msg.ERROR, reply_markup=back_to_start_keyboard()
+        )
         await send_email_async(e)
 
     logger.info(
@@ -216,7 +232,7 @@ async def choose_destination_from_multiple_callback(
         departure_point: PointResponsePD = user_data["departure_point"]
     except KeyError as e:
         logger.error(f"Departure point is not found in the state data: {e}")
-        callback.message.answer(text=msg.ERROR)
+        callback.message.answer(text=msg.ERROR, reply_markup=back_to_start_keyboard())
     user: UserORM = await get_user_from_db(telegram_id=callback.from_user.id)
 
     logger.info(

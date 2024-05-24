@@ -2,6 +2,7 @@ from aiogram import types
 from sqlalchemy.exc import DBAPIError, SQLAlchemyError
 
 from raspbot.bot.constants import messages as msg
+from raspbot.bot.start.keyboards import back_to_start_keyboard
 from raspbot.core.email import send_email_async
 from raspbot.core.logging import configure_logging, log
 from raspbot.db.models import UserORM
@@ -28,7 +29,7 @@ async def get_command_user(  # type: ignore
     except (SQLAlchemyError, DBAPIError) as e:
         logger.exception(e)
         await send_email_async(e)
-        await message.answer(msg.ERROR)
+        await message.answer(text=msg.ERROR, reply_markup=back_to_start_keyboard())
         raise e
 
     if not user:
@@ -41,7 +42,7 @@ async def get_command_user(  # type: ignore
         except (SQLAlchemyError, DBAPIError) as e:
             logger.exception(e)
             await send_email_async(e)
-            await message.answer(msg.ERROR)
+            await message.answer(text=msg.ERROR, reply_markup=back_to_start_keyboard())
             raise e
 
         logger.info(
