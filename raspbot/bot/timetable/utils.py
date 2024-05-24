@@ -10,7 +10,7 @@ from raspbot.bot.timetable import keyboards as kb
 from raspbot.core import exceptions as exc
 from raspbot.core.logging import configure_logging
 from raspbot.db.routes.schema import ThreadResponsePD
-from raspbot.services.timetable import Timetable
+from raspbot.services.timetable import ThreadInfo, Timetable
 
 logger = configure_logging(name=__name__)
 
@@ -109,7 +109,7 @@ async def show_dep_info(
         logger.error(error_msg)
         raise exc.NoUIDInTimetableError(error_msg)
 
-    msg_obj = msg.ThreadInfo(thread=dep_info)
+    msg_obj = ThreadInfo(thread=dep_info)
     if full_kb:
         reply_markup = await kb.get_separate_departure_keyboard(
             this_departure=dep_info,

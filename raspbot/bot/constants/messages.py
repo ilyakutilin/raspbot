@@ -1,7 +1,5 @@
-import time
 from abc import ABC, abstractmethod
 
-from raspbot.core import exceptions as exc
 from raspbot.core.logging import configure_logging, log
 from raspbot.db.models import PointTypeEnum
 from raspbot.db.routes.schema import PointResponsePD, ThreadResponsePD
@@ -360,73 +358,6 @@ class FormattedDifferentThreadList(FormattedThreadList):
             threads=[
                 dep.message_with_departure_and_destination for dep in self.thread_list
             ],
-        )
-
-
-class ThreadInfo:
-    """Information about a particular timetable thread."""
-
-    def __init__(self, thread: ThreadResponsePD):
-        """Initialize the ThreadInfo class instance."""
-        self.thread = thread
-
-    @log(logger)
-    def _format_price(self, price: float | None = None) -> str:
-        if not price:
-            if not self.thread.ticket_price:
-                raise exc.NoPriceInThreadError(
-                    f"There is no price in thread {self.thread.title}"
-                )
-            price = self.thread.ticket_price
-        if price.is_integer():
-            return f"{int(price)} ₽"
-        return f"{price:.2f} ₽"
-
-    def __str__(self):
-        """Returns the string representation of the class instance."""
-        express = ", " + self.thread.express_type if self.thread.express_type else ""
-        dep_platform = (
-            ", " + self.thread.departure_platform
-            if self.thread.departure_platform
-            else ""
-        )
-        dep_terminal = (
-            ", " + self.thread.departure_terminal
-            if self.thread.departure_terminal
-            else ""
-        )
-        dest_platform = (
-            ", " + self.thread.arrival_platform if self.thread.arrival_platform else ""
-        )
-        dest_terminal = (
-            ", " + self.thread.arrival_terminal if self.thread.arrival_terminal else ""
-        )
-        duration = time.strftime(
-            f"{'%H ч. ' if self.thread.duration > 3600 else ''}%M мин.",
-            time.gmtime(self.thread.duration),
-        ).lstrip("0")
-        ticket_price = (
-            f"<b>Стоимость билета:</b> {self._format_price()}\n"
-            if self.thread.ticket_price
-            else ""
-        )
-        logger.info(
-            "Timetable thread info has been generated within "
-            f"{self.__class__.__name__} class of {self.__class__.__module__} module."
-        )
-        return (
-            f"<b>№ поезда:</b> {self.thread.number}\n"
-            f"<b>Тип поезда:</b> {self.thread.transport_subtype}{express}\n"
-            f"<b>Маршрут поезда:</b> {self.thread.title}\n"
-            f"<b>Перевозчик:</b> {self.thread.carrier}\n"
-            f"<b>Отправление от ст. {self.thread.from_}:</b> "
-            f"{self.thread.str_time}{dep_platform}{dep_terminal}\n"
-            f"<b>Прибытие на ст. {self.thread.to}:</b> "
-            f"{self.thread.arrival.strftime(settings.DEP_FORMAT)}"
-            f"{dest_platform}{dest_terminal}\n"
-            f"<b>Останавливается:</b> {self.thread.stops}\n"
-            f"<b>Время в пути:</b> {duration}\n"
-            f"{ticket_price}"
         )
 
 
