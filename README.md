@@ -1,3 +1,5 @@
+For English go [here](https://github.com/ilyakutilin/raspbot/blob/e2a2dafe56fb0b4362cc64b0d1f26740d15f76fd/README_EN.md).
+
 Телеграм-бот для поиска расписаний пригородных электричек России.
 
 Бот основан на API сервиса **Яндекс Расписания**.
