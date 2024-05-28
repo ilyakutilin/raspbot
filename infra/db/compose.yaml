@@ -1,0 +1,20 @@
+services:
+  db_raspbot:
+    image: postgres:16.1-alpine
+    volumes:
+      - db_data_raspbot:/var/lib/postgresql/data/
+    ports:
+      - '5432:5432'
+    env_file:
+      - ../../.env
+    networks:
+      - raspbot_net
+    container_name: db_raspbot
+    restart: always
+
+networks:
+  raspbot_net:
+    name: raspbot_net
+
+volumes:
+  db_data_raspbot:

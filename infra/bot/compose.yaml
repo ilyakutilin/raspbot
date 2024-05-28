@@ -1,0 +1,18 @@
+services:
+  bot_raspbot:
+    build: ../../.
+    volumes:
+      - logs_raspbot:/app/logs
+    env_file:
+      - ../../.env
+    networks:
+      - raspbot_net
+    container_name: bot_raspbot
+    # restart: always
+
+networks:
+  raspbot_net:
+    external: true
+
+volumes:
+  logs_raspbot:
