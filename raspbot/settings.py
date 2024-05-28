@@ -4,8 +4,11 @@ from pydantic_settings import BaseSettings
 
 BASE_DIR = Path(__file__).resolve().parent
 ENV_FILE = None
-if Path.exists(BASE_DIR / ".env"):
-    ENV_FILE = BASE_DIR / ".env"
+if Path.exists(BASE_DIR.parent / ".env"):
+    ENV_FILE = BASE_DIR.parent / ".env"
+else:
+    if Path.exists(BASE_DIR / ".env"):
+        ENV_FILE = BASE_DIR / ".env"
 
 
 class Settings(BaseSettings):
