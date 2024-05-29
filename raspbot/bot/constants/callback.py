@@ -49,6 +49,9 @@ class RecentToFavCallbackFactory(CallbackData, prefix="recent_to_fav"):
     recent_id: int
 
 
+MORE_RECENTS_TO_FAV = "more_recents_to_fav"
+
+
 class AllRecentToFavCallbackFactory(CallbackData, prefix="all_recent_to_fav"):
     """Add all recent routes to favorites callback factory."""
 
