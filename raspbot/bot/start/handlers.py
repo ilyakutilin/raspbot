@@ -48,7 +48,9 @@ async def start_callback(callback: types.CallbackQuery, state: FSMContext):
     await state.clear()
     assert isinstance(callback.message, types.Message)
     await callback.message.answer(
-        text=msg.GREETING_EXISTING_USER,
+        text=msg.GREETING_EXISTING_USER.format(
+            first_name=callback.from_user.first_name
+        ),
         reply_markup=start_keyboard,
         parse_mode="HTML",
     )
