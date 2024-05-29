@@ -161,16 +161,24 @@ async def add_recent_to_fav_callback(
     callback: types.CallbackQuery, callback_data: clb.RecentToFavCallbackFactory
 ):
     """User: clicks on the recent route. Bot: added to favorites."""
-    recent = await add_recent_to_fav(recent_id=callback_data.recent_id)
+    assert isinstance(callback.message, types.Message)
+    try:
+        recent = await add_recent_to_fav(recent_id=callback_data.recent_id)
+    except Exception as e:
+        logger.exception(e)
+        await callback.message.answer(
+            text=msg.ERROR, reply_markup=back_to_start_keyboard()
+        )
+        await send_email_async(e)
     route: RouteORM = await route_retriever.get_route_by_recent(recent_id=recent.id)
 
     logger.info(
         f"User {callback.from_user.full_name} TGID {callback.from_user.id} "
         f"added the route '{route}' to favorites."
     )
-    assert isinstance(callback.message, types.Message)
-    await callback.message.answer(text=msg.ROUTE_ADDED_TO_FAV.format(route=route))
-    await callback.answer()
+    await callback.answer(
+        text=msg.ROUTE_ADDED_TO_FAV.format(route=route), show_alert=True
+    )
 
 
 @router.callback_query(clb.AllRecentToFavCallbackFactory.filter())
