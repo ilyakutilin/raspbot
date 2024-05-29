@@ -15,6 +15,7 @@ logger = configure_logging(name=__name__)
 async def get_today_departures_keyboard(
     timetable_obj: Timetable,
     buttons_qty_in_row: int = settings.INLINE_DEPARTURES_QTY,
+    route_is_in_user_fav: bool = False,
 ) -> types.InlineKeyboardMarkup:
     """Keyboard with today's departures."""
     builder = InlineKeyboardBuilder()
@@ -30,12 +31,19 @@ async def get_today_departures_keyboard(
     if remainder != 0:
         for i in range(buttons_qty_in_row - remainder):
             builder.button(text="", callback_data="empty_button")
+
+    button_rows = [buttons_qty_in_row] * -(
+        -len(timetable[: settings.CLOSEST_DEP_LIMIT]) // buttons_qty_in_row
+    )
+
     timetable_obj_length = await timetable_obj.length
     if timetable_obj_length > len(timetable):
         builder.button(
             text=btn.TILL_THE_END_OF_THE_DAY,
             callback_data=clb.EndOfTheDayTimetableCallbackFactory(route_id=route_id),
         )
+        button_rows.append(1)
+
     builder.button(
         text=btn.TOMORROW,
         callback_data=clb.TomorrowTimetableCallbackFactory(route_id=route_id),
@@ -44,18 +52,19 @@ async def get_today_departures_keyboard(
         text=btn.OTHER_DATE,
         callback_data=clb.OtherDateTimetableCallbackFactory(route_id=route_id),
     )
-    builder.button(
-        text=btn.ADD_TO_FAV,
-        callback_data=clb.RouteToFavCallbackFactory(route_id=route_id),
-    )
+    button_rows.append(2)
+
+    if not route_is_in_user_fav:
+        builder.button(
+            text=btn.ADD_TO_FAV,
+            callback_data=clb.RouteToFavCallbackFactory(route_id=route_id),
+        )
+        button_rows.append(1)
+
     builder.button(text=btn.START, callback_data=clb.START)
-    button_rows = [buttons_qty_in_row] * -(
-        -len(timetable[: settings.CLOSEST_DEP_LIMIT]) // buttons_qty_in_row
-    )
-    if btn.TILL_THE_END_OF_THE_DAY in [button.text for button in builder.buttons]:
-        builder.adjust(*button_rows, 1, 2, 1, 1)
-    else:
-        builder.adjust(*button_rows, 2, 1, 1)
+    button_rows.append(1)
+
+    builder.adjust(*button_rows)
 
     logger.info(f"Keyboard {__name__} contains {len(set(builder.buttons))} buttons.")
     return builder.as_markup()
@@ -64,6 +73,7 @@ async def get_today_departures_keyboard(
 @log(logger)
 async def get_date_departures_keyboard(
     route_id: int,
+    route_is_in_user_fav: bool = False,
 ) -> types.InlineKeyboardMarkup:
     """Keyboard with departures on a certain date."""
     builder = InlineKeyboardBuilder()
@@ -71,10 +81,11 @@ async def get_date_departures_keyboard(
         text=btn.OTHER_DATE,
         callback_data=clb.OtherDateTimetableCallbackFactory(route_id=route_id),
     )
-    builder.button(
-        text=btn.ADD_TO_FAV,
-        callback_data=clb.RouteToFavCallbackFactory(route_id=route_id),
-    )
+    if not route_is_in_user_fav:
+        builder.button(
+            text=btn.ADD_TO_FAV,
+            callback_data=clb.RouteToFavCallbackFactory(route_id=route_id),
+        )
     builder.button(text=btn.START, callback_data=clb.START)
     builder.adjust(1)
 
