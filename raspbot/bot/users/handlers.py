@@ -131,6 +131,7 @@ async def fav_command(message: types.Message):
             reply_markup=get_fav_or_recent_keyboard(
                 fav_or_recent_list=user_fav, recents_not_in_fav=True
             ),
+            parse_mode="HTML",
         )
 
 
@@ -251,4 +252,5 @@ async def add_more_recents_to_fav_callback(callback: types.CallbackQuery):
     await callback.message.answer(
         text=msg.RECENTS_THAT_CAN_BE_FAVED,
         reply_markup=add_recent_to_fav_keyboard(user_recent=recents_not_in_favs),
+        parse_mode="HTML",
     )
