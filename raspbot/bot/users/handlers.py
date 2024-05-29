@@ -1,5 +1,6 @@
 from aiogram import Router, types
 from aiogram.filters import Command
+from aiogram.fsm.context import FSMContext
 
 from raspbot.bot.constants import callback as clb
 from raspbot.bot.constants import messages as msg
@@ -9,11 +10,18 @@ from raspbot.bot.users.keyboards import (
     add_recent_to_fav_keyboard,
     get_fav_or_recent_keyboard,
 )
+from raspbot.core import exceptions as exc
 from raspbot.core.email import send_email_async
 from raspbot.core.logging import configure_logging
 from raspbot.db.models import RouteORM
 from raspbot.services.routes import RouteRetriever
-from raspbot.services.users import add_recent_to_fav, get_user_fav, get_user_recent
+from raspbot.services.users import (
+    add_recent_to_fav,
+    get_recent_by_route,
+    get_user_fav,
+    get_user_from_db_or_raise,
+    get_user_recent,
+)
 
 logger = configure_logging(name=__name__)
 
@@ -113,11 +121,46 @@ async def fav_command(message: types.Message):
         )
 
 
+@router.callback_query(clb.RouteToFavCallbackFactory.filter())
+async def add_route_to_fav_callback(
+    callback: types.CallbackQuery,
+    callback_data: clb.RouteToFavCallbackFactory,
+    state: FSMContext,
+):
+    """User: clicks on the 'add to fav' button. Bot: added to favorites."""
+    tg_user_id = callback.from_user.id
+
+    assert isinstance(callback.message, types.Message)
+    try:
+        user = await get_user_from_db_or_raise(telegram_id=tg_user_id)
+    except exc.NotFoundError as e:
+        text = (
+            f"User {callback.from_user.full_name} TGID {callback.from_user.id} "
+            f"was not found in the database. Route with ID {callback_data.route_id} "
+            "cannot be added to favorites."
+        )
+        logger.error(text)
+        await send_email_async(e)
+        await callback.message.answer(msg.ERROR, reply_markup=back_to_start_keyboard())
+
+    recent = await get_recent_by_route(user_id=user.id, route_id=callback_data.route_id)
+    fav = await add_recent_to_fav(recent_id=recent.id)
+    route = await route_retriever.get_route_from_db(route_id=fav.route_id)
+
+    logger.info(
+        f"User {user.full_name} TGID {user.telegram_id} "
+        f"added the route '{route}' to favorites."
+    )
+    await callback.answer(
+        text=msg.ROUTE_ADDED_TO_FAV.format(route=route), show_alert=True
+    )
+
+
 @router.callback_query(clb.RecentToFavCallbackFactory.filter())
 async def add_recent_to_fav_callback(
     callback: types.CallbackQuery, callback_data: clb.RecentToFavCallbackFactory
 ):
-    """User: clicks on the 'add to fav' button. Bot: added to favorites."""
+    """User: clicks on the recent route. Bot: added to favorites."""
     recent = await add_recent_to_fav(recent_id=callback_data.recent_id)
     route: RouteORM = await route_retriever.get_route_by_recent(recent_id=recent.id)
 
