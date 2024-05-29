@@ -6,7 +6,7 @@ from raspbot.bot.start.keyboards import back_to_start_keyboard
 from raspbot.core.email import send_email_async
 from raspbot.core.logging import configure_logging, log
 from raspbot.db.models import UserORM
-from raspbot.services.users import create_user, get_user_from_db
+from raspbot.services.users import create_user, get_user_from_db_or_none
 
 logger = configure_logging(__name__)
 
@@ -25,7 +25,7 @@ async def get_command_user(  # type: ignore
     """
     assert message.from_user
     try:
-        user = await get_user_from_db(telegram_id=message.from_user.id)
+        user = await get_user_from_db_or_none(telegram_id=message.from_user.id)
     except (SQLAlchemyError, DBAPIError) as e:
         logger.exception(e)
         await send_email_async(e)

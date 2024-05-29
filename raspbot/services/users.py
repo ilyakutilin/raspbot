@@ -2,6 +2,7 @@ from typing import Sequence
 
 from aiogram.types.user import User as TgUser
 
+from raspbot.core import exceptions as exc
 from raspbot.core.logging import configure_logging, log
 from raspbot.db.models import RecentORM, UserORM
 from raspbot.db.users.crud import CRUDRecents, CRUDUsers
@@ -13,7 +14,7 @@ crud_recents = CRUDRecents()
 
 
 @log(logger)
-async def get_user_from_db(telegram_id: int) -> UserORM | None:
+async def get_user_from_db_or_none(telegram_id: int) -> UserORM | None:
     """
     Gets the user object from the database, or None if it does not exist.
 
@@ -29,6 +30,32 @@ async def get_user_from_db(telegram_id: int) -> UserORM | None:
     if not user_from_db:
         logger.debug(f"User with telegram_id {telegram_id} is not in DB.")
         return None
+    logger.debug(
+        f"User with telegram_id {telegram_id} exists in DB, "
+        f"DB id {user_from_db.id}, their name is {user_from_db.full_name}."
+    )
+    return user_from_db
+
+
+@log(logger)
+async def get_user_from_db_or_raise(telegram_id: int) -> UserORM:
+    """
+    Gets the user object from the database, or raise exception if it does not exist.
+
+    Accepts:
+        telegram_id (int): the user's Telegram ID.
+
+    Raises:
+        NotFoundError.
+
+    Returns:
+        User object (User).
+    """
+    user_from_db: UserORM | None = await crud_users.get_user_by_telegram_id(
+        telegram_id=telegram_id
+    )
+    if not user_from_db:
+        raise exc.NotFoundError(f"User with telegram_id {telegram_id} is not in DB.")
     logger.debug(
         f"User with telegram_id {telegram_id} exists in DB, "
         f"DB id {user_from_db.id}, their name is {user_from_db.full_name}."
@@ -93,6 +120,22 @@ async def update_recent(recent_id: int) -> RecentORM:
             f"Date has been updated: new updated_at: {updated_element.updated_at}"
         )
     return updated_element
+
+
+@log(logger)
+async def get_recent_by_route(user_id: int, route_id: int) -> RecentORM:
+    """Gets user recent by route."""
+    recent: RecentORM | None = await crud_recents.route_in_recent(
+        user_id=user_id, route_id=route_id
+    )
+    if not recent:
+        raise exc.NotFoundError(
+            f"User with ID {user_id} has no recent route with ID {route_id}, "
+            "although the recent should have been created automatically when the "
+            "timetable for the route was shown to the user. There is a problem in "
+            "get_or_create_route method."
+        )
+    return recent
 
 
 @log(logger)
