@@ -107,7 +107,5 @@ class CRUDRecents(CRUDBase):
             try:
                 recent_db_new: RecentORM = await self.get_or_raise(_id=recent_id)
             except exc.NoDBObjectError as e:
-                logger.exception(e)
-                await send_email_async(e)
                 raise e
             return recent_db_new

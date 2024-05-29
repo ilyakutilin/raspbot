@@ -52,6 +52,7 @@ async def select_point(is_departure: bool, message: types.Message, state: FSMCon
             reply_markup=get_point_choice_keyboard(
                 points=points, is_departure=is_departure, last_chunk=not point_chunks
             ),
+            parse_mode="HTML",
         )
         logger.debug("Updating the state user data with remanining point chunks.")
         await state.update_data(remaining_point_chunks=point_chunks)

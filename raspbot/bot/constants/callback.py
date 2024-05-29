@@ -37,14 +37,23 @@ class GetTimetableCallbackFactory(CallbackData, prefix="recent"):
     recent_id: int
 
 
+class RouteToFavCallbackFactory(CallbackData, prefix="route_to_fav"):
+    """Add a route to favorites callback factory."""
+
+    route_id: int
+
+
 class RecentToFavCallbackFactory(CallbackData, prefix="recent_to_fav"):
-    """Get timetable callback factory."""
+    """Add a recent route to favorites callback factory."""
 
     recent_id: int
 
 
+MORE_RECENTS_TO_FAV = "more_recents_to_fav"
+
+
 class AllRecentToFavCallbackFactory(CallbackData, prefix="all_recent_to_fav"):
-    """Get timetable callback factory."""
+    """Add all recent routes to favorites callback factory."""
 
     recent_ids: str
 

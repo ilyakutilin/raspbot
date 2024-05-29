@@ -12,13 +12,14 @@ from raspbot.bot.routes.keyboards import get_point_choice_keyboard
 from raspbot.bot.start.keyboards import back_to_start_keyboard
 from raspbot.bot.start.utils import get_command_user
 from raspbot.bot.timetable.utils import process_timetable_callback
+from raspbot.core import exceptions as exc
 from raspbot.core.email import send_email_async
 from raspbot.core.logging import configure_logging
 from raspbot.db.models import UserORM
 from raspbot.db.routes.schema import PointResponsePD, RouteResponsePD
 from raspbot.services.routes import PointRetriever, RouteFinder
 from raspbot.services.timetable import Timetable
-from raspbot.services.users import get_user_from_db
+from raspbot.services.users import get_user_from_db_or_raise
 from raspbot.settings import settings
 
 logger = configure_logging(name=__name__)
@@ -232,8 +233,20 @@ async def choose_destination_from_multiple_callback(
         departure_point: PointResponsePD = user_data["departure_point"]
     except KeyError as e:
         logger.error(f"Departure point is not found in the state data: {e}")
-        callback.message.answer(text=msg.ERROR, reply_markup=back_to_start_keyboard())
-    user: UserORM = await get_user_from_db(telegram_id=callback.from_user.id)
+        await callback.message.answer(
+            text=msg.ERROR, reply_markup=back_to_start_keyboard()
+        )
+
+    try:
+        user: UserORM = await get_user_from_db_or_raise(
+            telegram_id=callback.from_user.id
+        )
+    except exc.NotFoundError as e:
+        logger.exception(e)
+        await send_email_async(e)
+        await callback.message.answer(
+            text=msg.ERROR, reply_markup=back_to_start_keyboard()
+        )
 
     logger.info(
         f"Getting or creating a route between {departure_point.title} and "

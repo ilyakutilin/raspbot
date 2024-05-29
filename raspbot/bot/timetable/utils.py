@@ -9,15 +9,31 @@ from raspbot.bot.constants import states
 from raspbot.bot.start.keyboards import back_to_start_keyboard
 from raspbot.bot.timetable import keyboards as kb
 from raspbot.core import exceptions as exc
+from raspbot.core.email import send_email_async
 from raspbot.core.logging import configure_logging
-from raspbot.db.routes.schema import ThreadResponsePD
+from raspbot.db.models import RouteORM, UserORM
+from raspbot.db.routes.schema import RouteResponsePD, ThreadResponsePD
 from raspbot.services.timetable import ThreadInfo, Timetable
+from raspbot.services.users import get_recent_by_route, get_user_from_db_or_raise
 
 logger = configure_logging(name=__name__)
 
 
+async def _route_is_in_user_fav(
+    route: RouteORM | RouteResponsePD, user: UserORM
+) -> bool:
+    """Check if the route is in the user's favorite routes."""
+    try:
+        recent = await get_recent_by_route(user_id=user.id, route_id=route.id)
+    except exc.NotFoundError:
+        return False
+    if recent.favorite:
+        return True
+    return False
+
+
 async def _answer_with_timetable(
-    timetable_obj: Timetable, message: types.Message
+    timetable_obj: Timetable, message: types.Message, user: UserORM
 ) -> None:
     """Answers the message with the provided Timetable object."""
     try:
@@ -29,13 +45,18 @@ async def _answer_with_timetable(
     except Exception:
         await message.answer(text=msg.ERROR, reply_markup=back_to_start_keyboard())
 
+    route_is_in_user_fav = await _route_is_in_user_fav(
+        route=timetable_obj.route, user=user
+    )
+
     if timetable_obj.date == dt.date.today():
         reply_markup = await kb.get_today_departures_keyboard(
-            timetable_obj=timetable_obj
+            timetable_obj=timetable_obj, route_is_in_user_fav=route_is_in_user_fav
         )
     else:
         reply_markup = await kb.get_date_departures_keyboard(
-            route_id=timetable_obj.route.id
+            route_id=timetable_obj.route.id,
+            route_is_in_user_fav=route_is_in_user_fav,
         )
     for i, part in enumerate(timetable_obj_msgs):
         if i == len(timetable_obj_msgs) - 1:
@@ -59,9 +80,19 @@ async def process_timetable_callback(
     timetable_obj: Timetable,
 ):
     """Answers the callback based on the provided Timetable object."""
+    try:
+        user = await get_user_from_db_or_raise(callback.from_user.id)
+    except Exception as e:
+        logger.exception(e)
+        await send_email_async(e)
+        assert isinstance(callback.message, types.Message)
+        await callback.message.answer(
+            text=msg.ERROR, reply_markup=back_to_start_keyboard()
+        )
+
     assert isinstance(callback.message, types.Message)
 
-    await _answer_with_timetable(timetable_obj, callback.message)
+    await _answer_with_timetable(timetable_obj, callback.message, user)
     await callback.answer()
 
     logger.info(
@@ -78,7 +109,15 @@ async def process_timetable_message(
     timetable_obj: Timetable,
 ):
     """Answers the message based on the provided Timetable object."""
-    await _answer_with_timetable(timetable_obj, message)
+    try:
+        assert message.from_user
+        user = await get_user_from_db_or_raise(message.from_user.id)
+    except Exception as e:
+        logger.exception(e)
+        await send_email_async(e)
+        await message.answer(text=msg.ERROR, reply_markup=back_to_start_keyboard())
+
+    await _answer_with_timetable(timetable_obj, message, user)
     await state.set_state(states.TimetableState.exact_departure_info)
     await state.update_data(timetable_obj=timetable_obj)
 
