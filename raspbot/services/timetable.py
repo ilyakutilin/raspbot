@@ -351,6 +351,18 @@ class Timetable:
             return f"{msg.PRESS_DEPARTURE_BUTTON}\n\n{copyright_}"
         return f"{msg.PRESS_DEPARTURE_BUTTON_OR_TYPE}\n\n{copyright_}"
 
+    @log(logger)
+    def _get_no_departures_message(self) -> tuple[str, ...]:
+        """Returns a tuple of messages with no departures."""
+        route = str(self.route)
+        if self.date == dt.date.today():
+            return (msg.NO_TODAY_DEPARTURES.format(route=route),)
+        return (
+            msg.NO_DATE_DEPARTURES.format(
+                route=route, date=prettify_day(date=self.date)
+            ),
+        )
+
     @async_property
     async def msg(self) -> tuple[str, ...]:
         """
@@ -364,8 +376,8 @@ class Timetable:
         logger.debug("Generating a tuple of messages to be replied to the user.")
         route = str(self.route)
         timetable = await self.timetable
-        if not self.timetable:
-            return (msg.NO_TODAY_DEPARTURES.format(route=route),)
+        if not timetable:
+            return self._get_no_departures_message()
         length = await self.length
         message_part_one = self._get_message_part_one(length=length, route=route)
         message_part_two = await self._get_message_part_two(length=length)
