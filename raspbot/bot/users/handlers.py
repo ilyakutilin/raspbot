@@ -8,7 +8,8 @@ from raspbot.bot.start.keyboards import back_to_start_keyboard, start_keyboard
 from raspbot.bot.start.utils import get_command_user
 from raspbot.bot.users.keyboards import (
     add_recent_to_fav_keyboard,
-    get_fav_or_recent_keyboard,
+    get_fav_keyboard,
+    get_recent_keyboard,
 )
 from raspbot.core import exceptions as exc
 from raspbot.core.email import send_email_async
@@ -63,7 +64,7 @@ async def recent_command(message: types.Message):
         )
         await message.answer(
             text=msg.RECENT_LIST,
-            reply_markup=get_fav_or_recent_keyboard(fav_or_recent_list=user_recent),
+            reply_markup=get_recent_keyboard(recent_list=user_recent),
         )
 
 
@@ -118,7 +119,7 @@ async def fav_command(message: types.Message):
         )
         await message.answer(
             text=msg.FAV_LIST,
-            reply_markup=get_fav_or_recent_keyboard(fav_or_recent_list=user_fav),
+            reply_markup=get_fav_keyboard(fav_list=user_fav),
         )
     else:
         logger.info(
@@ -128,9 +129,7 @@ async def fav_command(message: types.Message):
         )
         await message.answer(
             text=msg.FAV_LIST_WITH_RECENTS_TO_BE_FAVED,
-            reply_markup=get_fav_or_recent_keyboard(
-                fav_or_recent_list=user_fav, recents_not_in_fav=True
-            ),
+            reply_markup=get_fav_keyboard(fav_list=user_fav, recents_not_in_fav=True),
             parse_mode="HTML",
         )
 
@@ -242,8 +241,9 @@ async def add_more_recents_to_fav_callback(callback: types.CallbackQuery):
     if not recents_not_in_favs:
         text = (
             f"All the recents of user {user.full_name} TGID {user.telegram_id} "
-            "are already in favorites. This should not happen. Please check "
-            "get_fav_or_recent_keyboard and any handler(s) that call it."
+            "are already in favorites. Yet add_more_recents_to_fav_callback "
+            "is called. This should not happen. Please check get_fav_keyboard "
+            "and any handler(s) that call it."
         )
         logger.error(text)
         await send_email_async(text)

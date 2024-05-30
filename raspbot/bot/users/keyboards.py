@@ -10,13 +10,30 @@ logger = configure_logging(name=__name__)
 
 
 @log(logger)
-def get_fav_or_recent_keyboard(
-    fav_or_recent_list: list[RecentORM],
+def get_recent_keyboard(
+    recent_list: list[RecentORM],
+) -> types.InlineKeyboardMarkup:
+    """Keyboard for favorite or recent routes."""
+    builder = InlineKeyboardBuilder()
+    for element in recent_list:
+        builder.button(
+            text=element.route.short,  # type: ignore
+            callback_data=clb.GetTimetableCallbackFactory(recent_id=element.id),
+        )
+    builder.button(text=btn.NEW_SEARCH, callback_data=clb.NEW_SEARCH)
+    builder.adjust(1)
+    logger.info(f"fav_or_recent_keyboard contains {len(set(builder.buttons))} buttons.")
+    return builder.as_markup()
+
+
+@log(logger)
+def get_fav_keyboard(
+    fav_list: list[RecentORM],
     recents_not_in_fav: bool = False,
 ) -> types.InlineKeyboardMarkup:
     """Keyboard for favorite or recent routes."""
     builder = InlineKeyboardBuilder()
-    for element in fav_or_recent_list:
+    for element in fav_list:
         builder.button(
             text=element.route.short,  # type: ignore
             callback_data=clb.GetTimetableCallbackFactory(recent_id=element.id),
