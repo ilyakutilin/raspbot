@@ -96,16 +96,48 @@ class CRUDRecents(CRUDBase):
                 raise e
             return recent_db_new
 
-    async def add_recent_to_fav(self, recent_id: int) -> RecentORM:
-        """Adds a recent to favorites."""
+    async def _get_recent_with_route(self, recent_id: int) -> RecentORM:
+        """Gets recent with route."""
+        async with self._session as session:
+            query = await session.execute(
+                select(RecentORM)
+                .where(RecentORM.id == recent_id)
+                .options(
+                    joinedload(RecentORM.route).joinedload(RouteORM.departure_point)
+                )
+                .options(
+                    joinedload(RecentORM.route).joinedload(RouteORM.destination_point)
+                )
+            )
+            recent = query.scalars().first()
+            if not recent:
+                raise exc.NoDBObjectError(f"Recent with ID {recent_id} does not exist.")
+            return recent
+
+    async def _add_or_delete_from_fav(
+        self, recent_id: int, adding: bool = True
+    ) -> RecentORM:
+        """Adds or deletes a recent from favorites."""
         async with self._session as session:
             stmt = (
-                update(RecentORM).where(RecentORM.id == recent_id).values(favorite=True)
+                update(RecentORM)
+                .where(RecentORM.id == recent_id)
+                .values(favorite=adding)
             )
             await session.execute(stmt)
             await session.commit()
             try:
-                recent_db_new: RecentORM = await self.get_or_raise(_id=recent_id)
+                recent_db_new: RecentORM = await self._get_recent_with_route(
+                    recent_id=recent_id
+                )
             except exc.NoDBObjectError as e:
                 raise e
             return recent_db_new
+
+    async def add_recent_to_fav(self, recent_id: int) -> RecentORM:
+        """Adds a recent to favorites."""
+        return await self._add_or_delete_from_fav(recent_id=recent_id, adding=True)
+
+    async def delete_recent_from_fav(self, recent_id: int) -> RecentORM:
+        """Deletes a recent from favorites."""
+        return await self._add_or_delete_from_fav(recent_id=recent_id, adding=False)

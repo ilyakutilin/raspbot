@@ -8,7 +8,8 @@ from raspbot.bot.start.keyboards import back_to_start_keyboard, start_keyboard
 from raspbot.bot.start.utils import get_command_user
 from raspbot.bot.users.keyboards import (
     add_recent_to_fav_keyboard,
-    get_fav_or_recent_keyboard,
+    get_fav_keyboard,
+    get_recent_keyboard,
 )
 from raspbot.core import exceptions as exc
 from raspbot.core.email import send_email_async
@@ -17,6 +18,7 @@ from raspbot.db.models import RouteORM
 from raspbot.services.routes import RouteRetriever
 from raspbot.services.users import (
     add_recent_to_fav,
+    delete_recent_from_fav,
     get_recent_by_route,
     get_user_fav,
     get_user_from_db_or_raise,
@@ -63,7 +65,7 @@ async def recent_command(message: types.Message):
         )
         await message.answer(
             text=msg.RECENT_LIST,
-            reply_markup=get_fav_or_recent_keyboard(fav_or_recent_list=user_recent),
+            reply_markup=get_recent_keyboard(recent_list=user_recent),
         )
 
 
@@ -118,7 +120,7 @@ async def fav_command(message: types.Message):
         )
         await message.answer(
             text=msg.FAV_LIST,
-            reply_markup=get_fav_or_recent_keyboard(fav_or_recent_list=user_fav),
+            reply_markup=get_fav_keyboard(fav_list=user_fav),
         )
     else:
         logger.info(
@@ -128,9 +130,7 @@ async def fav_command(message: types.Message):
         )
         await message.answer(
             text=msg.FAV_LIST_WITH_RECENTS_TO_BE_FAVED,
-            reply_markup=get_fav_or_recent_keyboard(
-                fav_or_recent_list=user_fav, recents_not_in_fav=True
-            ),
+            reply_markup=get_fav_keyboard(fav_list=user_fav, recents_not_in_fav=True),
             parse_mode="HTML",
         )
 
@@ -242,8 +242,9 @@ async def add_more_recents_to_fav_callback(callback: types.CallbackQuery):
     if not recents_not_in_favs:
         text = (
             f"All the recents of user {user.full_name} TGID {user.telegram_id} "
-            "are already in favorites. This should not happen. Please check "
-            "get_fav_or_recent_keyboard and any handler(s) that call it."
+            "are already in favorites. Yet add_more_recents_to_fav_callback "
+            "is called. This should not happen. Please check get_fav_keyboard "
+            "and any handler(s) that call it."
         )
         logger.error(text)
         await send_email_async(text)
@@ -254,3 +255,76 @@ async def add_more_recents_to_fav_callback(callback: types.CallbackQuery):
         reply_markup=add_recent_to_fav_keyboard(user_recent=recents_not_in_favs),
         parse_mode="HTML",
     )
+
+
+@router.callback_query(F.data == clb.FAVS_FOR_DELETION)
+async def favs_for_deletion_callback(callback: types.CallbackQuery):
+    """User: clicks the 'delete favs' button. Bot: select favs to be deleted."""
+    assert isinstance(callback.message, types.Message)
+    try:
+        user = await get_user_from_db_or_raise(telegram_id=callback.from_user.id)
+    except Exception as e:
+        logger.exception(e)
+        await send_email_async(e)
+        await callback.message.answer(msg.ERROR, reply_markup=back_to_start_keyboard())
+        return
+
+    logger.info(
+        f"User {user.full_name} TGID {user.telegram_id} clicked on "
+        "the 'Delete Favs' inline button. Replying."
+    )
+
+    try:
+        user_fav = await get_user_fav(user=user)
+    except Exception as e:
+        logger.exception(e)
+        await send_email_async(e)
+        await callback.message.answer(msg.ERROR, reply_markup=back_to_start_keyboard())
+        return
+
+    await callback.message.answer(
+        text=msg.FAVS_TO_BE_DELETED,
+        reply_markup=get_fav_keyboard(fav_list=user_fav, for_deletion=True),
+    )
+
+    await callback.answer()
+
+
+@router.callback_query(clb.DeleteFavCallbackFactory.filter())
+async def delete_fav_callback(
+    callback: types.CallbackQuery, callback_data: clb.DeleteFavCallbackFactory
+):
+    """User: clicks on the route button. Bot: deleted from favorites."""
+    fav_id = callback_data.recent_id
+    assert isinstance(callback.message, types.Message)
+
+    try:
+        user = await get_user_from_db_or_raise(telegram_id=callback.from_user.id)
+        recent = await delete_recent_from_fav(recent_id=fav_id)
+    except Exception as e:
+        logger.exception(e)
+        await send_email_async(e)
+        await callback.message.answer(msg.ERROR, reply_markup=back_to_start_keyboard())
+        return
+
+    logger.info(
+        f"User {callback.from_user.full_name} TGID {callback.from_user.id} "
+        f"deleted route {str(recent.route)} from favorites."
+    )
+
+    user_recents = await get_user_recent(user=user)
+    remaining_user_favs = [r for r in user_recents if r.favorite]
+    if remaining_user_favs:
+        await callback.message.answer(
+            text=msg.FAV_DELETED_MORE_REMAINING.format(route=str(recent.route)),
+            reply_markup=get_fav_keyboard(
+                fav_list=remaining_user_favs, for_deletion=True
+            ),
+        )
+    else:
+        await callback.message.answer(
+            text=msg.FAV_DELETED_NOW_EMPTY.format(route=str(recent.route)),
+            reply_markup=back_to_start_keyboard(),
+        )
+
+    await callback.answer()
