@@ -58,6 +58,12 @@ class AllRecentToFavCallbackFactory(CallbackData, prefix="all_recent_to_fav"):
     recent_ids: str
 
 
+class DeleteFavCallbackFactory(CallbackData, prefix="delete_fav"):
+    """Delete a recent from favorites callback factory."""
+
+    recent_id: int
+
+
 DEP_UID = "dep_uid"
 
 

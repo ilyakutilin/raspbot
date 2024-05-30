@@ -13,6 +13,7 @@ MORE_POINT_CHOICES = "Ещё ➡️"
 ADD_TO_FAV = "Добавить в избранное ⭐️"
 ADD_MORE_TO_FAV = "Добавить другие маршруты ➕➕"
 ADD_ALL_RECENT_TO_FAV = "Добавить все"
+DELETE_FAVS = "Удалить из избранного"
 
 TILL_THE_END_OF_THE_DAY = "Все рейсы до конца дня"
 TOMORROW = "Завтра"
