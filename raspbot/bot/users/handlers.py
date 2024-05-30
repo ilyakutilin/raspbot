@@ -254,3 +254,36 @@ async def add_more_recents_to_fav_callback(callback: types.CallbackQuery):
         reply_markup=add_recent_to_fav_keyboard(user_recent=recents_not_in_favs),
         parse_mode="HTML",
     )
+
+
+@router.callback_query(F.data == clb.FAVS_FOR_DELETION)
+async def favs_for_deletion_callback(callback: types.CallbackQuery):
+    """User: clicks the 'delete favs' button. Bot: select favs to be deleted."""
+    assert isinstance(callback.message, types.Message)
+    try:
+        user = await get_user_from_db_or_raise(telegram_id=callback.from_user.id)
+    except Exception as e:
+        logger.exception(e)
+        await send_email_async(e)
+        await callback.message.answer(msg.ERROR, reply_markup=back_to_start_keyboard())
+        return
+
+    logger.info(
+        f"User {user.full_name} TGID {user.telegram_id} clicked on "
+        "the 'Delete Favs' inline button. Replying."
+    )
+
+    try:
+        user_fav = await get_user_fav(user=user)
+    except Exception as e:
+        logger.exception(e)
+        await send_email_async(e)
+        await callback.message.answer(msg.ERROR, reply_markup=back_to_start_keyboard())
+        return
+
+    await callback.message.answer(
+        text=msg.FAVS_TO_BE_DELETED,
+        reply_markup=get_fav_keyboard(fav_list=user_fav, for_deletion=True),
+    )
+
+    await callback.answer()

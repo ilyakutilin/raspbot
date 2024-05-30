@@ -22,30 +22,40 @@ def get_recent_keyboard(
         )
     builder.button(text=btn.NEW_SEARCH, callback_data=clb.NEW_SEARCH)
     builder.adjust(1)
-    logger.info(f"fav_or_recent_keyboard contains {len(set(builder.buttons))} buttons.")
+    logger.info(f"recent_keyboard contains {len(set(builder.buttons))} buttons.")
     return builder.as_markup()
 
 
 @log(logger)
 def get_fav_keyboard(
     fav_list: list[RecentORM],
+    for_deletion: bool = False,
     recents_not_in_fav: bool = False,
 ) -> types.InlineKeyboardMarkup:
     """Keyboard for favorite or recent routes."""
     builder = InlineKeyboardBuilder()
+
+    clb_factory = (
+        clb.DeleteFavCallbackFactory
+        if for_deletion
+        else clb.GetTimetableCallbackFactory
+    )
+
     for element in fav_list:
         builder.button(
             text=element.route.short,  # type: ignore
-            callback_data=clb.GetTimetableCallbackFactory(recent_id=element.id),
+            callback_data=clb_factory(recent_id=element.id),
         )
-    if recents_not_in_fav:
-        builder.button(
-            text=btn.ADD_MORE_TO_FAV,
-            callback_data=clb.MORE_RECENTS_TO_FAV,
-        )
+    if not for_deletion:
+        if recents_not_in_fav:
+            builder.button(
+                text=btn.ADD_MORE_TO_FAV,
+                callback_data=clb.MORE_RECENTS_TO_FAV,
+            )
+        builder.button(text=btn.DELETE_FAVS, callback_data=clb.FAVS_FOR_DELETION)
     builder.button(text=btn.NEW_SEARCH, callback_data=clb.NEW_SEARCH)
     builder.adjust(1)
-    logger.info(f"fav_or_recent_keyboard contains {len(set(builder.buttons))} buttons.")
+    logger.info(f"fav_keyboard contains {len(set(builder.buttons))} buttons.")
     return builder.as_markup()
 
 
