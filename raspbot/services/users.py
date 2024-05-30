@@ -155,3 +155,9 @@ async def add_or_update_recent(user_id: int, route_id: int):
 async def add_recent_to_fav(recent_id: int) -> RecentORM:
     """Adds recent to user favorite routes."""
     return await crud_recents.add_recent_to_fav(recent_id=recent_id)
+
+
+@log(logger)
+async def delete_recent_from_fav(recent_id: int) -> RecentORM:
+    """Deletes recent from user favorite routes."""
+    return await crud_recents.delete_recent_from_fav(recent_id=recent_id)

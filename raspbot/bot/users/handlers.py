@@ -18,6 +18,7 @@ from raspbot.db.models import RouteORM
 from raspbot.services.routes import RouteRetriever
 from raspbot.services.users import (
     add_recent_to_fav,
+    delete_recent_from_fav,
     get_recent_by_route,
     get_user_fav,
     get_user_from_db_or_raise,
@@ -285,5 +286,45 @@ async def favs_for_deletion_callback(callback: types.CallbackQuery):
         text=msg.FAVS_TO_BE_DELETED,
         reply_markup=get_fav_keyboard(fav_list=user_fav, for_deletion=True),
     )
+
+    await callback.answer()
+
+
+@router.callback_query(clb.DeleteFavCallbackFactory.filter())
+async def delete_fav_callback(
+    callback: types.CallbackQuery, callback_data: clb.DeleteFavCallbackFactory
+):
+    """User: clicks on the route button. Bot: deleted from favorites."""
+    fav_id = callback_data.recent_id
+    assert isinstance(callback.message, types.Message)
+
+    try:
+        user = await get_user_from_db_or_raise(telegram_id=callback.from_user.id)
+        recent = await delete_recent_from_fav(recent_id=fav_id)
+    except Exception as e:
+        logger.exception(e)
+        await send_email_async(e)
+        await callback.message.answer(msg.ERROR, reply_markup=back_to_start_keyboard())
+        return
+
+    logger.info(
+        f"User {callback.from_user.full_name} TGID {callback.from_user.id} "
+        f"deleted route {str(recent.route)} from favorites."
+    )
+
+    user_recents = await get_user_recent(user=user)
+    remaining_user_favs = [r for r in user_recents if r.favorite]
+    if remaining_user_favs:
+        await callback.message.answer(
+            text=msg.FAV_DELETED_MORE_REMAINING.format(route=str(recent.route)),
+            reply_markup=get_fav_keyboard(
+                fav_list=remaining_user_favs, for_deletion=True
+            ),
+        )
+    else:
+        await callback.message.answer(
+            text=msg.FAV_DELETED_NOW_EMPTY.format(route=str(recent.route)),
+            reply_markup=back_to_start_keyboard(),
+        )
 
     await callback.answer()
