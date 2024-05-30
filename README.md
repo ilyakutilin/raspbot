@@ -45,6 +45,11 @@ For English go [here](https://github.com/ilyakutilin/raspbot/blob/e2a2dafe56fb0b
 
 Необходимо установить [Docker](https://docs.docker.com/engine/install/) и [Docker Compose](https://docs.docker.com/compose/install/).
 
+Из России с 30 мая 2024 г. доступ к Docker только через прокси или VPN. После установки нужно прописать следующее в /etc/docker/daemon.json:
+```
+{"registry-mirrors": ["https://mirror.gcr.io", "https://daocloud.io", "https://c.163.com/", "https://huecker.io/", "https://registry.docker-cn.com"]}
+```
+
 Далее:
 
 ```bash
