@@ -25,13 +25,13 @@ class Timetable:
     def __init__(
         self,
         route: RouteORM | RouteResponsePD,
-        date: dt.date = dt.date.today(),
+        date: dt.date | None = None,
         limit: int | None = None,
         add_msg_text: str | None = None,
     ):
         """Initializes a Timetable class instance."""
         self.route = route
-        self.date = date
+        self.date = date if date else dt.date.today()
         self.limit = limit
         self.add_msg_text = (add_msg_text + "\n" * 2) if add_msg_text else ""
 
