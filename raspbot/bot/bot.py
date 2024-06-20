@@ -4,7 +4,10 @@ from aiogram import Bot, Dispatcher
 from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.client.telegram import TEST
 
-from raspbot.bot import routes_router, start_router, timetable_router, users_router
+from raspbot.bot.routes.handlers import router as routes_router
+from raspbot.bot.start.handlers import router as start_router
+from raspbot.bot.timetable.handlers import router as timetable_router
+from raspbot.bot.users.handlers import router as users_router
 from raspbot.core.logging import configure_logging
 from raspbot.settings import settings
 
