@@ -2,7 +2,7 @@ services:
   bot_raspbot:
     build: ../../.
     volumes:
-      - logs_raspbot:/app/logs
+      - /var/log/raspbot:/raspbot/logs
     env_file:
       - ../../.env
     networks:
@@ -13,6 +13,3 @@ services:
 networks:
   raspbot_net:
     external: true
-
-volumes:
-  logs_raspbot:
