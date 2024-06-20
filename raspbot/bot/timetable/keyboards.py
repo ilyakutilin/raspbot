@@ -103,6 +103,10 @@ async def get_separate_departure_keyboard(
     markup: types.InlineKeyboardMarkup = await get_today_departures_keyboard(
         timetable_obj=timetable_obj,
         buttons_qty_in_row=buttons_qty_in_row,
+        # This is a kludge - we don't need 'Add to fav' button for the departure view,
+        # so we set this to True regardless of whether it's actually true,
+        # just to get rid of the button.
+        route_is_in_user_fav=True,
     )
     for row in markup.inline_keyboard:
         for button in row:
