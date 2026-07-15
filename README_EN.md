@@ -81,7 +81,7 @@ For more information on using Docker go [here](https://docs.docker.com/reference
 
 - Deploy PostgreSQL database and fix its parameters in `.env`. For correct operation with the Russian language, `LC_COLLATE` and `LC_CTYPE` shall be set to `ru_RU.UTF-8`, and the database shall have [unaccent](https://www.postgresql.org/docs/current/unaccent.html) function [installed](https://www.postgresql.org/docs/current/sql-createextension.html) . Tested with PostgreSQL version [16](https://www.postgresql.org/about/news/postgresql-16-released-2715/).
 
-- Install [Poetry](https://python-poetry.org/docs/#installation). Poetry [1.8](https://python-poetry.org/blog/announcing-poetry-1.8.0/) is recommended.
+- Install [uv](https://docs.astral.sh/uv/getting-started/installation/).
 
 - Verify that Python `3.11` is available (you can use [Pyenv](https://github.com/pyenv/pyenv)). With `3.12` there are errors at launch, and `3.9` and less will not work due to the use of syntax that only appeared in `3.10` (`match`/`case`, type hints, etc.).
 
@@ -90,18 +90,14 @@ For more information on using Docker go [here](https://docs.docker.com/reference
 git clone https://github.com/ilyakutilin/raspbot.git
 # Go to the project folder
 cd raspbot
-# Activate the Poetry virtual environment
-# https://python-poetry.org/docs/basic-usage/#activating-the-virtual-environment
-poetry shell
-# Install dependencies
-# https://python-poetry.org/docs/basic-usage/#installing-dependencies
-poetry install
+# Activate the virtual environment and install dependencies
+uv sync
 # Go to the bot folder
 cd raspbot
 # Run migrations to create the database schema (database must be running and available)
-alembic upgrade head
+uv run alembic upgrade head
 # Start the bot
-python main.py
+uv run python main.py
 ```
 
 You can use optional keys when running the bot:
@@ -110,5 +106,5 @@ You can use optional keys when running the bot:
 - `-n` run the bot only, without a scheduler that tracks the relevance of station information in the database. In this case, it will be necessary to populate the database with station data before using the bot:
 
 ```bash
-python db/stations/parse.py
+uv run db/stations/parse.py
 ```

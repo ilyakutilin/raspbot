@@ -88,7 +88,7 @@ docker compose down
 
 - Развернуть базу данных PostgreSQL и прописать ее параметры в `.env`. Для корректной работы с русским языком `LC_COLLATE` и `LC_CTYPE` должны быть `ru_RU.UTF-8`, и в БД должна быть [установлена](https://www.postgresql.org/docs/current/sql-createextension.html) функция [unaccent](https://www.postgresql.org/docs/current/unaccent.html). Работа проверена с версией PostgreSQL [16](https://www.postgresql.org/about/news/postgresql-16-released-2715/).
 
-- Установить [Poetry](https://python-poetry.org/docs/#installation). Рекомендуется Poetry [1.8](https://python-poetry.org/blog/announcing-poetry-1.8.0/).
+- Установить [uv](https://docs.astral.sh/uv/getting-started/installation/).
 
 - Убедиться в наличии Python `3.11` (можно использовать [Pyenv](https://github.com/pyenv/pyenv)). С `3.12` возникают ошибки при запуске, а `3.9` и меньше не будут работать в связи с использованием синтаксиса, появившегося только в `3.10` (`match`/`case`, type hints и т.п.).
 
@@ -97,18 +97,14 @@ docker compose down
 git clone https://github.com/ilyakutilin/raspbot.git
 # Перейти в папку с проектом
 cd raspbot
-# Активировать виртуальное окружение Poetry
-# https://python-poetry.org/docs/basic-usage/#activating-the-virtual-environment
-poetry shell
-# Установить зависимости
-# https://python-poetry.org/docs/basic-usage/#installing-dependencies
-poetry install
+# Активировать виртуальное окружение и установить зависимости
+uv sync
 # Перейти в папку с ботом
 cd raspbot
 # Запустить миграции для создания схемы БД (БД должна быть запущена и доступна)
-alembic upgrade head
+uv run alembic upgrade head
 # Запустить бота
-python main.py
+uv run python main.py
 ```
 
 При запуске бота можно использовать опциональные ключи:
@@ -117,5 +113,5 @@ python main.py
 - `-n` запуск только бота, без планировщика, отслеживающего актуальность информации о станциях в БД. В этом случае перед непосредственным использованием бота необходимо будет заполнить БД данными о станциях:
 
 ```bash
-python db/stations/parse.py
+uv run python db/stations/parse.py
 ```

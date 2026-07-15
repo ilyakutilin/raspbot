@@ -1,18 +1,17 @@
 FROM python:3.11 AS builder
 
-RUN pip install poetry==1.8.2
+RUN pip install uv
 
-ENV POETRY_NO_INTERACTION=1 \
-    POETRY_VIRTUALENVS_IN_PROJECT=1 \
-    POETRY_VIRTUALENVS_CREATE=1 \
-    POETRY_CACHE_DIR=/tmp/poetry_cache
+ENV UV_LINK_MODE=copy \
+    UV_COMPILE_BYTECODE=1 \
+    UV_CACHE_DIR=/tmp/uv_cache
 
 WORKDIR /raspbot
 
-COPY pyproject.toml poetry.lock ./
+COPY pyproject.toml uv.lock ./
 RUN touch README.md
 
-RUN poetry install --without dev --no-root --no-interaction --no-ansi && rm -rf $POETRY_CACHE_DIR
+RUN uv sync --no-group dev --frozen --no-install-project && rm -rf $UV_CACHE_DIR
 
 # The runtime image, used to just run the code provided its virtual environment
 FROM python:3.11-slim AS runtime
